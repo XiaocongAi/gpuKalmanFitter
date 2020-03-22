@@ -10,9 +10,9 @@ Acts::Propagator<S>::propagate(const parameters_t &start,
   using StateType = State<propagator_options_t>;
   StateType state(start, options);
 
-  int maxSteps = state.options.maxSteps < result.nSteps()
+  int maxSteps = state.options.maxSteps < result.steps()
                      ? state.options.maxSteps
-                     : result.nSteps();
+                     : result.steps();
   //  printf("maxSteps = %f\n", maxSteps);
   int iStep = 0;
   for (; iStep < maxSteps; ++iStep) {

@@ -10,11 +10,11 @@ using Vector3DMap = Eigen::Map<Vector3D>;
 
 /// @brief Propagator result
 ///
-template <int numSteps> struct PropagatorResult {
+template <unsigned int nSteps> struct PropagatorResult {
   PropagatorResult() = default;
-  Eigen::Array<double, 3, numSteps> position;
-  Eigen::Array<double, 3, numSteps> momentum;
-  int nSteps() { return numSteps; }
+  Eigen::Array<double, 3, nSteps> position;
+  Eigen::Array<double, 3, nSteps> momentum;
+  int steps() { return nSteps; }
 };
 
 /// @brief Options for propagate() call
