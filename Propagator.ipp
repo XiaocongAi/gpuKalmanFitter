@@ -13,14 +13,14 @@ Acts::Propagator<S>::propagate(const parameters_t &start,
   int maxSteps = state.options.maxSteps < result.nSteps()
                      ? state.options.maxSteps
                      : result.nSteps();
+  //  printf("maxSteps = %f\n", maxSteps);
   int iStep = 0;
   for (; iStep < maxSteps; ++iStep) {
     m_stepper.step(state);
     Vector3DMap(result.position.col(iStep).data()) = state.stepping.pos;
-    double x = state.stepping.pos.x();
-    //  printf("pos.x = %f\n", x);
-    // std::cout<<"cout pos.x = "<<state.stepping.pos.x()<<std::endl;
     Vector3DMap(result.momentum.col(iStep).data()) =
         state.stepping.p * state.stepping.dir;
+    // printf("pos = (%f, %f, %f)\n", state.stepping.pos.x(),
+    // state.stepping.pos.y(), state.stepping.pos.z());
   }
 }

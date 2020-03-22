@@ -27,12 +27,16 @@ __global__ void propKernel(PropagatorType *propagator,
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if (i < N) {
     propagator->propagate(tpars[i], *propOptions, propResult[i]);
+    // printf("propResult[i] = %f", propResult[i].position.col(1).x());
   }
 }
 
 int main(int argc, char *argv[]) {
-  const int nTracks = 10;
-  std::cout << "----- Propgation test for " << nTracks <<" tracks ----- "<<std::endl;
+  const int nTracks = atoi(argv[1]);
+  const int runOnGPU = atoi(argv[2]);
+  std::string device = (runOnGPU == 1 ? "GPU" : "CPU");
+  std::cout << "----- Propgation test of " << nTracks << " tracks on " << device
+            << " ----- " << std::endl;
 
   // Construct a stepper
   Stepper stepper;
@@ -65,7 +69,7 @@ int main(int argc, char *argv[]) {
     pars[i] = rStart;
     std::cout << " rPos = (" << pars[i].position().x() << ", "
               << pars[i].position().y() << ", " << pars[i].position().z()
-              << ") "<<std::endl;
+              << ") " << std::endl;
   }
   cudaMalloc(&d_pars, nTracks * sizeof(TrackParameters));
   cudaMemcpy(d_pars, pars, nTracks * sizeof(TrackParameters),
@@ -74,18 +78,23 @@ int main(int argc, char *argv[]) {
   // Allocate memory for propagation result
   PropResultType ress[nTracks], *d_ress;
   cudaMalloc(&d_ress, nTracks * sizeof(PropResultType));
-  cudaMemcpy(d_ress, ress, nTracks * sizeof(ress), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_ress, ress, nTracks * sizeof(PropResultType),
+             cudaMemcpyHostToDevice);
 
-  int threadsPerBlock = 256;
-  int blocksPerGrid = (nTracks + threadsPerBlock - 1) / threadsPerBlock;
-  //propKernel<<<blocksPerGrid, threadsPerBlock>>>(d_propagator, d_opt, d_pars,
-  //                                                d_ress, nTracks);
-  // //Copy result from device to host
-  //cudaMemcpy(ress, d_ress, nTracks * sizeof(ress), cudaMemcpyDeviceToHost);
- 
-  // Run on host 
-  for (int it = 0; it < nTracks; it++) {
-    propagator.propagate(pars[it], propOptions, ress[it]);
+  if (runOnGPU == 1) {
+    // Run on device
+    int threadsPerBlock = 256;
+    int blocksPerGrid = (nTracks + threadsPerBlock - 1) / threadsPerBlock;
+    propKernel<<<blocksPerGrid, threadsPerBlock>>>(d_propagator, d_opt, d_pars,
+                                                   d_ress, nTracks);
+    // Copy result from device to host
+    cudaMemcpy(ress, d_ress, nTracks * sizeof(PropResultType),
+               cudaMemcpyDeviceToHost);
+  } else {
+    // Run on host
+    for (int it = 0; it < nTracks; it++) {
+      propagator.propagate(pars[it], propOptions, ress[it]);
+    }
   }
 
   // Write result to obj file
@@ -93,11 +102,11 @@ int main(int argc, char *argv[]) {
   std::cout << "--------------------------" << std::endl;
 
   for (int it = 0; it < nTracks; it++) {
-    auto res = ress[it];
+    PropResultType res = ress[it];
     std::ofstream obj_track;
     std::string fileName = "Track-" + std::to_string(it) + ".obj";
     obj_track.open(fileName.c_str());
-  
+
     for (int iv = 0; iv < res.nSteps(); iv++) {
       obj_track << "v " << res.position.col(iv).x() << " "
                 << res.position.col(iv).y() << " " << res.position.col(iv).z()
