@@ -8,7 +8,8 @@ namespace VectorHelpers {
 /// @param [in] m Matrix that will be used for cross products
 /// @param [in] v Vector for cross products
 /// @return Constructed matrix
-__host__ __device__ inline ActsMatrixD<3, 3> cross(const ActsMatrixD<3, 3> &m, const Vector3D &v) {
+__host__ __device__ inline ActsMatrixD<3, 3> cross(const ActsMatrixD<3, 3> &m,
+                                                   const Vector3D &v) {
   ActsMatrixD<3, 3> r;
   r.col(0) = m.col(0).cross(v);
   r.col(1) = m.col(1).cross(v);

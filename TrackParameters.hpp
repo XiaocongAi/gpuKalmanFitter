@@ -3,7 +3,7 @@
 namespace Acts {
 struct TrackParameters {
   /// Default constructor
-  __host__ __device__ TrackParameters() = default;
+  TrackParameters() = default;
 
   /// Constructor from arguments
   __host__ __device__ TrackParameters(const Vector3D &position,

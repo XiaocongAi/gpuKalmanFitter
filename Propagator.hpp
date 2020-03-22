@@ -1,5 +1,7 @@
 #include "Definitions.hpp"
 #include <Eigen/Core>
+#include <cstdio>
+#include <iostream>
 #include <numeric>
 #include <vector>
 
@@ -9,10 +11,10 @@ using Vector3DMap = Eigen::Map<Vector3D>;
 /// @brief Propagator result
 ///
 template <int numSteps> struct PropagatorResult {
-  __host__ __device__ PropagatorResult() { nSteps = numSteps; }
+  PropagatorResult() = default;
   Eigen::Array<double, 3, numSteps> position;
   Eigen::Array<double, 3, numSteps> momentum;
-  int nSteps;
+  int nSteps() { return numSteps; }
 };
 
 /// @brief Options for propagate() call
@@ -20,7 +22,7 @@ template <int numSteps> struct PropagatorResult {
 struct PropagatorOptions {
 
   /// Default constructor
-  __host__ __device__ PropagatorOptions() = default;
+  PropagatorOptions() = default;
 
   /// Propagation direction
   NavigationDirection direction = forward;
