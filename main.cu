@@ -1,11 +1,13 @@
 #include "EigenStepper.hpp"
 #include "Propagator.hpp"
 #include "TrackParameters.hpp"
+#include <thrust/device_vector.h>
+
+#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <random>
 #include <string>
-#include <thrust/device_vector.h>
 #include <vector>
 
 static void show_usage(std::string name) {
@@ -26,7 +28,7 @@ struct BField {
   }
 };
 
-constexpr unsigned int maxSteps = 100;
+constexpr unsigned int maxSteps = 1000;
 
 using namespace Acts;
 using Stepper = EigenStepper<BField>;
@@ -84,7 +86,7 @@ int main(int argc, char *argv[]) {
   PropagatorType propagator(stepper);
   // Construct the propagation options object
   PropagatorOptions propOptions;
-  propOptions.maxSteps = 100;
+  propOptions.maxSteps = 1000;
 
   // Construct random starting track parameters
   std::normal_distribution<double> gauss(0., 1.);
@@ -106,29 +108,32 @@ int main(int argc, char *argv[]) {
   // Propagation result
   PropResultType ress[nTracks];
 
-  // Allocate memory on device
-  PropagatorType *d_propagator;
-  PropagatorOptions *d_opt;
-  TrackParameters *d_pars;
-  PropResultType *d_ress;
-  cudaMalloc((void **)&d_propagator, sizeof(PropagatorType));
-  cudaMalloc((void **)&d_opt, sizeof(PropagatorOptions));
-  cudaMalloc(&d_pars, nTracks * sizeof(TrackParameters));
-  cudaMalloc(&d_ress, nTracks * sizeof(PropResultType));
-
-  // Copy from host to device
-  cudaMemcpy(d_propagator, &propagator, sizeof(PropagatorType),
-             cudaMemcpyHostToDevice);
-  cudaMemcpy(d_opt, &propOptions, sizeof(PropagatorOptions),
-             cudaMemcpyHostToDevice);
-  cudaMemcpy(d_pars, pars, nTracks * sizeof(TrackParameters),
-             cudaMemcpyHostToDevice);
-  cudaMemcpy(d_ress, ress, nTracks * sizeof(PropResultType),
-             cudaMemcpyHostToDevice);
+  auto start = std::chrono::high_resolution_clock::now();
 
   // Running directly on host or offloading to GPU
   bool useGPU = (device == "gpu" ? true : false);
   if (useGPU) {
+    // Allocate memory on device
+    PropagatorType *d_propagator;
+    PropagatorOptions *d_opt;
+    TrackParameters *d_pars;
+    PropResultType *d_ress;
+
+    cudaMalloc((void **)&d_propagator, sizeof(PropagatorType));
+    cudaMalloc((void **)&d_opt, sizeof(PropagatorOptions));
+    cudaMalloc(&d_pars, nTracks * sizeof(TrackParameters));
+    cudaMalloc(&d_ress, nTracks * sizeof(PropResultType));
+
+    // Copy from host to device
+    cudaMemcpy(d_propagator, &propagator, sizeof(PropagatorType),
+               cudaMemcpyHostToDevice);
+    cudaMemcpy(d_opt, &propOptions, sizeof(PropagatorOptions),
+               cudaMemcpyHostToDevice);
+    cudaMemcpy(d_pars, pars, nTracks * sizeof(TrackParameters),
+               cudaMemcpyHostToDevice);
+    cudaMemcpy(d_ress, ress, nTracks * sizeof(PropResultType),
+               cudaMemcpyHostToDevice);
+
     // Run on device
     int threadsPerBlock = 256;
     int blocksPerGrid = (nTracks + threadsPerBlock - 1) / threadsPerBlock;
@@ -137,16 +142,26 @@ int main(int argc, char *argv[]) {
     // Copy result from device to host
     cudaMemcpy(ress, d_ress, nTracks * sizeof(PropResultType),
                cudaMemcpyDeviceToHost);
+
+    // Free the memory on device
+    cudaFree(d_propagator);
+    cudaFree(d_opt);
+    cudaFree(d_pars);
+    cudaFree(d_ress);
   } else {
     // Run on host
     for (int it = 0; it < nTracks; it++) {
       propagator.propagate(pars[it], propOptions, ress[it]);
     }
   }
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> elapsed_seconds = end - start;
+  std::cout << "Time (sec) to run propagation tests: "
+            << elapsed_seconds.count() << std::endl;
 
   // Write result to obj file
-  std::cout << "- yielded " << nTracks << " tracks " << std::endl;
-  std::cout << "--------------------------" << std::endl;
+  std::cout << "Writing yielded " << nTracks << " tracks to obj files..."
+            << std::endl;
 
   for (int it = 0; it < nTracks; it++) {
     PropResultType res = ress[it];
@@ -166,10 +181,8 @@ int main(int argc, char *argv[]) {
     obj_track.close();
   }
 
-  cudaFree(d_propagator);
-  cudaFree(d_opt);
-  cudaFree(d_pars);
-  cudaFree(d_ress);
+  std::cout << "------------------------  ending  -----------------------"
+            << std::endl;
 
   return 0;
 }
