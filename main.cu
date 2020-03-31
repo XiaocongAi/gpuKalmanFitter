@@ -156,6 +156,7 @@ int main(int argc, char *argv[]) {
     cudaFree(d_ress);
   } else {
     // Run on host
+    #pragma omp parallel for
     for (int it = 0; it < nTracks; it++) {
       propagator.propagate(pars[it], propOptions, ress[it]);
     }
