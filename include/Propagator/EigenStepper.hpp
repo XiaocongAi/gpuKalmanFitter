@@ -96,6 +96,11 @@ template <typename bfield_t> struct EigenStepper {
     return m_bField.getField(pos);
   }
 
+  /// @brief Get a non-const reference on the underlying bField
+  ///
+  /// @return bField reference
+  ACTS_DEVICE_FUNC BField &refField() { return m_bField; }
+
   /// Perform a Runge-Kutta track parameter propagation step
   ///
   /// @param [in,out] state is the propagation state associated with the track

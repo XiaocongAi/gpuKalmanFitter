@@ -164,10 +164,9 @@ public:
   /// @param [in] grid      grid storing magnetic field values
   ACTS_DEVICE_FUNC
   InterpolatedBFieldMapper(TransformPosType transformPos,
-                           TransformBFieldType transformBField, Grid_t grid)
+                           TransformBFieldType transformBField, Grid_t &&grid)
       : m_transformPos(std::move(transformPos)),
-        m_transformBField(std::move(transformBField)), m_grid(std::move(grid)) {
-  }
+        m_transformBField(std::move(transformBField)), m_grid(grid) {}
 
   /// @brief retrieve field at given position
   ///
@@ -242,6 +241,11 @@ public:
   ///
   /// @return grid reference
   ACTS_DEVICE_FUNC const Grid_t &getGrid() const { return m_grid; }
+
+  /// @brief Get a reference on the underlying grid structure
+  ///
+  /// @return grid reference
+  ACTS_DEVICE_FUNC Grid_t &refGrid() { return m_grid; }
 
 private:
   /// geometric transformation applied to global 3D positions
@@ -372,6 +376,11 @@ public:
   ///
   /// @return the field mapper
   ACTS_DEVICE_FUNC Mapper_t getMapper() const { return m_config.mapper; }
+
+  /// @brief Get a non-const reference on the underlying field mapper
+  ///
+  /// @return the field mapper reference
+  ACTS_DEVICE_FUNC Mapper_t &refMapper() { return m_config.mapper; }
 
   /// @brief check whether given 3D position is inside look-up domain
   ///

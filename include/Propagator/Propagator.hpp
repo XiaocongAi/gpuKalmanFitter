@@ -104,6 +104,11 @@ public:
                                   const propagator_options_t &options,
                                   result_t &result) const;
 
+  /// @brief Get a non-const reference on the underlying stepper
+  ///
+  /// @return stepper reference
+  ACTS_DEVICE_FUNC stepper_t &refStepper() { return m_stepper; }
+
 private:
   /// Implementation of propagation algorithm
   stepper_t m_stepper;
