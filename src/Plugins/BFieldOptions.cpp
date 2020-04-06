@@ -15,12 +15,12 @@
 //#include "MagneticField/ConstantBField.hpp"
 #include "Utilities/Units.hpp"
 
-using InterpolatedMapper2D = Acts::InterpolatedBFieldMapper<Acts::detail::Grid<
-    Acts::Vector2D, Acts::ATLASBFieldSize, Acts::detail::EquidistantAxis,
-    Acts::detail::EquidistantAxis>>;
+using InterpolatedMapper2D = Acts::InterpolatedBFieldMapper<
+    Acts::detail::Grid<Acts::Vector2D, Acts::detail::EquidistantAxis,
+                       Acts::detail::EquidistantAxis>>;
 
 using InterpolatedMapper3D = Acts::InterpolatedBFieldMapper<Acts::detail::Grid<
-    Acts::Vector3D, Acts::ATLASBFieldSize, Acts::detail::EquidistantAxis,
+    Acts::Vector3D, Acts::detail::EquidistantAxis,
     Acts::detail::EquidistantAxis, Acts::detail::EquidistantAxis>>;
 
 using InterpolatedBFieldMap2D =

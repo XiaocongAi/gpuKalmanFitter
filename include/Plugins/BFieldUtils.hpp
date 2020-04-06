@@ -56,9 +56,9 @@ using namespace Acts;
 /// If the flag is set to true the r-axis grid values will be set to
 /// {-1,0,1}
 /// and the BFieldValues will be set to {3,2,3}.
-Acts::InterpolatedBFieldMapper<Acts::detail::Grid<
-    Acts::Vector2D, Acts::ATLASBFieldSize, Acts::detail::EquidistantAxis,
-    Acts::detail::EquidistantAxis>>
+Acts::InterpolatedBFieldMapper<
+    Acts::detail::Grid<Acts::Vector2D, Acts::detail::EquidistantAxis,
+                       Acts::detail::EquidistantAxis>>
 fieldMapperRZ(std::function<size_t(std::array<size_t, 2> binsRZ,
                                    std::array<size_t, 2> nBinsRZ)>
                   localToGlobalBin,
@@ -111,7 +111,7 @@ fieldMapperRZ(std::function<size_t(std::array<size_t, 2> binsRZ,
 /// {-1,0,1}
 /// and the BFieldValues will be set to {3,2,3}.
 Acts::InterpolatedBFieldMapper<Acts::detail::Grid<
-    Acts::Vector3D, Acts::ATLASBFieldSize, Acts::detail::EquidistantAxis,
+    Acts::Vector3D, Acts::detail::EquidistantAxis,
     Acts::detail::EquidistantAxis, Acts::detail::EquidistantAxis>>
 fieldMapperXYZ(std::function<size_t(std::array<size_t, 3> binsXYZ,
                                     std::array<size_t, 3> nBinsXYZ)>

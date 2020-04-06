@@ -19,6 +19,8 @@ aux_source_directory(src/MagneticField LIB_SRC_BField)
 aux_source_directory(src/Plugins LIB_SRC_Plugins)
 
 find_package(Eigen3)
+find_package(CUDA)
+include_directories(${CUDA_TOOLKIT_INCLUDE})
 
 add_library(Actscore SHARED ${LIB_SRC_MAT} ${LIB_SRC_SUR} ${LIB_SRC_BField} ${LIB_SRC_Plugins})
 target_link_libraries(Actscore PUBLIC Eigen3::Eigen)
@@ -30,7 +32,6 @@ target_include_directories(Actscore
   $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
   )
 
-#add_subdirectory(exe_gcc)
 add_subdirectory(exe_cuda)
 
 # install-tree

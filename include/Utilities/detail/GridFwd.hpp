@@ -10,6 +10,6 @@
 
 namespace Acts {
 namespace detail {
-template <typename T, size_t SIZE, class... Axes> class Grid;
+template <typename T, class... Axes> class Grid;
 }
 } // namespace Acts

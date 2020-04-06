@@ -15,9 +15,9 @@
 
 using Acts::VectorHelpers::perp;
 
-Acts::InterpolatedBFieldMapper<Acts::detail::Grid<
-    Acts::Vector2D, Acts::ATLASBFieldSize, Acts::detail::EquidistantAxis,
-    Acts::detail::EquidistantAxis>>
+Acts::InterpolatedBFieldMapper<
+    Acts::detail::Grid<Acts::Vector2D, Acts::detail::EquidistantAxis,
+                       Acts::detail::EquidistantAxis>>
 Acts::fieldMapperRZ(const std::function<size_t(std::array<size_t, 2> binsRZ,
                                                std::array<size_t, 2> nBinsRZ)>
                         &localToGlobalBin,
@@ -62,9 +62,9 @@ Acts::fieldMapperRZ(const std::function<size_t(std::array<size_t, 2> binsRZ,
                                       nBinsZ);
 
   // Create the grid
-  using Grid_t = Acts::detail::Grid<Acts::Vector2D, Acts::ATLASBFieldSize,
-                                    Acts::detail::EquidistantAxis,
-                                    Acts::detail::EquidistantAxis>;
+  using Grid_t =
+      Acts::detail::Grid<Acts::Vector2D, Acts::detail::EquidistantAxis,
+                         Acts::detail::EquidistantAxis>;
   Grid_t grid(std::make_tuple(std::move(rAxis), std::move(zAxis)));
 
   // [2] Set the bField values
@@ -122,7 +122,7 @@ Acts::fieldMapperRZ(const std::function<size_t(std::array<size_t, 2> binsRZ,
 }
 
 Acts::InterpolatedBFieldMapper<Acts::detail::Grid<
-    Acts::Vector3D, Acts::ATLASBFieldSize, Acts::detail::EquidistantAxis,
+    Acts::Vector3D, Acts::detail::EquidistantAxis,
     Acts::detail::EquidistantAxis, Acts::detail::EquidistantAxis>>
 Acts::fieldMapperXYZ(const std::function<size_t(std::array<size_t, 3> binsXYZ,
                                                 std::array<size_t, 3> nBinsXYZ)>
@@ -186,9 +186,10 @@ Acts::fieldMapperXYZ(const std::function<size_t(std::array<size_t, 3> binsXYZ,
   Acts::detail::EquidistantAxis zAxis(zMin * lengthUnit, zMax * lengthUnit,
                                       nBinsZ);
   // Create the grid
-  using Grid_t = Acts::detail::Grid<
-      Acts::Vector3D, Acts::ATLASBFieldSize, Acts::detail::EquidistantAxis,
-      Acts::detail::EquidistantAxis, Acts::detail::EquidistantAxis>;
+  using Grid_t =
+      Acts::detail::Grid<Acts::Vector3D, Acts::detail::EquidistantAxis,
+                         Acts::detail::EquidistantAxis,
+                         Acts::detail::EquidistantAxis>;
   Grid_t grid(
       std::make_tuple(std::move(xAxis), std::move(yAxis), std::move(zAxis)));
 
@@ -238,9 +239,9 @@ Acts::fieldMapperXYZ(const std::function<size_t(std::array<size_t, 3> binsXYZ,
       Transform3DPos(), Transform3DBField(), std::move(grid));
 }
 
-Acts::InterpolatedBFieldMapper<Acts::detail::Grid<
-    Acts::Vector2D, Acts::ATLASBFieldSize, Acts::detail::EquidistantAxis,
-    Acts::detail::EquidistantAxis>>
+Acts::InterpolatedBFieldMapper<
+    Acts::detail::Grid<Acts::Vector2D, Acts::detail::EquidistantAxis,
+                       Acts::detail::EquidistantAxis>>
 Acts::solenoidFieldMapper(std::pair<double, double> rlim,
                           std::pair<double, double> zlim,
                           std::pair<size_t, size_t> nbins,
@@ -263,9 +264,9 @@ Acts::solenoidFieldMapper(std::pair<double, double> rlim,
   Acts::detail::EquidistantAxis zAxis(zMin, zMax, nBinsZ);
 
   // Create the grid
-  using Grid_t = Acts::detail::Grid<Acts::Vector2D, Acts::ATLASBFieldSize,
-                                    Acts::detail::EquidistantAxis,
-                                    Acts::detail::EquidistantAxis>;
+  using Grid_t =
+      Acts::detail::Grid<Acts::Vector2D, Acts::detail::EquidistantAxis,
+                         Acts::detail::EquidistantAxis>;
   Grid_t grid(std::make_tuple(std::move(rAxis), std::move(zAxis)));
 
   // Create the transformation for the position

@@ -12,9 +12,9 @@
 #include "Utilities/detail/Grid.hpp"
 #include <fstream>
 
-Acts::InterpolatedBFieldMapper<Acts::detail::Grid<
-    Acts::Vector2D, Acts::ATLASBFieldSize, Acts::detail::EquidistantAxis,
-    Acts::detail::EquidistantAxis>>
+Acts::InterpolatedBFieldMapper<
+    Acts::detail::Grid<Acts::Vector2D, Acts::detail::EquidistantAxis,
+                       Acts::detail::EquidistantAxis>>
 BField::txt::fieldMapperRZ(std::function<size_t(std::array<size_t, 2> binsRZ,
                                                 std::array<size_t, 2> nBinsRZ)>
                                localToGlobalBin,
@@ -54,7 +54,7 @@ BField::txt::fieldMapperRZ(std::function<size_t(std::array<size_t, 2> binsRZ,
 }
 
 Acts::InterpolatedBFieldMapper<Acts::detail::Grid<
-    Acts::Vector3D, Acts::ATLASBFieldSize, Acts::detail::EquidistantAxis,
+    Acts::Vector3D, Acts::detail::EquidistantAxis,
     Acts::detail::EquidistantAxis, Acts::detail::EquidistantAxis>>
 BField::txt::fieldMapperXYZ(
     std::function<size_t(std::array<size_t, 3> binsXYZ,

@@ -27,7 +27,7 @@ namespace detail {
 /// either by global bin index, local bin indices or position.
 ///
 /// @note @c T must be default-constructible.
-template <typename T, size_t SIZE, class... Axes> class Grid final {
+template <typename T, class... Axes> class Grid final {
 public:
   /// number of dimensions of the grid
   static constexpr size_t DIM = sizeof...(Axes);
@@ -47,8 +47,30 @@ public:
   ///
   /// @param [in] axes actual axis objects spanning the grid
   ACTS_DEVICE_FUNC Grid(std::tuple<Axes...> axes) : m_axes(std::move(axes)) {
-    m_values.resize(3, size());
+    m_values = new T[size()];
   }
+
+  /// Copy constructor
+  ///
+  /// @param rhs is the source Grid
+  ACTS_DEVICE_FUNC Grid(const Grid &rhs) : m_axes(rhs.m_axes) {
+    m_values = new T[rhs.size()];
+    memcpy(m_values, rhs.m_values, sizeof(T) * rhs.size());
+  }
+
+  /// Assignment constructor
+  ///
+  /// @param rhs is the source Grid
+  ACTS_DEVICE_FUNC Grid &operator=(const Grid &rhs) {
+    m_axes = rhs.m_axes;
+    m_values = new T[rhs.size()];
+    memcpy(m_values, rhs.m_values, sizeof(T) * rhs.size());
+    return (*this);
+  }
+
+  /// @brief default destructor
+  ///
+  ACTS_DEVICE_FUNC ~Grid() { delete[] m_values; }
 
   /// @brief access value stored in bin for a given point
   ///
@@ -66,7 +88,7 @@ public:
   //
   template <class Point>
   ACTS_DEVICE_FUNC reference atPosition(const Point &point) {
-    return reference(m_values.col(globalBinFromPosition(point)).data());
+    return reference(m_values[globalBinFromPosition(point)].data());
   }
 
   /// @brief access value stored in bin for a given point
@@ -85,7 +107,7 @@ public:
   ///       Therefore, the look-up will never fail.
   template <class Point>
   ACTS_DEVICE_FUNC const_reference atPosition(const Point &point) const {
-    return const_reference(m_values.col(globalBinFromPosition(point)).data());
+    return const_reference(m_values[globalBinFromPosition(point)].data());
   }
 
   /// @brief access value stored in bin with given global bin number
@@ -94,7 +116,7 @@ public:
   /// @return reference to value stored in bin containing the given
   ///         point
   ACTS_DEVICE_FUNC reference at(size_t bin) {
-    return reference(m_values.col(bin).data());
+    return reference(m_values[bin].data());
   }
 
   /// @brief access value stored in bin with given global bin number
@@ -103,7 +125,7 @@ public:
   /// @return const-reference to value stored in bin containing the given
   ///         point
   ACTS_DEVICE_FUNC const_reference at(size_t bin) const {
-    return const_reference(m_values.col(bin).data());
+    return const_reference(m_values[bin].data());
   }
 
   /// @brief access value stored in bin with given local bin numbers
@@ -116,7 +138,7 @@ public:
   /// @pre All local bin indices must be a valid index for the corresponding
   ///      axis (including the under-/overflow bin for this axis).
   ACTS_DEVICE_FUNC reference atLocalBins(const index_t &localBins) {
-    return reference(m_values.col(globalBinFromLocalBins(localBins)).data());
+    return reference(m_values[globalBinFromLocalBins(localBins)].data());
   }
 
   /// @brief access value stored in bin with given local bin numbers
@@ -128,8 +150,7 @@ public:
   /// @pre All local bin indices must be a valid index for the corresponding
   ///      axis (including the under-/overflow bin for this axis).
   ACTS_DEVICE_FUNC const_reference atLocalBins(const index_t &localBins) const {
-    return const_reference(
-        m_values.col(globalBinFromLocalBins(localBins)).data());
+    return const_reference(m_values[globalBinFromLocalBins(localBins)].data());
   }
 
   /// @brief get global bin indices for closest points on grid
@@ -389,11 +410,16 @@ public:
     return grid_helper::getAxes(m_axes);
   }
 
+  /// @brief Get a non-const reference on the underlying grid values
+  ///
+  /// @return grid values reference
+  ACTS_DEVICE_FUNC T *&refValues() { return m_values; }
+
 private:
   /// set of axis defining the multi-dimensional grid
   std::tuple<Axes...> m_axes;
   /// linear value store for each bin
-  ActsMatrix3<typename T::Scalar, SIZE> m_values;
+  T *m_values;
 
   // Part of closestPointsIndices that goes after local bins resolution.
   // Used as an interpolation performance optimization, but not exposed as it

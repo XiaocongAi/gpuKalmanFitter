@@ -43,6 +43,7 @@ using ActsVector = Eigen::Matrix<T, rows, 1>;
 template <typename T> using ActsXVector = Eigen::Matrix<T, Eigen::Dynamic, 1>;
 
 template <typename T> using ActsMatrix3X = Eigen::Matrix<T, 3, Eigen::Dynamic>;
+
 template <typename T, unsigned int rows>
 using ActsMatrix3 = Eigen::Matrix<T, 3, rows>;
 
@@ -86,8 +87,6 @@ enum ParDef : unsigned int {
 
 /// The dimensions of tracks in free coordinates
 constexpr unsigned int FreeParsDim = 8;
-
-static constexpr unsigned int ATLASBFieldSize = 12486327;
 
 using ParID_t = ParDef;
 using ParValue_t = double;

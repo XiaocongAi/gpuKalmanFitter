@@ -62,9 +62,9 @@ class SolenoidBField;
 /// e.g. we have the grid values r={0,1} with BFieldValues={2,3} on the r axis.
 /// If the flag is set to true the r-axis grid values will be set to {-1,0,1}
 /// and the BFieldValues will be set to {3,2,3}.
-Acts::InterpolatedBFieldMapper<Acts::detail::Grid<
-    Acts::Vector2D, Acts::ATLASBFieldSize, Acts::detail::EquidistantAxis,
-    Acts::detail::EquidistantAxis>>
+Acts::InterpolatedBFieldMapper<
+    Acts::detail::Grid<Acts::Vector2D, Acts::detail::EquidistantAxis,
+                       Acts::detail::EquidistantAxis>>
 fieldMapperRZ(const std::function<size_t(std::array<size_t, 2> binsRZ,
                                          std::array<size_t, 2> nBinsRZ)>
                   &localToGlobalBin,
@@ -124,7 +124,7 @@ fieldMapperRZ(const std::function<size_t(std::array<size_t, 2> binsRZ,
 /// If the flag is set to true the z-axis grid values will be set to {-1,0,1}
 /// and the BFieldValues will be set to {3,2,3}.
 Acts::InterpolatedBFieldMapper<Acts::detail::Grid<
-    Acts::Vector3D, Acts::ATLASBFieldSize, Acts::detail::EquidistantAxis,
+    Acts::Vector3D, Acts::detail::EquidistantAxis,
     Acts::detail::EquidistantAxis, Acts::detail::EquidistantAxis>>
 fieldMapperXYZ(const std::function<size_t(std::array<size_t, 3> binsXYZ,
                                           std::array<size_t, 3> nBinsXYZ)>
@@ -144,9 +144,9 @@ fieldMapperXYZ(const std::function<size_t(std::array<size_t, 3> binsXYZ,
 /// @param field the solenoid field instance
 ///
 /// @return A field mapper instance for use in interpolation.
-Acts::InterpolatedBFieldMapper<Acts::detail::Grid<
-    Acts::Vector2D, Acts::ATLASBFieldSize, Acts::detail::EquidistantAxis,
-    Acts::detail::EquidistantAxis>>
+Acts::InterpolatedBFieldMapper<
+    Acts::detail::Grid<Acts::Vector2D, Acts::detail::EquidistantAxis,
+                       Acts::detail::EquidistantAxis>>
 solenoidFieldMapper(std::pair<double, double> rlim,
                     std::pair<double, double> zlim,
                     std::pair<size_t, size_t> nbins,
