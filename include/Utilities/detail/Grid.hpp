@@ -418,7 +418,7 @@ public:
 private:
   /// set of axis defining the multi-dimensional grid
   std::tuple<Axes...> m_axes;
-  /// linear value store for each bin
+  /// pointer to linear value store for each bin
   T *m_values;
 
   // Part of closestPointsIndices that goes after local bins resolution.
