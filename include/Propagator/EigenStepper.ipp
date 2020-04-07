@@ -101,13 +101,13 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
 
   // Runge-Kutta integrator state
   auto &sd = state.stepping.stepData;
+  // Default constructor will result in wrong value on GPU
+  sd.k1 = Vector3D(0., 0., 0.);
   double error_estimate = 0.;
   double h2, half_h;
 
   // First Runge-Kutta point (at current position)
-  printf("before getField\n");
   sd.B_first = getField(state.stepping, state.stepping.pos);
-  printf("back from  getField\n");
 
   // The following functor starts to perform a Runge-Kutta step of a certain
   // size, going up to the point where it can return an estimate of the local
@@ -123,7 +123,6 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
         state.stepping.pos + half_h * state.stepping.dir + h2 * 0.125 * sd.k1;
     sd.B_middle = getField(state.stepping, pos1);
     sd.k2 = evaluatek(sd.B_middle, 1, half_h, sd.k1);
-
     // Third Runge-Kutta point
     sd.k3 = evaluatek(sd.B_middle, 2, half_h, sd.k2);
 
