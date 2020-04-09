@@ -123,7 +123,6 @@ struct interpolate_impl<T, Point1, Point2, Point3, D, 2u> {
     const double f = (pos[D] - lowerLeft[D]) / (upperRight[D] - lowerLeft[D]);
 
     T result = (1 - f) * fields.col(0) + f * fields.col(1);
-    printf("result = (%f, %f, %f)\n", result.x(), result.y(), result.z());
     return (1 - f) * fields.col(0) + f * fields.col(1);
   }
 };

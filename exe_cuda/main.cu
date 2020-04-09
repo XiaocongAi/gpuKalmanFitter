@@ -48,7 +48,7 @@ struct ConstantBField {
 
 constexpr unsigned int maxSteps = 1000;
 
-// using Stepper = EigenStepper<ConstantBField>;
+//using Stepper = EigenStepper<ConstantBField>;
 using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
 using PropagatorType = Propagator<Stepper>;
 using PropResultType = PropagatorResult<maxSteps>;
@@ -127,13 +127,14 @@ int main(int argc, char *argv[]) {
   std::default_random_engine generator(42);
   std::normal_distribution<double> gauss(0., 1.);
   std::uniform_real_distribution<double> unif(-1.0 * M_PI, M_PI);
-  TrackParameters pars[nTracks];
+  std::vector<TrackParameters> pars;
+  pars.reserve(nTracks);
   for (int i = 0; i < nTracks; i++) {
     Vector3D rPos(0.1 * gauss(generator), 0.1 * gauss(generator),
                   0); // Units: mm
     double phi = unif(generator);
     Vector3D rMom(pT * cos(phi), pT * sin(phi),
-                  1); // Units: GeV
+                  pT); // Units: GeV
     double q = 1;
     TrackParameters rStart(rPos, rMom, q);
     pars[i] = rStart;
@@ -143,7 +144,8 @@ int main(int argc, char *argv[]) {
   }
 
   // Propagation result
-  PropResultType ress[nTracks];
+  std::vector<PropResultType> ress;
+  ress.reserve(nTracks);
 
   auto start = std::chrono::high_resolution_clock::now();
 
@@ -177,9 +179,9 @@ int main(int argc, char *argv[]) {
                          cudaMemcpyHostToDevice));
     GPUERRCHK(cudaMemcpy(d_opt, &propOptions, sizeof(PropagatorOptions),
                          cudaMemcpyHostToDevice));
-    GPUERRCHK(cudaMemcpy(d_pars, pars, nTracks * sizeof(TrackParameters),
+    GPUERRCHK(cudaMemcpy(d_pars, pars.data(), nTracks * sizeof(TrackParameters),
                          cudaMemcpyHostToDevice));
-    GPUERRCHK(cudaMemcpy(d_ress, ress, nTracks * sizeof(PropResultType),
+    GPUERRCHK(cudaMemcpy(d_ress, ress.data(), nTracks * sizeof(PropResultType),
                          cudaMemcpyHostToDevice));
     GPUERRCHK(cudaMemcpy(d_gridValPtr, gridValPtr, gridSize * sizeof(GridValueType),
                          cudaMemcpyHostToDevice));
@@ -194,7 +196,7 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaDeviceSynchronize());
 
     // Copy result from device to host
-    GPUERRCHK(cudaMemcpy(ress, d_ress, nTracks * sizeof(PropResultType),
+    GPUERRCHK(cudaMemcpy(ress.data(), d_ress, nTracks * sizeof(PropResultType),
                          cudaMemcpyDeviceToHost));
 
     // Free the memory on device
@@ -205,6 +207,7 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaFree(d_gridValPtr));
   } else {
     // Run on host
+    #pragma omp parallel for
     for (int it = 0; it < nTracks; it++) {
       propagator.propagate(pars[it], propOptions, ress[it]);
     }

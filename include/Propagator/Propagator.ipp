@@ -13,7 +13,7 @@ Acts::Propagator<S>::propagate(const parameters_t &start,
   int maxSteps = state.options.maxSteps < result.steps()
                      ? state.options.maxSteps
                      : result.steps();
-  printf("maxSteps = %d\n", maxSteps);
+  //printf("maxSteps = %d\n", maxSteps);
   int iStep = 0;
   for (; iStep < maxSteps; ++iStep) {
     m_stepper.step(state);

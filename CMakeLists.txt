@@ -18,12 +18,12 @@ endif()
 aux_source_directory(src/MagneticField LIB_SRC_BField)
 aux_source_directory(src/Plugins LIB_SRC_Plugins)
 
-find_package(Eigen3)
 find_package(CUDA)
 include_directories(${CUDA_TOOLKIT_INCLUDE})
+find_package(OpenMP)
 
 add_library(Actscore SHARED ${LIB_SRC_MAT} ${LIB_SRC_SUR} ${LIB_SRC_BField} ${LIB_SRC_Plugins})
-target_link_libraries(Actscore PUBLIC Eigen3::Eigen)
+target_link_libraries(Actscore PUBLIC OpenMP::OpenMP_CXX)
 target_include_directories(Actscore
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
