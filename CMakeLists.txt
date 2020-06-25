@@ -22,7 +22,14 @@ find_package(CUDA)
 include_directories(${CUDA_TOOLKIT_INCLUDE})
 find_package(OpenMP)
 
+# import Eigen
+include(cmake/FindEigen.cmake)
+
+# make sure libActscore.so is available at runtime
+set(CMAKE_INSTALL_RPATH "$ORIGIN/../bin")
+
 add_library(Actscore SHARED ${LIB_SRC_MAT} ${LIB_SRC_SUR} ${LIB_SRC_BField} ${LIB_SRC_Plugins})
+
 target_link_libraries(Actscore PUBLIC OpenMP::OpenMP_CXX)
 target_include_directories(Actscore
   PUBLIC
