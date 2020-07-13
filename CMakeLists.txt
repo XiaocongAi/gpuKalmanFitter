@@ -27,6 +27,7 @@ include(cmake/FindEigen.cmake)
 
 # make sure libActscore.so is available at runtime
 set(CMAKE_INSTALL_RPATH "$ORIGIN/../bin")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
 
 add_library(Actscore SHARED ${LIB_SRC_MAT} ${LIB_SRC_SUR} ${LIB_SRC_BField} ${LIB_SRC_Plugins})
 
