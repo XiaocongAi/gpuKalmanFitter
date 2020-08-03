@@ -34,7 +34,7 @@ public:
 
   /// @brief Return a vector of bin edges
   /// @return Vector which contains the bin edges
-  ACTS_DEVICE_FUNC virtual ActsXVector<double> getBinEdges() const = 0;
+  ACTS_DEVICE_FUNC virtual ActsVectorXd getBinEdges() const = 0;
 
   /// @brief get minimum of binning range
   ///

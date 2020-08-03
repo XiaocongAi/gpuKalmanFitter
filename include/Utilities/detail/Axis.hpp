@@ -25,7 +25,7 @@ namespace detail {
 //
 // The goal is to emulate the effect of enumerating a range of neighbor
 // indices on an axis (which may go out of bounds and wrap around since we
-// have AxisBoundaryType::Closed), inserting them into an ActsXVector, and
+// have AxisBoundaryType::Closed), inserting them into an ActsVectorX, and
 // discarding duplicates, without paying the price of duplicate removal
 // and dynamic memory allocation in hot magnetic field interpolation code.
 //
@@ -87,9 +87,9 @@ public:
     return (m_end1 - m_begin1) + (m_end2 - m_begin2);
   }
 
-  // Collect the sequence of indices into an ActsXVector
-  ACTS_DEVICE_FUNC ActsXVector<size_t> collect() const {
-    ActsXVector<size_t> result;
+  // Collect the sequence of indices into an ActsVectorX
+  ACTS_DEVICE_FUNC ActsVectorX<size_t> collect() const {
+    ActsVectorX<size_t> result;
     result.resize(this->size());
     size_t iRow = 0;
     for (size_t idx : *this) {
@@ -365,8 +365,8 @@ public:
 
   /// @brief Return a vector of bin edges
   /// @return Vector which contains the bin edges
-  ACTS_DEVICE_FUNC ActsXVector<double> getBinEdges() const override {
-    ActsXVector<double> binEdges;
+  ACTS_DEVICE_FUNC ActsVectorXd getBinEdges() const override {
+    ActsVectorXd binEdges;
     binEdges.resize(m_bins + 1);
     for (size_t i = 1; i <= m_bins; i++) {
       binEdges(i - 1) = getBinLowerBound(i);
@@ -402,7 +402,7 @@ public:
   /// Create a binning structure with @c nBins variable-sized bins from the
   /// given bin boundaries. @c nBins is given by the number of bin edges
   /// reduced by one.
-  ACTS_DEVICE_FUNC Axis(ActsXVector<double> binEdges)
+  ACTS_DEVICE_FUNC Axis(ActsVectorXd binEdges)
       : m_binEdges(std::move(binEdges)) {}
 
   /// @brief returns whether the axis is equidistante
@@ -669,13 +669,13 @@ public:
 
   /// @brief Return a vector of bin edges
   /// @return Vector which contains the bin edges
-  ACTS_DEVICE_FUNC ActsXVector<double> getBinEdges() const override {
+  ACTS_DEVICE_FUNC ActsVectorXd getBinEdges() const override {
     return m_binEdges;
   }
 
 private:
   /// vector of bin edges (sorted in ascending order)
-  ActsXVector<double> m_binEdges;
+  ActsVectorXd m_binEdges;
 };
 } // namespace detail
 

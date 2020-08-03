@@ -17,6 +17,7 @@ endif()
 
 aux_source_directory(src/MagneticField LIB_SRC_BField)
 aux_source_directory(src/Plugins LIB_SRC_Plugins)
+aux_source_directory(src/Surfaces LIB_SRC_Surfaces)
 
 find_package(CUDA)
 include_directories(${CUDA_TOOLKIT_INCLUDE})
@@ -29,7 +30,7 @@ include(cmake/FindEigen.cmake)
 set(CMAKE_INSTALL_RPATH "$ORIGIN/../bin")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
 
-add_library(Actscore SHARED ${LIB_SRC_MAT} ${LIB_SRC_SUR} ${LIB_SRC_BField} ${LIB_SRC_Plugins})
+add_library(Actscore SHARED ${LIB_SRC_MAT} ${LIB_SRC_SUR} ${LIB_SRC_BField} ${LIB_SRC_Plugins} ${LIB_SRC_Surfaces})
 
 target_link_libraries(Actscore PUBLIC OpenMP::OpenMP_CXX)
 target_include_directories(Actscore

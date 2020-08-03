@@ -210,21 +210,21 @@ public:
   /// @brief get the number of bins for all axes of the field map
   ///
   /// @return vector returning number of bins for all field map axes
-  ACTS_DEVICE_FUNC ActsXVector<size_t> getNBins() const {
+  ACTS_DEVICE_FUNC ActsVectorX<size_t> getNBins() const {
     return m_grid.numLocalBins();
   }
 
   /// @brief get the minimum value of all axes of the field map
   ///
   /// @return vector returning the minima of all field map axes
-  ACTS_DEVICE_FUNC ActsXVector<double> getMin() const {
+  ACTS_DEVICE_FUNC ActsVectorXd getMin() const {
     return m_grid.minPosition();
   }
 
   /// @brief get the maximum value of all axes of the field map
   ///
   /// @return vector returning the maxima of all field map axes
-  ACTS_DEVICE_FUNC ActsXVector<double> getMax() const {
+  ACTS_DEVICE_FUNC ActsVectorXd getMax() const {
     return m_grid.maxPosition();
   }
 

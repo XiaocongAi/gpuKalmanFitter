@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Utilities/Definitions.hpp"
+#include "Utilities/ParameterDefinitions.hpp"
 #include "Utilities/Helpers.hpp"
 #include <iostream>
 #include <numeric>

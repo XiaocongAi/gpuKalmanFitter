@@ -23,7 +23,7 @@ namespace detail {
 // associated with a neighborhood around a certain point on a grid.
 //
 // The goal is to emulate the effect of enumerating the global indices into
-// an std::set (or into an ActsXVector that gets subsequently sorted), without
+// an std::set (or into an ActsVectorX that gets subsequently sorted), without
 // paying the price of dynamic memory allocation in hot magnetic field
 // interpolation code.
 //
@@ -129,9 +129,9 @@ public:
     return result;
   }
 
-  // Collect the sequence of indices into an ActsXVector
-  ACTS_DEVICE_FUNC ActsXVector<size_t> collect() const {
-    ActsXVector<size_t> result;
+  // Collect the sequence of indices into an ActsVectorX
+  ACTS_DEVICE_FUNC ActsVectorX<size_t> collect() const {
+    ActsVectorX<size_t> result;
     result.resize(this->size());
     size_t iRow = 0;
     for (size_t idx : *this) {
