@@ -1,6 +1,9 @@
+#include "Propagator/detail/CovarianceEngine.hpp"
+#include "Utilities/ParameterDefinitions.hpp"
+
 template <typename B>
 template <typename propagator_state_t>
-ACTS_DEVICE_FUNC double
+ACTS_DEVICE_FUNC bool 
 Acts::EigenStepper<B>::step(propagator_state_t &state) const {
 
   // The following functor evaluates k_i of RKN4
@@ -92,8 +95,7 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
 
     dGdL = h / 6. * (dk1dL + 2. * (dk2dL + dk3dL) + dk4dL);
 
-    D(3, 7) = h * state.options.mass * state.options.mass * state.stepping.q /
-              (state.stepping.p *
+    D(3, 7) = h * state.options.mass * state.options.mass * state.stepping.q /(state.stepping.p *
                std::hypot(1., state.options.mass / state.stepping.p));
 
     return D;
@@ -155,21 +157,21 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
     state.stepping.stepSize = state.stepping.stepSize * stepSizeScaling;
 
     // Todo: adapted error handling on GPU?
-    //    // If step size becomes too small the particle remains at the initial
-    //    // place
-    //    if (state.stepping.stepSize * state.stepping.stepSize <
-    //        state.options.stepSizeCutOff * state.options.stepSizeCutOff) {
-    //      // Not moving due to too low momentum needs an aborter
-    //      return EigenStepperError::StepSizeStalled;
-    //    }
-    //
-    //    // If the parameter is off track too much or given stepSize is not
-    //    // appropriate
-    //    if (nStepTrials > state.options.maxRungeKuttaStepTrials) {
-    //      // Too many trials, have to abort
-    //      return EigenStepperError::StepSizeAdjustmentFailed;
-    //    }
-    //    nStepTrials++;
+    // If step size becomes too small the particle remains at the initial
+    // place
+    if (state.stepping.stepSize * state.stepping.stepSize <
+        state.options.stepSizeCutOff * state.options.stepSizeCutOff) {
+      // Not moving due to too low momentum needs an aborter
+      return false;
+    }
+    
+    // If the parameter is off track too much or given stepSize is not
+    // appropriate
+    if (nStepTrials > state.options.maxRungeKuttaStepTrials) {
+      // Too many trials, have to abort
+      return false;
+    }
+    nStepTrials++;
   }
 
   // use the adjusted step size
@@ -196,5 +198,71 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
     state.stepping.derivative.template segment<3>(4) = sd.k4;
   }
   state.stepping.pathAccumulated += h;
-  return h;
+  //return h;
+  return true;
 }
+
+template <typename B>
+auto Acts::EigenStepper<B>::boundState(State& state,
+                                             const Surface& surface) const
+    -> BoundState {
+  FreeVector parameters;
+  parameters << state.pos[0], state.pos[1], state.pos[2], state.t, state.dir[0],
+      state.dir[1], state.dir[2], state.q / state.p;
+  return detail::boundState(state.geoContext, state.cov, state.jacobian,
+                            state.jacTransport, state.derivative,
+                            state.jacToGlobal, parameters, state.covTransport,
+                            state.pathAccumulated, surface);
+}
+
+template <typename B>
+auto Acts::EigenStepper<B>::curvilinearState(State& state) const
+    -> CurvilinearState {
+  FreeVector parameters;
+  parameters << state.pos[0], state.pos[1], state.pos[2], state.t, state.dir[0],
+      state.dir[1], state.dir[2], state.q / state.p;
+  return detail::curvilinearState(
+      state.cov, state.jacobian, state.jacTransport, state.derivative,
+      state.jacToGlobal, parameters, state.covTransport, state.pathAccumulated);
+}
+
+template <typename B>
+void Acts::EigenStepper<B>::update(State& state,
+                                         const FreeVector& parameters,
+                                         const Covariance& covariance) const {
+  state.pos = parameters.template segment<3>(eFreePos0);
+  state.dir = parameters.template segment<3>(eFreeDir0).normalized();
+  state.p = std::abs(1. / parameters[eFreeQOverP]);
+  state.t = parameters[eFreeTime];
+
+  state.cov = covariance;
+}
+
+template <typename B>
+void Acts::EigenStepper<B>::update(State& state,
+                                         const Vector3D& uposition,
+                                         const Vector3D& udirection, double up,
+                                         double time) const {
+  state.pos = uposition;
+  state.dir = udirection;
+  state.p = up;
+  state.t = time;
+}
+
+template <typename B>
+void Acts::EigenStepper<B>::covarianceTransport(State& state) const {
+  detail::covarianceTransport(state.cov, state.jacobian, state.jacTransport,
+                              state.derivative, state.jacToGlobal, state.dir);
+}
+
+template <typename B>
+void Acts::EigenStepper<B>::covarianceTransport(
+    State& state, const Surface& surface) const {
+  FreeVector parameters;
+  parameters << state.pos[0], state.pos[1], state.pos[2], state.t, state.dir[0],
+      state.dir[1], state.dir[2], state.q / state.p;
+  detail::covarianceTransport(state.geoContext, state.cov, state.jacobian,
+                              state.jacTransport, state.derivative,
+                              state.jacToGlobal, parameters, surface);
+}
+
