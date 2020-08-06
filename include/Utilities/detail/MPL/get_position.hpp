@@ -23,8 +23,7 @@ namespace detail {
  *         If `target` is not in the list of `values`, a compile-time error is
  * generated.
  */
-template <typename T, T target, T... values>
-struct get_position;
+template <typename T, T target, T... values> struct get_position;
 
 /// @cond
 template <typename T, T target, T... others>
@@ -37,6 +36,6 @@ struct get_position<T, target, next, others...> {
   enum { value = get_position<T, target, others...>::value + 1 };
 };
 /// @endcond
-}  // namespace detail
+} // namespace detail
 /// @endcond
-}  // namespace Acts
+} // namespace Acts

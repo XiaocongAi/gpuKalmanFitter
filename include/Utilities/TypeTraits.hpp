@@ -49,8 +49,8 @@ namespace detail {
  */
 struct nonesuch {
   ~nonesuch() = delete;
-  nonesuch(nonesuch const&) = delete;
-  void operator=(nonesuch const&) = delete;
+  nonesuch(nonesuch const &) = delete;
+  void operator=(nonesuch const &) = delete;
 };
 
 /**
@@ -81,7 +81,7 @@ struct detector<Default, std::void_t<Op<Args...>>, Op, Args...> {
   using type = Op<Args...>;
 };
 
-}  // namespace detail
+} // namespace detail
 
 namespace concept {
 
@@ -164,8 +164,7 @@ namespace concept {
    * Alias for the negation of a `require`. This is essentially a NOT ANY test.
    * @tparam Bs The booleans.
    */
-  template <bool... Bs>
-  constexpr bool disallow = not require<Bs...>;
+  template <bool... Bs> constexpr bool disallow = not require<Bs...>;
 
   /**
    * Alias to `is_detected` which unpacks the constexpr boolean value.
@@ -219,8 +218,8 @@ namespace concept {
   /**
    * Have a look at `TypeTraitsTest.cpp` to see most of this in action.
    */
-}  // namespace concept
-}  // namespace Acts
+} // namespace concept
+} // namespace Acts
 
 /**
  * These helpers allow writing checks. The missing piece is something that you
@@ -338,8 +337,7 @@ namespace concept {
  * @param method_name The name of the method the trait shall check.
  */
 #define METHOD_TRAIT(trait_name, method_name)                                  \
-  template <class T, typename R, typename... Arguments>                        \
-  struct trait_name {                                                          \
+  template <class T, typename R, typename... Arguments> struct trait_name {    \
     /* Meta function to check if a type has a const qualifier*/                \
     /* (by stripping it and seeing if something changed */                     \
     template <typename T_>                                                     \
@@ -354,8 +352,7 @@ namespace concept {
                                                                                \
     /* Meta function which constructs the right type to check a function       \
      * pointer, non-const version*/                                            \
-    template <typename T_, typename = int>                                     \
-    struct fptr_meta {                                                         \
+    template <typename T_, typename = int> struct fptr_meta {                  \
       template <typename... Arguments_>                                        \
       using type = typename std::integral_constant<                            \
           decltype(std::declval<T_>().method_name(                             \
@@ -394,8 +391,7 @@ namespace concept {
      * name, and only if that is the case, try to compile the function pointer \
      * based signature check. That way, there is no hard failures, only        \
      * substitution failures and we're happy. */                               \
-    template <typename T_, typename = int>                                     \
-    struct tv {                                                                \
+    template <typename T_, typename = int> struct tv {                         \
       static constexpr bool value = false;                                     \
     };                                                                         \
     template <typename T_>                                                     \

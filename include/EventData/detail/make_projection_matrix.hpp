@@ -58,6 +58,6 @@ struct make_projection_matrix<columns, i> {
   }
 };
 /// @endcond
-}  // namespace detail
+} // namespace detail
 /// @endcond
-}  // namespace Acts
+} // namespace Acts

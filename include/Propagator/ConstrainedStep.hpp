@@ -42,7 +42,7 @@ struct ConstrainedStep {
   ///
   /// @param value is the new value to be updated
   /// @param type is the constraint type
-  void update(const double& value, Type type, bool releaseStep = false) {
+  void update(const double &value, Type type, bool releaseStep = false) {
     if (releaseStep) {
       release(type);
     }
@@ -77,7 +77,7 @@ struct ConstrainedStep {
   /// exposed to the Propagator, this adapts also the direction
   ///
   /// @param value is the new accuracy value
-  ConstrainedStep& operator=(const double& value) {
+  ConstrainedStep &operator=(const double &value) {
     /// set the accuracy value
     values[accuracy] = value;
     // set/update the direction
@@ -152,4 +152,4 @@ inline std::string ConstrainedStep::toString() const {
   return dstream.str();
 }
 
-}  // namespace Acts
+} // namespace Acts

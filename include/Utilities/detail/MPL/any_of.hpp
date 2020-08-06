@@ -24,10 +24,9 @@ namespace {
     template <bool... others>
     struct any_of<false, others...> : public any_of<others...> {};
 // clang-format on
-}  // namespace
+} // namespace
 
-template <bool... values>
-constexpr bool any_of_v = any_of<values...>::value;
-}  // namespace detail
+template <bool... values> constexpr bool any_of_v = any_of<values...>::value;
+} // namespace detail
 
-}  // namespace Acts
+} // namespace Acts

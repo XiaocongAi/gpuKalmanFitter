@@ -25,13 +25,11 @@ namespace detail {
  * values are within the
  *          interval [MIN,MAX), otherwise @c false
  */
-template <typename T, T MIN, T MAX, T... values>
-struct are_within;
+template <typename T, T MIN, T MAX, T... values> struct are_within;
 
 /// @cond
 // check last parameter
-template <typename T, T MIN, T MAX, T a>
-struct are_within<T, MIN, MAX, a> {
+template <typename T, T MIN, T MAX, T a> struct are_within<T, MIN, MAX, a> {
   enum { value = (a >= MIN && a < MAX) };
 };
 
@@ -44,6 +42,6 @@ struct are_within<T, MIN, MAX, a, others...> {
   };
 };
 /// @endcond
-}  // namespace detail
+} // namespace detail
 /// @endcond
-}  // namespace Acts
+} // namespace Acts

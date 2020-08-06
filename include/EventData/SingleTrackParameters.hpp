@@ -33,14 +33,13 @@ namespace Acts {
 /// @tparam ChargePolicy type for distinguishing charged and neutral
 /// tracks/particles
 ///         (must be either ChargedPolicy or NeutralPolicy)
-template <class ChargePolicy>
-class SingleTrackParameters {
+template <class ChargePolicy> class SingleTrackParameters {
   static_assert(std::is_same<ChargePolicy, ChargedPolicy>::value or
                     std::is_same<ChargePolicy, NeutralPolicy>::value,
                 "ChargePolicy must either be 'Acts::ChargedPolicy' or "
                 "'Acts::NeutralPolicy");
 
- public:
+public:
   // public typedef's
   using Scalar = BoundParametersScalar;
   /// vector type for stored track parameters
@@ -64,7 +63,7 @@ class SingleTrackParameters {
   ///
   /// @return @c true of both objects have the same charge policy, parameter
   /// values, position and momentum, otherwise @c false
-  bool operator==(const SingleTrackParameters& rhs) const {
+  bool operator==(const SingleTrackParameters &rhs) const {
     auto casted = dynamic_cast<decltype(this)>(&rhs);
     if (!casted) {
       return false;
@@ -90,13 +89,13 @@ class SingleTrackParameters {
   ///
   /// @return ParameterSet object holding parameter values and their covariance
   /// matrix
-  const FullParameterSet& getParameterSet() const { return m_oParameters; }
+  const FullParameterSet &getParameterSet() const { return m_oParameters; }
 
   /// @brief access associated surface defining the coordinate system for track
   ///        parameters and their covariance
   ///
   /// @return associated surface
-  virtual const Surface& referenceSurface() const = 0;
+  virtual const Surface &referenceSurface() const = 0;
 
   /// @brief access covariance matrix of track parameters
   ///
@@ -104,7 +103,7 @@ class SingleTrackParameters {
   /// this call.
   ///
   /// @sa ParameterSet::getCovariance
-  const CovarianceMatrix* covariance() const {
+  const CovarianceMatrix *covariance() const {
     return getParameterSet().getCovariance();
   }
 
@@ -124,8 +123,7 @@ class SingleTrackParameters {
   /// @return value of the requested track parameter
   ///
   /// @sa ParameterSet::get
-  template <BoundParametersIndices par>
-  Scalar get() const {
+  template <BoundParametersIndices par> Scalar get() const {
     return getParameterSet().template getParameter<par>();
   }
 
@@ -134,8 +132,7 @@ class SingleTrackParameters {
   /// @tparam par identifier of track parameter which is to be retrieved
   ///
   /// @return value of the requested track parameter uncertainty
-  template <BoundParametersIndices par>
-  Scalar uncertainty() const {
+  template <BoundParametersIndices par> Scalar uncertainty() const {
     return getParameterSet().template getUncertainty<par>();
   }
 
@@ -145,9 +142,9 @@ class SingleTrackParameters {
   /// @brief convenience method to retrieve pseudorapidity
   Scalar eta() const { return VectorHelpers::eta(momentum()); }
 
-  FullParameterSet& getParameterSet() { return m_oParameters; }
+  FullParameterSet &getParameterSet() { return m_oParameters; }
 
- protected:
+protected:
   /// @brief standard constructor for track parameters of charged particles
   ///
   /// @param cov unique pointer to covariance matrix (nullptr is accepted)
@@ -156,13 +153,12 @@ class SingleTrackParameters {
   /// @param momentum 3D vector with global momentum
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, ChargedPolicy>::value, int> = 0>
-  SingleTrackParameters(const CovarianceMatrix& cov,
-                        const ParametersVector& parValues,
-                        const Vector3D& position, const Vector3D& momentum)
+  SingleTrackParameters(const CovarianceMatrix &cov,
+                        const ParametersVector &parValues,
+                        const Vector3D &position, const Vector3D &momentum)
       : m_oChargePolicy(
             detail::coordinate_transformation::parameters2charge(parValues)),
-        m_oParameters(std::move(cov), parValues),
-        m_vPosition(position),
+        m_oParameters(std::move(cov), parValues), m_vPosition(position),
         m_vMomentum(momentum) {}
 
   /// @brief standard constructor for track parameters of neutral particles
@@ -173,26 +169,24 @@ class SingleTrackParameters {
   /// @param momentum 3D vector with global momentum
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, NeutralPolicy>::value, int> = 0>
-  SingleTrackParameters(const CovarianceMatrix& cov,
-                        const ParametersVector& parValues,
-                        const Vector3D& position, const Vector3D& momentum)
-      : m_oChargePolicy(),
-        m_oParameters(std::move(cov), parValues),
-        m_vPosition(position),
-        m_vMomentum(momentum) {}
+  SingleTrackParameters(const CovarianceMatrix &cov,
+                        const ParametersVector &parValues,
+                        const Vector3D &position, const Vector3D &momentum)
+      : m_oChargePolicy(), m_oParameters(std::move(cov), parValues),
+        m_vPosition(position), m_vMomentum(momentum) {}
 
   /// @brief default copy constructor
-  SingleTrackParameters(const SingleTrackParameters<ChargePolicy>& copy) =
+  SingleTrackParameters(const SingleTrackParameters<ChargePolicy> &copy) =
       default;
 
   /// @brief default move constructor
-  SingleTrackParameters(SingleTrackParameters<ChargePolicy>&& copy) = default;
+  SingleTrackParameters(SingleTrackParameters<ChargePolicy> &&copy) = default;
 
   /// @brief copy assignment operator
   ///
   /// @param rhs object to be copied
-  SingleTrackParameters<ChargePolicy>& operator=(
-      const SingleTrackParameters<ChargePolicy>& rhs) {
+  SingleTrackParameters<ChargePolicy> &
+  operator=(const SingleTrackParameters<ChargePolicy> &rhs) {
     // check for self-assignment
     if (this != &rhs) {
       m_oChargePolicy = rhs.m_oChargePolicy;
@@ -207,8 +201,8 @@ class SingleTrackParameters {
   /// @brief move assignment operator
   ///
   /// @param rhs object to be movied into `*this`
-  SingleTrackParameters<ChargePolicy>& operator=(
-      SingleTrackParameters<ChargePolicy>&& rhs) {
+  SingleTrackParameters<ChargePolicy> &
+  operator=(SingleTrackParameters<ChargePolicy> &&rhs) {
     // check for self-assignment
     if (this != &rhs) {
       m_oChargePolicy = std::move(rhs.m_oChargePolicy);
@@ -229,8 +223,8 @@ class SingleTrackParameters {
   /// @note This function is triggered when called with an argument of a type
   ///       different from Acts::local_parameter
   template <typename T>
-  void updateGlobalCoordinates(const GeometryContext& /*gctx*/,
-                               const T& /*unused*/) {
+  void updateGlobalCoordinates(const GeometryContext & /*gctx*/,
+                               const T & /*unused*/) {
     m_vMomentum = detail::coordinate_transformation::parameters2globalMomentum(
         getParameterSet().getParameters());
   }
@@ -239,18 +233,18 @@ class SingleTrackParameters {
   ///
   /// @note This function is triggered when called with an argument of a type
   /// Acts::local_parameter
-  void updateGlobalCoordinates(const GeometryContext& gctx,
-                               const local_parameter& /*unused*/) {
+  void updateGlobalCoordinates(const GeometryContext &gctx,
+                               const local_parameter & /*unused*/) {
     m_vPosition = detail::coordinate_transformation::parameters2globalPosition(
         gctx, getParameterSet().getParameters(), this->referenceSurface());
   }
 
-  ChargePolicy m_oChargePolicy;    ///< charge policy object distinguishing
-                                   /// between charged and neutral tracks
-  FullParameterSet m_oParameters;  ///< ParameterSet object holding the
-                                   /// parameter values and covariance matrix
-  Vector3D m_vPosition;            ///< 3D vector with global position
-  Vector3D m_vMomentum;            ///< 3D vector with global momentum
+  ChargePolicy m_oChargePolicy;   ///< charge policy object distinguishing
+                                  /// between charged and neutral tracks
+  FullParameterSet m_oParameters; ///< ParameterSet object holding the
+                                  /// parameter values and covariance matrix
+  Vector3D m_vPosition;           ///< 3D vector with global position
+  Vector3D m_vMomentum;           ///< 3D vector with global momentum
 };
 
-}  // namespace Acts
+} // namespace Acts

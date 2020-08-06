@@ -10,37 +10,38 @@
 // PlaneSurface.ipp, Acts project
 ///////////////////////////////////////////////////////////////////
 
-inline const Vector3D PlaneSurface::normal(const GeometryContext& gctx,
-                                           const Vector2D& /*lpos*/) const {
+inline const Vector3D PlaneSurface::normal(const GeometryContext &gctx,
+                                           const Vector2D & /*lpos*/) const {
   // fast access via tranform matrix (and not rotation())
-  const auto& tMatrix = transform(gctx).matrix();
+  const auto &tMatrix = transform(gctx).matrix();
   return Vector3D(tMatrix(0, 2), tMatrix(1, 2), tMatrix(2, 2));
 }
 
-inline const Vector3D PlaneSurface::binningPosition(
-    const GeometryContext& gctx, BinningValue /*bValue*/) const {
+inline const Vector3D
+PlaneSurface::binningPosition(const GeometryContext &gctx,
+                              BinningValue /*bValue*/) const {
   return center(gctx);
 }
 
-inline double PlaneSurface::pathCorrection(const GeometryContext& gctx,
-                                           const Vector3D& position,
-                                           const Vector3D& direction) const {
+inline double PlaneSurface::pathCorrection(const GeometryContext &gctx,
+                                           const Vector3D &position,
+                                           const Vector3D &direction) const {
   // We can ignore the global position here
   return 1. / std::abs(Surface::normal(gctx, position).dot(direction));
 }
 
 inline Intersection PlaneSurface::intersectionEstimate(
-    const GeometryContext& gctx, const Vector3D& position,
-    const Vector3D& direction, const BoundaryCheck& bcheck) const {
+    const GeometryContext &gctx, const Vector3D &position,
+    const Vector3D &direction, const BoundaryCheck &bcheck) const {
   // Get the contextual transform
-  const auto& gctxTransform = transform(gctx);
+  const auto &gctxTransform = transform(gctx);
   // Use the intersection helper for planar surfaces
   auto intersection =
       PlanarHelper::intersectionEstimate(gctxTransform, position, direction);
   // Evaluate boundary check if requested (and reachable)
   if (intersection.status != Intersection::Status::unreachable and bcheck) {
     // Built-in local to global for speed reasons
-    const auto& tMatrix = gctxTransform.matrix();
+    const auto &tMatrix = gctxTransform.matrix();
     // Create the reference vector in local
     const Vector3D vecLocal(intersection.position - tMatrix.block<3, 1>(0, 3));
     if (not insideBounds(tMatrix.block<3, 2>(0, 0).transpose() * vecLocal,

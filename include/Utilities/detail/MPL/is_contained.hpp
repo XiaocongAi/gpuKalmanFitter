@@ -21,8 +21,7 @@ namespace detail {
  * @return `is_contained<T,target,values...>::value` is @c true if `target` is
  * among `values`, otherwise @c false
  */
-template <typename T, T target, T... values>
-struct is_contained;
+template <typename T, T target, T... values> struct is_contained;
 
 /// @cond
 template <typename T, T target, T... others>
@@ -30,8 +29,7 @@ struct is_contained<T, target, target, others...> {
   enum { value = true };
 };
 
-template <typename T, T target>
-struct is_contained<T, target, target> {
+template <typename T, T target> struct is_contained<T, target, target> {
   enum { value = true };
 };
 
@@ -40,11 +38,10 @@ struct is_contained<T, target, next, others...> {
   enum { value = is_contained<T, target, others...>::value };
 };
 
-template <typename T, T target, T next>
-struct is_contained<T, target, next> {
+template <typename T, T target, T next> struct is_contained<T, target, next> {
   enum { value = false };
 };
 /// @endcond
-}  // namespace detail
+} // namespace detail
 /// @endcond
-}  // namespace Acts
+} // namespace Acts

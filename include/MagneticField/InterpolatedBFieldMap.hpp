@@ -217,16 +217,12 @@ public:
   /// @brief get the minimum value of all axes of the field map
   ///
   /// @return vector returning the minima of all field map axes
-  ACTS_DEVICE_FUNC ActsVectorXd getMin() const {
-    return m_grid.minPosition();
-  }
+  ACTS_DEVICE_FUNC ActsVectorXd getMin() const { return m_grid.minPosition(); }
 
   /// @brief get the maximum value of all axes of the field map
   ///
   /// @return vector returning the maxima of all field map axes
-  ACTS_DEVICE_FUNC ActsVectorXd getMax() const {
-    return m_grid.maxPosition();
-  }
+  ACTS_DEVICE_FUNC ActsVectorXd getMax() const { return m_grid.maxPosition(); }
 
   /// @brief check whether given 3D position is inside look-up domain
   ///

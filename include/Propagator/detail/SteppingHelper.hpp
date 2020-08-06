@@ -29,9 +29,10 @@ namespace detail {
 /// @param surface [in] The surface provided
 /// @param bcheck [in] The boundary check for this status update
 template <typename stepper_t>
-Acts::Intersection::Status updateSingleSurfaceStatus(
-    const stepper_t& stepper, typename stepper_t::State& state,
-    const Surface& surface, const BoundaryCheck& bcheck) {
+Acts::Intersection::Status
+updateSingleSurfaceStatus(const stepper_t &stepper,
+                          typename stepper_t::State &state,
+                          const Surface &surface, const BoundaryCheck &bcheck) {
   auto sIntersection =
       surface.intersect(state.geoContext, stepper.position(state),
                         state.navDir * stepper.direction(state), bcheck);
@@ -45,7 +46,7 @@ Acts::Intersection::Status updateSingleSurfaceStatus(
     // Path and overstep limit checking
     double pLimit = state.stepSize.value(ConstrainedStep::aborter);
     double oLimit = stepper.overstepLimit(state);
-    auto checkIntersection = [&](const Intersection& intersection) -> bool {
+    auto checkIntersection = [&](const Intersection &intersection) -> bool {
       double cLimit = intersection.pathLength;
       bool accept = (cLimit > oLimit and cLimit * cLimit < pLimit * pLimit);
       if (accept) {
@@ -72,12 +73,12 @@ Acts::Intersection::Status updateSingleSurfaceStatus(
 /// @param oIntersection [in] The object that yielded this step size
 /// @param release [in] A release flag
 template <typename stepper_t, typename object_intersection_t>
-void updateSingleStepSize(typename stepper_t::State& state,
-                          const object_intersection_t& oIntersection,
+void updateSingleStepSize(typename stepper_t::State &state,
+                          const object_intersection_t &oIntersection,
                           bool release = true) {
   double stepSize = oIntersection.intersection.pathLength;
   state.stepSize.update(stepSize, ConstrainedStep::actor, release);
 }
 
-}  // namespace detail
-}  // namespace Acts
+} // namespace detail
+} // namespace Acts

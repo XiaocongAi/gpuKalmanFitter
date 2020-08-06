@@ -84,20 +84,16 @@ using ActsMatrixF = ActsMatrix<float, rows, cols>;
 template <typename T, unsigned int rows>
 using ActsSymMatrix = Eigen::Matrix<T, rows, rows>;
 
-template <unsigned int rows>
-using ActsSymMatrixD = ActsSymMatrix<double, rows>;
+template <unsigned int rows> using ActsSymMatrixD = ActsSymMatrix<double, rows>;
 
-template <unsigned int rows>
-using ActsSymMatrixF = ActsSymMatrix<float, rows>;
+template <unsigned int rows> using ActsSymMatrixF = ActsSymMatrix<float, rows>;
 
 template <typename T, unsigned int rows>
 using ActsVector = Eigen::Matrix<T, rows, 1>;
 
-template <unsigned int rows>
-using ActsVectorD = ActsVector<double, rows>;
+template <unsigned int rows> using ActsVectorD = ActsVector<double, rows>;
 
-template <unsigned int rows>
-using ActsVectorF = ActsVector<float, rows>;
+template <unsigned int rows> using ActsVectorF = ActsVector<float, rows>;
 
 template <typename T, unsigned int cols>
 using ActsRowVector = Eigen::Matrix<T, 1, cols>;
@@ -105,11 +101,9 @@ using ActsRowVector = Eigen::Matrix<T, 1, cols>;
 template <typename T, unsigned int cols>
 using ActsMatrix3 = Eigen::Matrix<T, 3, cols>;
 
-template <unsigned int cols>
-using ActsRowVectorD = ActsRowVector<double, cols>;
+template <unsigned int cols> using ActsRowVectorD = ActsRowVector<double, cols>;
 
-template <unsigned int cols>
-using ActsRowVectorF = ActsRowVector<float, cols>;
+template <unsigned int cols> using ActsRowVectorF = ActsRowVector<float, cols>;
 
 template <typename T>
 using ActsMatrixX = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
@@ -117,8 +111,7 @@ using ActsMatrixX = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
 using ActsMatrixXd = ActsMatrixX<double>;
 using ActsMatrixXf = ActsMatrixX<float>;
 
-template <typename T>
-using ActsVectorX = Eigen::Matrix<T, Eigen::Dynamic, 1>;
+template <typename T> using ActsVectorX = Eigen::Matrix<T, Eigen::Dynamic, 1>;
 
 using ActsVectorXd = ActsVectorX<double>;
 using ActsVectorXf = ActsVectorX<float>;
@@ -129,8 +122,7 @@ using ActsRowVectorX = Eigen::Matrix<T, 1, Eigen::Dynamic>;
 using ActsRowVectorXd = ActsRowVectorX<double>;
 using ActsRowVectorXf = ActsRowVectorX<float>;
 
-template <typename T>
-using ActsMatrix3X = Eigen::Matrix<T, 3, Eigen::Dynamic>;
+template <typename T> using ActsMatrix3X = Eigen::Matrix<T, 3, Eigen::Dynamic>;
 
 // coordinate vectors
 using Vector2F = ActsVector<float, 2>;
@@ -206,4 +198,4 @@ enum CoordinateIndices : unsigned int {
   eZ = ePos2,
 };
 
-}  // namespace Acts
+} // namespace Acts

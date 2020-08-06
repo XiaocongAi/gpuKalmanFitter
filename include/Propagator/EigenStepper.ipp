@@ -3,7 +3,7 @@
 
 template <typename B>
 template <typename propagator_state_t>
-ACTS_DEVICE_FUNC bool 
+ACTS_DEVICE_FUNC bool
 Acts::EigenStepper<B>::step(propagator_state_t &state) const {
 
   // The following functor evaluates k_i of RKN4
@@ -95,7 +95,8 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
 
     dGdL = h / 6. * (dk1dL + 2. * (dk2dL + dk3dL) + dk4dL);
 
-    D(3, 7) = h * state.options.mass * state.options.mass * state.stepping.q /(state.stepping.p *
+    D(3, 7) = h * state.options.mass * state.options.mass * state.stepping.q /
+              (state.stepping.p *
                std::hypot(1., state.options.mass / state.stepping.p));
 
     return D;
@@ -164,7 +165,7 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
       // Not moving due to too low momentum needs an aborter
       return false;
     }
-    
+
     // If the parameter is off track too much or given stepSize is not
     // appropriate
     if (nStepTrials > state.options.maxRungeKuttaStepTrials) {
@@ -198,13 +199,13 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
     state.stepping.derivative.template segment<3>(4) = sd.k4;
   }
   state.stepping.pathAccumulated += h;
-  //return h;
+  // return h;
   return true;
 }
 
 template <typename B>
-auto Acts::EigenStepper<B>::boundState(State& state,
-                                             const Surface& surface) const
+auto Acts::EigenStepper<B>::boundState(State &state,
+                                       const Surface &surface) const
     -> BoundState {
   FreeVector parameters;
   parameters << state.pos[0], state.pos[1], state.pos[2], state.t, state.dir[0],
@@ -216,7 +217,7 @@ auto Acts::EigenStepper<B>::boundState(State& state,
 }
 
 template <typename B>
-auto Acts::EigenStepper<B>::curvilinearState(State& state) const
+auto Acts::EigenStepper<B>::curvilinearState(State &state) const
     -> CurvilinearState {
   FreeVector parameters;
   parameters << state.pos[0], state.pos[1], state.pos[2], state.t, state.dir[0],
@@ -227,9 +228,8 @@ auto Acts::EigenStepper<B>::curvilinearState(State& state) const
 }
 
 template <typename B>
-void Acts::EigenStepper<B>::update(State& state,
-                                         const FreeVector& parameters,
-                                         const Covariance& covariance) const {
+void Acts::EigenStepper<B>::update(State &state, const FreeVector &parameters,
+                                   const Covariance &covariance) const {
   state.pos = parameters.template segment<3>(eFreePos0);
   state.dir = parameters.template segment<3>(eFreeDir0).normalized();
   state.p = std::abs(1. / parameters[eFreeQOverP]);
@@ -239,10 +239,9 @@ void Acts::EigenStepper<B>::update(State& state,
 }
 
 template <typename B>
-void Acts::EigenStepper<B>::update(State& state,
-                                         const Vector3D& uposition,
-                                         const Vector3D& udirection, double up,
-                                         double time) const {
+void Acts::EigenStepper<B>::update(State &state, const Vector3D &uposition,
+                                   const Vector3D &udirection, double up,
+                                   double time) const {
   state.pos = uposition;
   state.dir = udirection;
   state.p = up;
@@ -250,14 +249,14 @@ void Acts::EigenStepper<B>::update(State& state,
 }
 
 template <typename B>
-void Acts::EigenStepper<B>::covarianceTransport(State& state) const {
+void Acts::EigenStepper<B>::covarianceTransport(State &state) const {
   detail::covarianceTransport(state.cov, state.jacobian, state.jacTransport,
                               state.derivative, state.jacToGlobal, state.dir);
 }
 
 template <typename B>
-void Acts::EigenStepper<B>::covarianceTransport(
-    State& state, const Surface& surface) const {
+void Acts::EigenStepper<B>::covarianceTransport(State &state,
+                                                const Surface &surface) const {
   FreeVector parameters;
   parameters << state.pos[0], state.pos[1], state.pos[2], state.t, state.dir[0],
       state.dir[1], state.dir[2], state.q / state.p;
@@ -265,4 +264,3 @@ void Acts::EigenStepper<B>::covarianceTransport(
                               state.jacTransport, state.derivative,
                               state.jacToGlobal, parameters, surface);
 }
-

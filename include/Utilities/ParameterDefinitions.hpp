@@ -110,7 +110,7 @@ enum FreeParametersIndices : unsigned int {
 /// Underlying fundamental scalar type for free track parameters.
 using FreeParametersScalar = double;
 
-}  // namespace Acts
+} // namespace Acts
 #endif
 
 namespace Acts {
@@ -148,85 +148,66 @@ static_assert(eFreeDir1 == eFreeDir0 + 1u, "Direction must be continous");
 static_assert(eFreeDir2 == eFreeDir0 + 2u, "Direction must be continous");
 
 namespace detail {
-template <BoundParametersIndices>
-struct BoundParameterTraits;
-template <>
-struct BoundParameterTraits<BoundParametersIndices::eBoundLoc0> {
+template <BoundParametersIndices> struct BoundParameterTraits;
+template <> struct BoundParameterTraits<BoundParametersIndices::eBoundLoc0> {
   using type = local_parameter;
 };
-template <>
-struct BoundParameterTraits<BoundParametersIndices::eBoundLoc1> {
+template <> struct BoundParameterTraits<BoundParametersIndices::eBoundLoc1> {
   using type = local_parameter;
 };
-template <>
-struct BoundParameterTraits<BoundParametersIndices::eBoundPhi> {
+template <> struct BoundParameterTraits<BoundParametersIndices::eBoundPhi> {
   static constexpr double pMin() { return -M_PI; }
   static constexpr double pMax() { return M_PI; }
   using type = cyclic_parameter<double, pMin, pMax>;
 };
-template <>
-struct BoundParameterTraits<BoundParametersIndices::eBoundTheta> {
+template <> struct BoundParameterTraits<BoundParametersIndices::eBoundTheta> {
   static constexpr double pMin() { return 0; }
   static constexpr double pMax() { return M_PI; }
   using type = bound_parameter<double, pMin, pMax>;
 };
-template <>
-struct BoundParameterTraits<BoundParametersIndices::eBoundQOverP> {
+template <> struct BoundParameterTraits<BoundParametersIndices::eBoundQOverP> {
   using type = unbound_parameter;
 };
-template <>
-struct BoundParameterTraits<BoundParametersIndices::eBoundTime> {
-  using type = unbound_parameter;
-};
-
-template <FreeParametersIndices>
-struct FreeParameterTraits;
-template <>
-struct FreeParameterTraits<FreeParametersIndices::eFreePos0> {
-  using type = unbound_parameter;
-};
-template <>
-struct FreeParameterTraits<FreeParametersIndices::eFreePos1> {
-  using type = unbound_parameter;
-};
-template <>
-struct FreeParameterTraits<FreeParametersIndices::eFreePos2> {
-  using type = unbound_parameter;
-};
-template <>
-struct FreeParameterTraits<FreeParametersIndices::eFreeTime> {
-  using type = unbound_parameter;
-};
-template <>
-struct FreeParameterTraits<FreeParametersIndices::eFreeDir0> {
-  using type = unbound_parameter;
-};
-template <>
-struct FreeParameterTraits<FreeParametersIndices::eFreeDir1> {
-  using type = unbound_parameter;
-};
-template <>
-struct FreeParameterTraits<FreeParametersIndices::eFreeDir2> {
-  using type = unbound_parameter;
-};
-template <>
-struct FreeParameterTraits<FreeParametersIndices::eFreeQOverP> {
+template <> struct BoundParameterTraits<BoundParametersIndices::eBoundTime> {
   using type = unbound_parameter;
 };
 
-template <typename parameter_indices_t>
-struct ParametersSize;
-template <>
-struct ParametersSize<BoundParametersIndices> {
+template <FreeParametersIndices> struct FreeParameterTraits;
+template <> struct FreeParameterTraits<FreeParametersIndices::eFreePos0> {
+  using type = unbound_parameter;
+};
+template <> struct FreeParameterTraits<FreeParametersIndices::eFreePos1> {
+  using type = unbound_parameter;
+};
+template <> struct FreeParameterTraits<FreeParametersIndices::eFreePos2> {
+  using type = unbound_parameter;
+};
+template <> struct FreeParameterTraits<FreeParametersIndices::eFreeTime> {
+  using type = unbound_parameter;
+};
+template <> struct FreeParameterTraits<FreeParametersIndices::eFreeDir0> {
+  using type = unbound_parameter;
+};
+template <> struct FreeParameterTraits<FreeParametersIndices::eFreeDir1> {
+  using type = unbound_parameter;
+};
+template <> struct FreeParameterTraits<FreeParametersIndices::eFreeDir2> {
+  using type = unbound_parameter;
+};
+template <> struct FreeParameterTraits<FreeParametersIndices::eFreeQOverP> {
+  using type = unbound_parameter;
+};
+
+template <typename parameter_indices_t> struct ParametersSize;
+template <> struct ParametersSize<BoundParametersIndices> {
   static constexpr unsigned int size =
       static_cast<unsigned int>(BoundParametersIndices::eBoundParametersSize);
 };
-template <>
-struct ParametersSize<FreeParametersIndices> {
+template <> struct ParametersSize<FreeParametersIndices> {
   static constexpr unsigned int size =
       static_cast<unsigned int>(FreeParametersIndices::eFreeParametersSize);
 };
-}  // namespace detail
+} // namespace detail
 
 /// Single bound track parameter type for value constrains.
 ///
@@ -244,8 +225,7 @@ using FreeParameterType = typename detail::FreeParameterTraits<kIndex>::type;
 ///
 /// @tparam T Parameter indices enum
 /// @tparam I Index of @p T
-template <typename T, T I>
-struct ParameterTypeFor {};
+template <typename T, T I> struct ParameterTypeFor {};
 
 /// Access for @c BoundParametersIndices
 template <BoundParametersIndices I>
@@ -307,4 +287,4 @@ using ParDef = BoundParametersIndices;
 using ParID_t = BoundParametersIndices;
 using ParValue_t = BoundParametersScalar;
 
-}  // namespace Acts
+} // namespace Acts

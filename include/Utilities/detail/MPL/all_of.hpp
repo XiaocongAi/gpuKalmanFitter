@@ -24,10 +24,9 @@ namespace {
     template <bool... others>
     struct all_of<true, others...> : public all_of<others...> {};
 // clang-format on
-}  // end of anonymous namespace
+} // end of anonymous namespace
 
-template <bool... values>
-constexpr bool all_of_v = all_of<values...>::value;
-}  // namespace detail
+template <bool... values> constexpr bool all_of_v = all_of<values...>::value;
+} // namespace detail
 
-}  // namespace Acts
+} // namespace Acts

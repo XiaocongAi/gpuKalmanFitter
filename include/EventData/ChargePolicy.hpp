@@ -22,7 +22,7 @@ namespace Acts {
 /// optimized
 /// algorithms for either case by using template specializations.
 class ChargedPolicy {
- public:
+public:
   /// @brief constructor with given charge
   ///
   /// @param charge electric charge of particle/track (parameters)
@@ -31,14 +31,14 @@ class ChargedPolicy {
   /// @brief equality operator
   ///
   /// @return @c true if rhs has the same charge, otherwise @c false
-  bool operator==(const ChargedPolicy& rhs) const {
+  bool operator==(const ChargedPolicy &rhs) const {
     return m_dCharge == rhs.m_dCharge;
   }
 
   /// @brief inequality operator
   ///
   /// @return @c true if rhs has a different charge, otherwise @c false
-  bool operator!=(const ChargedPolicy& rhs) const { return !(*this == rhs); }
+  bool operator!=(const ChargedPolicy &rhs) const { return !(*this == rhs); }
 
   /// @brief retrieve stored value of the electric charge
   ///
@@ -53,8 +53,8 @@ class ChargedPolicy {
   /// @brief flip sign of electric charge
   void flipSign() { m_dCharge *= -1.; }
 
- private:
-  double m_dCharge;  ///< value of electric charge
+private:
+  double m_dCharge; ///< value of electric charge
 };
 
 /// @class NeutralPolicy
@@ -70,20 +70,20 @@ class ChargedPolicy {
 /// optimized
 /// algorithms for either case by using template specializations.
 class NeutralPolicy {
- public:
+public:
   /// @brief equality operator
   ///
   /// @return always @c true
-  bool operator==(const NeutralPolicy& /*other*/) const { return true; }
+  bool operator==(const NeutralPolicy & /*other*/) const { return true; }
 
   /// @brief inequality operator
   ///
   /// @return always @c false
-  bool operator!=(const NeutralPolicy& rhs) const { return !(*this == rhs); }
+  bool operator!=(const NeutralPolicy &rhs) const { return !(*this == rhs); }
 
   /// @brief get electric charge
   ///
   /// @return always 0
   double getCharge() const { return 0.; }
 };
-}  // namespace Acts
+} // namespace Acts

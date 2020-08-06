@@ -19,7 +19,6 @@
 #include <sstream>
 #include <string>
 
-
 namespace Acts {
 
 /// DirectNavigator class
@@ -30,10 +29,10 @@ namespace Acts {
 /// This can either be used as a validation tool, for truth
 /// tracking, or track refitting
 class DirectNavigator {
- public:
+public:
   /// The sequentially crossed surfaces
-  using SurfaceSequence = std::vector<const Surface*>;
-  using SurfaceIter = std::vector<const Surface*>::iterator;
+  using SurfaceSequence = std::vector<const Surface *>;
+  using SurfaceIter = std::vector<const Surface *>::iterator;
 
   /// Defaulted Constructed
   DirectNavigator() = default;
@@ -65,8 +64,8 @@ class DirectNavigator {
     /// @param state the entire propagator state
     /// @param r the result of this Actor
     template <typename propagator_state_t, typename stepper_t>
-    void operator()(propagator_state_t& state, const stepper_t& /*unused*/,
-                    result_type& r) const {
+    void operator()(propagator_state_t &state, const stepper_t & /*unused*/,
+                    result_type &r) const {
       // Only act once
       if (not r.initialized) {
         // Initialize the surface sequence
@@ -79,8 +78,8 @@ class DirectNavigator {
 
     /// Actor operator call - resultless, unused
     template <typename propagator_state_t, typename stepper_t>
-    void operator()(propagator_state_t& /*unused*/,
-                    const stepper_t& /*unused*/) const {}
+    void operator()(propagator_state_t & /*unused*/,
+                    const stepper_t & /*unused*/) const {}
   };
 
   /// Nested State struct
@@ -97,17 +96,17 @@ class DirectNavigator {
     SurfaceIter nextSurfaceIter = surfaceSequence.begin();
 
     /// Navigation state - external interface: the start surface
-    const Surface* startSurface = nullptr;
+    const Surface *startSurface = nullptr;
     /// Navigation state - external interface: the current surface
-    const Surface* currentSurface = nullptr;
+    const Surface *currentSurface = nullptr;
     /// Navigation state - external interface: the target surface
-    const Surface* targetSurface = nullptr;
+    const Surface *targetSurface = nullptr;
     /// Navigation state: the start volume
-    //const TrackingVolume* startVolume = nullptr;
+    // const TrackingVolume* startVolume = nullptr;
     /// Navigation state: the current volume
-    //const TrackingVolume* currentVolume = nullptr;
+    // const TrackingVolume* currentVolume = nullptr;
     /// Navigation state: the target volume
-    //const TrackingVolume* targetVolume = nullptr;
+    // const TrackingVolume* targetVolume = nullptr;
 
     /// Navigation state - external interface: target is reached
     bool targetReached = false;
@@ -123,7 +122,7 @@ class DirectNavigator {
   /// @param [in,out] state is the mutable propagator state object
   /// @param [in] stepper Stepper in use
   template <typename propagator_state_t, typename stepper_t>
-  void status(propagator_state_t& state, const stepper_t& stepper) const {
+  void status(propagator_state_t &state, const stepper_t &stepper) const {
 
     // Navigator status always resets the current surface
     state.navigation.currentSurface = nullptr;
@@ -154,7 +153,7 @@ class DirectNavigator {
   /// @param [in,out] state is the mutable propagator state object
   /// @param [in] stepper Stepper in use
   template <typename propagator_state_t, typename stepper_t>
-  void target(propagator_state_t& state, const stepper_t& stepper) const {
+  void target(propagator_state_t &state, const stepper_t &stepper) const {
 
     // Navigator target always resets the current surface
     state.navigation.currentSurface = nullptr;
@@ -166,7 +165,7 @@ class DirectNavigator {
       if (surfaceStatus == Intersection::Status::unreachable) {
         // Move the sequence to the next surface
         ++state.navigation.nextSurfaceIter;
-      } 
+      }
     } else {
       // Set the navigation break
       state.navigation.navigationBreak = true;
@@ -176,7 +175,6 @@ class DirectNavigator {
       }
     }
   }
-
 };
 
-}  // namespace Acts
+} // namespace Acts

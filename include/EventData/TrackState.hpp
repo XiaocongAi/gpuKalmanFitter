@@ -40,10 +40,9 @@ class Surface;
 ///
 /// @note the Surface is only stored as a pointer, i.e. it is
 /// assumed the surface lives longer than the TrackState
-template <typename source_link_t, typename parameters_t>
-class TrackState {
+template <typename source_link_t, typename parameters_t> class TrackState {
 
- public:
+public:
   using SourceLink = source_link_t;
   using Parameters = parameters_t;
   using Jacobian = typename Parameters::CovMatrix_t;
@@ -72,16 +71,14 @@ class TrackState {
   /// Copy constructor
   ///
   /// @param rhs is the source TrackState
-  TrackState(const TrackState& rhs)
-      : parameter(rhs.parameter),
-        measurement(rhs.measurement),
-        m_surface(rhs.m_surface),
-        m_typeFlags(rhs.m_typeFlags) {}
+  TrackState(const TrackState &rhs)
+      : parameter(rhs.parameter), measurement(rhs.measurement),
+        m_surface(rhs.m_surface), m_typeFlags(rhs.m_typeFlags) {}
 
   /// Copy move constructor
   ///
   /// @param rhs is the source TrackState
-  TrackState(TrackState&& rhs)
+  TrackState(TrackState &&rhs)
       : parameter(std::move(rhs.parameter)),
         measurement(std::move(rhs.measurement)),
         m_surface(std::move(rhs.m_surface)),
@@ -90,7 +87,7 @@ class TrackState {
   /// Assignment operator
   ///
   /// @param rhs is the source TrackState
-  TrackState& operator=(const TrackState& rhs) {
+  TrackState &operator=(const TrackState &rhs) {
     parameter = rhs.parameter;
     measurement = rhs.measurement;
     m_surface = rhs.m_surface;
@@ -101,7 +98,7 @@ class TrackState {
   /// Assignment move operator
   ///
   /// @param rhs is the source TrackState
-  TrackState& operator=(TrackState&& rhs) {
+  TrackState &operator=(TrackState &&rhs) {
     parameter = std::move(rhs.parameter);
     measurement = std::move(rhs.measurement);
     m_surface = std::move(rhs.m_surface);
@@ -110,15 +107,15 @@ class TrackState {
   }
 
   /// @brief return method for the surface
-  const Surface& referenceSurface() const { return (*m_surface); }
+  const Surface &referenceSurface() const { return (*m_surface); }
 
   /// @brief set the type flag
-  void setType(const TrackStateFlag& flag, bool status = true) {
+  void setType(const TrackStateFlag &flag, bool status = true) {
     m_typeFlags.set(flag, status);
   }
 
   /// @brief test if the tracks state is flagged as a given type
-  bool isType(const TrackStateFlag& flag) const {
+  bool isType(const TrackStateFlag &flag) const {
     assert(flag < NumTrackStateFlags);
     return m_typeFlags.test(flag);
   }
@@ -131,12 +128,12 @@ class TrackState {
   ///       set. If not, this returns std::nullopt
   ///
   /// @return number of measured parameters, or std::nullopt
- /// std::optional<size_t> size() {
- ///   if (this->measurement.calibrated) {
- ///     return MeasurementHelpers::getSize(*this->measurement.calibrated);
- ///   }
- ///   return std::nullopt;
- /// }
+  /// std::optional<size_t> size() {
+  ///   if (this->measurement.calibrated) {
+  ///     return MeasurementHelpers::getSize(*this->measurement.calibrated);
+  ///   }
+  ///   return std::nullopt;
+  /// }
 
   /// The parameter part
   /// This is all the information that concerns the
@@ -164,13 +161,13 @@ class TrackState {
     /// The optional (uncalibrated) measurement
     std::optional<SourceLink> uncalibrated{std::nullopt};
     /// The optional calibrabed measurement
-    ///std::optional<FittableMeasurement<SourceLink>> calibrated{std::nullopt};
+    /// std::optional<FittableMeasurement<SourceLink>> calibrated{std::nullopt};
   } measurement;
 
- private:
+private:
   /// The surface of this TrackState
-  const Surface* m_surface = nullptr;
+  const Surface *m_surface = nullptr;
   /// The type flag of this TrackState
   TrackStateType m_typeFlags;
 };
-}  // namespace Acts
+} // namespace Acts

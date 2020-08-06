@@ -12,26 +12,21 @@ namespace Acts {
 namespace detail {
 
 namespace {
-template <typename... Args>
-struct has_duplicates;
+template <typename... Args> struct has_duplicates;
 
-template <>
-struct has_duplicates<> {
-  static constexpr bool value = false;
-};
+template <> struct has_duplicates<> { static constexpr bool value = false; };
 
-template <typename last>
-struct has_duplicates<last> {
+template <typename last> struct has_duplicates<last> {
   static constexpr bool value = false;
 };
 
 template <typename first, typename second, typename... others>
 struct has_duplicates<first, second, others...> {
- private:
+private:
   static constexpr bool _first = has_duplicates<first, others...>::value;
   static constexpr bool _second = has_duplicates<second, others...>::value;
 
- public:
+public:
   static constexpr bool value = _first or _second;
 };
 
@@ -39,10 +34,10 @@ template <typename first, typename... others>
 struct has_duplicates<first, first, others...> {
   static constexpr bool value = true;
 };
-}  // namespace
+} // namespace
 
 template <typename... Args>
 constexpr bool has_duplicates_v = has_duplicates<Args...>::value;
-}  // namespace detail
+} // namespace detail
 
-}  // namespace Acts
+} // namespace Acts

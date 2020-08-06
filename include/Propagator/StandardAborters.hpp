@@ -20,7 +20,6 @@
 
 namespace Acts {
 
-
 /// This is the condition that the pathLimit has been reached
 struct PathLimitReached {
   /// Boolean switch for Loop protection
@@ -33,8 +32,8 @@ struct PathLimitReached {
   ///
   /// @param [in,out] state The propagation state object
   template <typename propagator_state_t, typename stepper_t>
-  bool operator()(propagator_state_t& state,
-                  const stepper_t& /*unused*/) const {
+  bool operator()(propagator_state_t &state,
+                  const stepper_t & /*unused*/) const {
     if (state.navigation.targetReached) {
       return true;
     }
@@ -47,7 +46,7 @@ struct PathLimitReached {
     if (limitReached) {
       // reaching the target means navigation break
       state.navigation.targetReached = true;
-    } 
+    }
     // path limit check
     return limitReached;
   }
@@ -66,7 +65,7 @@ struct SurfaceReached {
   /// @param [in,out] state The propagation state object
   /// @param [in] stepper Stepper used for propagation
   template <typename propagator_state_t, typename stepper_t>
-  bool operator()(propagator_state_t& state, const stepper_t& stepper) const {
+  bool operator()(propagator_state_t &state, const stepper_t &stepper) const {
     return (*this)(state, stepper, *state.navigation.targetSurface);
   }
 
@@ -79,8 +78,8 @@ struct SurfaceReached {
   /// @param [in] stepper Stepper used for the progation
   /// @param [in] targetSurface The target surface
   template <typename propagator_state_t, typename stepper_t>
-  bool operator()(propagator_state_t& state, const stepper_t& stepper,
-                  const Surface& targetSurface) const {
+  bool operator()(propagator_state_t &state, const stepper_t &stepper,
+                  const Surface &targetSurface) const {
     if (state.navigation.targetReached) {
       return true;
     }
@@ -125,4 +124,4 @@ struct SurfaceReached {
   }
 };
 
-}  // namespace Acts
+} // namespace Acts

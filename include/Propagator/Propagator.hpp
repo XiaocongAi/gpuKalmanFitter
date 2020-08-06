@@ -11,9 +11,9 @@
 #include "Geometry/GeometryContext.hpp"
 #include "MagneticField/MagneticFieldContext.hpp"
 
+#include "EventData/TrackParameters.hpp"
 #include "Propagator/DirectNavigator.hpp"
 #include "Propagator/StandardAborters.hpp"
-#include "EventData/TrackParameters.hpp"
 #include "Utilities/Definitions.hpp"
 
 #include <Eigen/Core>
@@ -23,25 +23,24 @@
 #include <vector>
 
 namespace Acts {
-//using Vector3DMap = Eigen::Map<Vector3D>;
+// using Vector3DMap = Eigen::Map<Vector3D>;
 
 /// @brief Simple class holding result of propagation call
 ///
 /// @tparam parameters_t Type of final track parameters
 /// @tparam result_t  Result for additional propagation
 ///                      quantity
-template <typename parameters_t, typename result_t>
-struct PropagatorResult {
+template <typename parameters_t, typename result_t> struct PropagatorResult {
   PropagatorResult() = default;
 
   // The single action result
   result_t result;
 
-  //std::unique_ptr<const parameters_t> endParameters = nullptr;
+  // std::unique_ptr<const parameters_t> endParameters = nullptr;
 
   BoundMatrix transportJacobian{BoundMatrix::Zero()};
 
- /// Number of propagation steps that were carried out
+  /// Number of propagation steps that were carried out
   unsigned int steps = 0;
 
   /// Signed distance over which the parameters were propagated
@@ -50,16 +49,14 @@ struct PropagatorResult {
 
 /// @brief Options for propagate() call
 ///
-template<typename action_t, typename aborter_t>
-struct PropagatorOptions {
+template <typename action_t, typename aborter_t> struct PropagatorOptions {
   using action_type = action_t;
 
   /// Delete default constructor
   PropagatorOptions() = delete;
 
   /// PropagatorOptions copy constructor
-  PropagatorOptions(
-      const PropagatorOptions<action_t, aborter_t>& po) = default;
+  PropagatorOptions(const PropagatorOptions<action_t, aborter_t> &po) = default;
 
   /// PropagatorOptions with context
   PropagatorOptions(std::reference_wrapper<const GeometryContext> gctx,
@@ -131,8 +128,7 @@ public:
   ///
   /// This struct holds the common state information for propagating
   /// which is independent of the actual stepper implementation.
-  template <typename propagator_options_t> 
-    struct State {
+  template <typename propagator_options_t> struct State {
     /// Create the propagator state from the options
     ///
     /// @tparam parameters_t the type of the start parameters
@@ -143,11 +139,11 @@ public:
     template <typename parameters_t>
     ACTS_DEVICE_FUNC State(const parameters_t &start,
                            const propagator_options_t &topts)
-        : options(topts),
-          stepping(topts.geoContext, start, topts.direction, topts.maxStepSize, topts.tolerance) {
-             // Setting the start surface
-             navigation.startSurface = &start.referenceSurface();
-	  }
+        : options(topts), stepping(topts.geoContext, start, topts.direction,
+                                   topts.maxStepSize, topts.tolerance) {
+      // Setting the start surface
+      navigation.startSurface = &start.referenceSurface();
+    }
 
     /// These are the options - provided for each propagation step
     propagator_options_t options;
@@ -162,14 +158,19 @@ public:
   /// Constructor from implementation object
   ///
   /// @param stepper The stepper implementation is moved to a private member
-  ACTS_DEVICE_FUNC explicit Propagator(stepper_t stepper, navigator_t navigator = navigator_t())
+  ACTS_DEVICE_FUNC explicit Propagator(stepper_t stepper,
+                                       navigator_t navigator = navigator_t())
       : m_stepper(std::move(stepper)), m_navigator(std::move(navigator)) {}
 
   /// @brief Propagate track parameters
   ///
-  template <typename parameters_t, typename propagator_options_t, typename path_aborter_t = PathLimitReached>
-  ACTS_DEVICE_FUNC PropagatorResult<CurvilinearParameters, typename propagator_options_t::action_type::result_type> 
-  propagate(const parameters_t &start, const propagator_options_t &options) const;
+  template <typename parameters_t, typename propagator_options_t,
+            typename path_aborter_t = PathLimitReached>
+  ACTS_DEVICE_FUNC
+      PropagatorResult<CurvilinearParameters,
+                       typename propagator_options_t::action_type::result_type>
+      propagate(const parameters_t &start,
+                const propagator_options_t &options) const;
 
   /// @brief Get a non-const reference on the underlying stepper
   ///

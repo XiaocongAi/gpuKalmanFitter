@@ -19,8 +19,8 @@
 Acts::RectangleBounds::RectangleBounds(double halex, double haley)
     : m_min(-halex, -haley), m_max(halex, haley) {}
 
-Acts::RectangleBounds::RectangleBounds(const Vector2D& vmin,
-                                       const Vector2D& vmax)
+Acts::RectangleBounds::RectangleBounds(const Vector2D &vmin,
+                                       const Vector2D &vmax)
     : m_min(vmin), m_max(vmax) {}
 
 std::vector<TDD_real_t> Acts::RectangleBounds::valueStore() const {
@@ -29,13 +29,13 @@ std::vector<TDD_real_t> Acts::RectangleBounds::valueStore() const {
   return values;
 }
 
-bool Acts::RectangleBounds::inside(const Acts::Vector2D& lposition,
-                                   const Acts::BoundaryCheck& bcheck) const {
+bool Acts::RectangleBounds::inside(const Acts::Vector2D &lposition,
+                                   const Acts::BoundaryCheck &bcheck) const {
   return bcheck.isInside(lposition, m_min, m_max);
 }
 
 double Acts::RectangleBounds::distanceToBoundary(
-    const Acts::Vector2D& lposition) const {
+    const Acts::Vector2D &lposition) const {
   return BoundaryCheck(true).distance(lposition, m_min, m_max);
 }
 
@@ -49,6 +49,6 @@ std::vector<Acts::Vector2D> Acts::RectangleBounds::vertices() const {
   };
 }
 
-const Acts::RectangleBounds& Acts::RectangleBounds::boundingBox() const {
+const Acts::RectangleBounds &Acts::RectangleBounds::boundingBox() const {
   return (*this);
 }

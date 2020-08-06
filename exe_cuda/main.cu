@@ -1,3 +1,4 @@
+#include "EventData/TrackParameters.hpp"
 #include "Geometry/GeometryContext.hpp"
 #include "MagneticField/MagneticFieldContext.hpp"
 #include "Plugins/BFieldOptions.hpp"
@@ -5,7 +6,6 @@
 #include "Propagator/EigenStepper.hpp"
 #include "Propagator/Propagator.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
-#include "EventData/TrackParameters.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -40,7 +40,6 @@ static void show_usage(std::string name) {
             << std::endl;
 }
 
-
 using namespace Acts;
 
 // Struct for B field
@@ -51,36 +50,38 @@ struct ConstantBField {
 };
 
 // Test actor
-struct VoidActor{
-struct this_result{
- bool status = false;
-};
-using result_type = this_result;
+struct VoidActor {
+  struct this_result {
+    bool status = false;
+  };
+  using result_type = this_result;
 
-template <typename propagator_state_t, typename stepper_t>
-    void operator()(propagator_state_t& state, const stepper_t& stepper,
-                    result_type& result) const {
-            return;
-    }
+  template <typename propagator_state_t, typename stepper_t>
+  void operator()(propagator_state_t &state, const stepper_t &stepper,
+                  result_type &result) const {
+    return;
+  }
 };
 
 // Test aborter
-struct VoidAborter{
-template <typename propagator_state_t, typename stepper_t, typename result_t>
-    bool operator()(propagator_state_t& state, const stepper_t& stepper,
-                    result_t& result) const {
-            return false;
-    }
+struct VoidAborter {
+  template <typename propagator_state_t, typename stepper_t, typename result_t>
+  bool operator()(propagator_state_t &state, const stepper_t &stepper,
+                  result_t &result) const {
+    return false;
+  }
 };
 
-//using Stepper = EigenStepper<ConstantBField>;
+// using Stepper = EigenStepper<ConstantBField>;
 using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
 using PropagatorType = Propagator<Stepper>;
-using PropResultType = PropagatorResult<CurvilinearParameters, typename VoidActor::result_type>;
+using PropResultType =
+    PropagatorResult<CurvilinearParameters, typename VoidActor::result_type>;
 using PropOptionsType = PropagatorOptions<VoidActor, VoidAborter>;
 
 // Device code
-__global__ void propKernel(PropagatorType *propagator, CurvilinearParameters *tpars,
+__global__ void propKernel(PropagatorType *propagator,
+                           CurvilinearParameters *tpars,
                            PropOptionsType *propOptions,
                            PropResultType *propResult, Vector3D *gridValPtr,
                            int N) {
@@ -132,7 +133,7 @@ int main(int argc, char *argv[]) {
             << ". Writing results to obj file? " << output << " ----- "
             << std::endl;
 
-    // Create a test context
+  // Create a test context
   GeometryContext gctx = GeometryContext();
   MagneticFieldContext mctx = MagneticFieldContext();
 
@@ -146,7 +147,7 @@ int main(int argc, char *argv[]) {
   // Construct a propagator
   PropagatorType propagator(stepper);
   // Construct the propagation options object
-  PropOptionsType propOptions(gctx, mctx); 
+  PropOptionsType propOptions(gctx, mctx);
   propOptions.maxSteps = 1000;
 
   // Construct random starting track parameters
@@ -157,21 +158,18 @@ int main(int argc, char *argv[]) {
   startPars.reserve(nTracks);
   for (int i = 0; i < nTracks; i++) {
     BoundSymMatrix cov = BoundSymMatrix::Zero();
-    cov <<
-      0.01, 0., 0., 0., 0., 0.,
-      0., 0.01, 0., 0., 0., 0.,
-      0., 0., 0.0001, 0., 0., 0.,
-      0., 0., 0., 0.0001, 0., 0.,
-      0., 0., 0., 0., 0.0001, 0.,
-      0., 0., 0., 0.,     0., 1.;
+    cov << 0.01, 0., 0., 0., 0., 0., 0., 0.01, 0., 0., 0., 0., 0., 0., 0.0001,
+        0., 0., 0., 0., 0., 0., 0.0001, 0., 0., 0., 0., 0., 0., 0.0001, 0., 0.,
+        0., 0., 0., 0., 1.;
 
     double q = 1;
-    double time =0;
-    Vector3D pos(0, 0.1 * gauss(generator), 0.1 * gauss(generator)); // Units: mm
-    //double phi = randPhi(generator);
-    //double theta = randTheta(generator);
+    double time = 0;
+    Vector3D pos(0, 0.1 * gauss(generator),
+                 0.1 * gauss(generator)); // Units: mm
+    // double phi = randPhi(generator);
+    // double theta = randTheta(generator);
     Vector3D mom(1, 0, 0); // Units: GeV
-    
+
     startPars.emplace_back(cov, pos, mom, q, time);
   }
 
@@ -191,7 +189,7 @@ int main(int argc, char *argv[]) {
     size_t gridSize = grid.size();
     using GridType = std::remove_reference<decltype(grid)>::type;
     using GridValueType = typename GridType::value_type;
-    GridValueType* gridValPtr = grid.refValues();
+    GridValueType *gridValPtr = grid.refValues();
 
     // Allocate memory on device
     PropagatorType *d_propagator;
@@ -211,11 +209,13 @@ int main(int argc, char *argv[]) {
                          cudaMemcpyHostToDevice));
     GPUERRCHK(cudaMemcpy(d_opt, &propOptions, sizeof(PropOptionsType),
                          cudaMemcpyHostToDevice));
-    GPUERRCHK(cudaMemcpy(d_pars, startPars.data(), nTracks * sizeof(CurvilinearParameters),
+    GPUERRCHK(cudaMemcpy(d_pars, startPars.data(),
+                         nTracks * sizeof(CurvilinearParameters),
                          cudaMemcpyHostToDevice));
     GPUERRCHK(cudaMemcpy(d_ress, ress.data(), nTracks * sizeof(PropResultType),
                          cudaMemcpyHostToDevice));
-    GPUERRCHK(cudaMemcpy(d_gridValPtr, gridValPtr, gridSize * sizeof(GridValueType),
+    GPUERRCHK(cudaMemcpy(d_gridValPtr, gridValPtr,
+                         gridSize * sizeof(GridValueType),
                          cudaMemcpyHostToDevice));
 
     // Run on device
@@ -238,8 +238,8 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaFree(d_ress));
     GPUERRCHK(cudaFree(d_gridValPtr));
   } else {
-    // Run on host
-    #pragma omp parallel for
+// Run on host
+#pragma omp parallel for
     for (int it = 0; it < nTracks; it++) {
       ress[it] = propagator.propagate(startPars[it], propOptions);
     }

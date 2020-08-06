@@ -17,19 +17,18 @@
 #include <iomanip>
 #include <iostream>
 
-
-Acts::PlaneSurface::PlaneSurface(const PlaneSurface& other)
+Acts::PlaneSurface::PlaneSurface(const PlaneSurface &other)
     : GeometryObject(), Surface(other), m_bounds(other.m_bounds) {}
 
-Acts::PlaneSurface::PlaneSurface(const GeometryContext& gctx,
-                                 const PlaneSurface& other,
-                                 const Transform3D& transf)
-    : GeometryObject(),
-      Surface(gctx, other, transf),
-      m_bounds(other.m_bounds) {}
+Acts::PlaneSurface::PlaneSurface(const GeometryContext &gctx,
+                                 const PlaneSurface &other,
+                                 const Transform3D &transf)
+    : GeometryObject(), Surface(gctx, other, transf), m_bounds(other.m_bounds) {
+}
 
-Acts::PlaneSurface::PlaneSurface(const Vector3D& center, const Vector3D& normal)
-    //: Surface(), m_bounds(RectangleBounds(std::numeric_limits<double>::max(), std::numeric_limits<double>::max())) {
+Acts::PlaneSurface::PlaneSurface(const Vector3D &center, const Vector3D &normal)
+    //: Surface(), m_bounds(RectangleBounds(std::numeric_limits<double>::max(),
+    // std::numeric_limits<double>::max())) {
     : Surface(), m_bounds(nullptr) {
   /// the right-handed coordinate system is defined as
   /// T = normal
@@ -51,11 +50,11 @@ Acts::PlaneSurface::PlaneSurface(const Vector3D& center, const Vector3D& normal)
   Surface::m_transform = transform;
 }
 
-Acts::PlaneSurface::PlaneSurface(const Transform3D& htrans,
-                                 const PlanarBounds* pbounds)
+Acts::PlaneSurface::PlaneSurface(const Transform3D &htrans,
+                                 const PlanarBounds *pbounds)
     : Surface(std::move(htrans)), m_bounds(std::move(pbounds)) {}
 
-Acts::PlaneSurface& Acts::PlaneSurface::operator=(const PlaneSurface& other) {
+Acts::PlaneSurface &Acts::PlaneSurface::operator=(const PlaneSurface &other) {
   if (this != &other) {
     Surface::operator=(other);
     m_bounds = other.m_bounds;
@@ -67,19 +66,19 @@ Acts::Surface::SurfaceType Acts::PlaneSurface::type() const {
   return Surface::Plane;
 }
 
-void Acts::PlaneSurface::localToGlobal(const GeometryContext& gctx,
-                                       const Vector2D& lposition,
-                                       const Vector3D& /*gmom*/,
-                                       Vector3D& position) const {
+void Acts::PlaneSurface::localToGlobal(const GeometryContext &gctx,
+                                       const Vector2D &lposition,
+                                       const Vector3D & /*gmom*/,
+                                       Vector3D &position) const {
   Vector3D loc3Dframe(lposition[Acts::eLOC_X], lposition[Acts::eLOC_Y], 0.);
   /// the chance that there is no transform is almost 0, let's apply it
   position = transform(gctx) * loc3Dframe;
 }
 
-bool Acts::PlaneSurface::globalToLocal(const GeometryContext& gctx,
-                                       const Vector3D& position,
-                                       const Vector3D& /*gmom*/,
-                                       Acts::Vector2D& lposition) const {
+bool Acts::PlaneSurface::globalToLocal(const GeometryContext &gctx,
+                                       const Vector3D &position,
+                                       const Vector3D & /*gmom*/,
+                                       Acts::Vector2D &lposition) const {
   /// the chance that there is no transform is almost 0, let's apply it
   Vector3D loc3Dframe = (transform(gctx).inverse()) * position;
   lposition = Vector2D(loc3Dframe.x(), loc3Dframe.y());
@@ -89,13 +88,10 @@ bool Acts::PlaneSurface::globalToLocal(const GeometryContext& gctx,
               : true);
 }
 
-std::string Acts::PlaneSurface::name() const {
-  return "Acts::PlaneSurface";
-}
+std::string Acts::PlaneSurface::name() const { return "Acts::PlaneSurface"; }
 
-
-const Acts::SurfaceBounds& Acts::PlaneSurface::bounds() const {
-   if (m_bounds) {
+const Acts::SurfaceBounds &Acts::PlaneSurface::bounds() const {
+  if (m_bounds) {
     return *m_bounds;
   }
   return s_noBounds;

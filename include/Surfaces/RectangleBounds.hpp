@@ -27,7 +27,7 @@ namespace Acts {
 /// @image html RectangularBounds.gif
 
 class RectangleBounds : public SurfaceBounds {
- public:
+public:
   /// @enum BoundValues for readability
   enum BoundValues { bv_halfX = 0, bv_halfY = 1, bv_length = 2 };
 
@@ -43,7 +43,7 @@ class RectangleBounds : public SurfaceBounds {
   ///
   /// @param vmin Minimum vertex
   /// @param vmax Maximum vertex
-  RectangleBounds(const Vector2D& vmin, const Vector2D& vmax);
+  RectangleBounds(const Vector2D &vmin, const Vector2D &vmax);
 
   ~RectangleBounds() override = default;
 
@@ -58,20 +58,20 @@ class RectangleBounds : public SurfaceBounds {
   /// @param lposition Local position (assumed to be in right surface frame)
   /// @param bcheck boundary check directive
   /// @return boolean indicator for the success of this operation
-  bool inside(const Vector2D& lposition,
-              const BoundaryCheck& bcheck) const final;
+  bool inside(const Vector2D &lposition,
+              const BoundaryCheck &bcheck) const final;
 
   /// Minimal distance to boundary ( > 0 if outside and <=0 if inside)
   ///
   /// @param lposition is the local position to check for the distance
   /// @return is a signed distance parameter
-  double distanceToBoundary(const Vector2D& lposition) const final;
+  double distanceToBoundary(const Vector2D &lposition) const final;
 
   /// Return the vertices - or, the points of the extremas
   std::vector<Vector2D> vertices() const;
 
   // Bounding box representation
-  const RectangleBounds& boundingBox() const;
+  const RectangleBounds &boundingBox() const;
 
   /// Return method for the half length in X
   double halflengthX() const;
@@ -81,13 +81,13 @@ class RectangleBounds : public SurfaceBounds {
 
   /// Get the min vertex defining the bounds
   /// @return The min vertex
-  const Vector2D& min() const;
+  const Vector2D &min() const;
 
   /// Get the max vertex defining the bounds
   /// @return The max vertex
-  const Vector2D& max() const;
+  const Vector2D &max() const;
 
- private:
+private:
   Vector2D m_min;
   Vector2D m_max;
 };
@@ -104,12 +104,8 @@ inline SurfaceBounds::BoundsType RectangleBounds::type() const {
   return SurfaceBounds::Rectangle;
 }
 
-inline const Vector2D& RectangleBounds::min() const {
-  return m_min;
-}
+inline const Vector2D &RectangleBounds::min() const { return m_min; }
 
-inline const Vector2D& RectangleBounds::max() const {
-  return m_max;
-}
+inline const Vector2D &RectangleBounds::max() const { return m_max; }
 
-}  // namespace Acts
+} // namespace Acts

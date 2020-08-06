@@ -17,4 +17,4 @@ namespace Acts {
 using BoundParameters = SingleBoundTrackParameters<ChargedPolicy>;
 using CurvilinearParameters = SingleCurvilinearTrackParameters<ChargedPolicy>;
 
-}  // namespace Acts
+} // namespace Acts

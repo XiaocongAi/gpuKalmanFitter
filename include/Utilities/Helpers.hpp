@@ -40,9 +40,9 @@ namespace VectorHelpers {
 /// in case of dynamic size, will abort execution if that is not the case.
 /// @return The value of the angle in the transverse plane.
 template <typename Derived>
-double phi(const Eigen::MatrixBase<Derived>& v) noexcept {
+double phi(const Eigen::MatrixBase<Derived> &v) noexcept {
   constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
-  //if constexpr (rows != -1) {
+  // if constexpr (rows != -1) {
   //  // static size, do compile time check
   //  static_assert(rows >= 2,
   //                "Phi function not valid for vectors not at least 2D");
@@ -65,20 +65,20 @@ double phi(const Eigen::MatrixBase<Derived>& v) noexcept {
 /// in case of dynamic size, will abort execution if that is not the case.
 /// @return The transverse radius value.
 template <typename Derived>
-double perp(const Eigen::MatrixBase<Derived>& v) noexcept {
+double perp(const Eigen::MatrixBase<Derived> &v) noexcept {
   constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
-//  if constexpr (rows != -1) {
-//    // static size, do compile time check
-//    static_assert(rows >= 2,
-//                  "Perp function not valid for vectors not at least 2D");
-//  } else {
-//    // dynamic size
-//    if (v.rows() < 2) {
-//      std::cerr << "Perp function not valid for vectors not at least 2D"
-//                << std::endl;
-//      std::abort();
-//    }
-//  }
+  //  if constexpr (rows != -1) {
+  //    // static size, do compile time check
+  //    static_assert(rows >= 2,
+  //                  "Perp function not valid for vectors not at least 2D");
+  //  } else {
+  //    // dynamic size
+  //    if (v.rows() < 2) {
+  //      std::cerr << "Perp function not valid for vectors not at least 2D"
+  //                << std::endl;
+  //      std::abort();
+  //    }
+  //  }
   return std::sqrt(v[0] * v[0] + v[1] * v[1]);
 }
 
@@ -89,16 +89,16 @@ double perp(const Eigen::MatrixBase<Derived>& v) noexcept {
 /// in case of dynamic size, will abort execution if that is not the case.
 /// @return The theta value
 template <typename Derived>
-double theta(const Eigen::MatrixBase<Derived>& v) noexcept {
+double theta(const Eigen::MatrixBase<Derived> &v) noexcept {
   constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
-  //if constexpr (rows != -1) {
+  // if constexpr (rows != -1) {
   //  // static size, do compile time check
   //  static_assert(rows >= 3, "Theta function not valid for non-3D vectors.");
   //} else {
   //  // dynamic size
   //  if (v.rows() < 3) {
-  //    std::cerr << "Theta function not valid for non-3D vectors." << std::endl;
-  //    std::abort();
+  //    std::cerr << "Theta function not valid for non-3D vectors." <<
+  //    std::endl; std::abort();
   //  }
   //}
 
@@ -112,18 +112,18 @@ double theta(const Eigen::MatrixBase<Derived>& v) noexcept {
 /// in case of dynamic size, will abort execution if that is not the case.
 /// @return The pseudorapidity value
 template <typename Derived>
-double eta(const Eigen::MatrixBase<Derived>& v) noexcept {
+double eta(const Eigen::MatrixBase<Derived> &v) noexcept {
   constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
-//  if constexpr (rows != -1) {
-//    // static size, do compile time check
-//    static_assert(rows >= 3, "Eta function not valid for non-3D vectors.");
-//  } else {
-//    // dynamic size
-//    if (v.rows() < 3) {
-//      std::cerr << "Eta function not valid for non-3D vectors." << std::endl;
-//      std::abort();
-//    }
-//  }
+  //  if constexpr (rows != -1) {
+  //    // static size, do compile time check
+  //    static_assert(rows >= 3, "Eta function not valid for non-3D vectors.");
+  //  } else {
+  //    // dynamic size
+  //    if (v.rows() < 3) {
+  //      std::cerr << "Eta function not valid for non-3D vectors." <<
+  //      std::endl; std::abort();
+  //    }
+  //  }
 
   return std::atanh(v[2] / v.norm());
 }
@@ -132,29 +132,29 @@ double eta(const Eigen::MatrixBase<Derived>& v) noexcept {
 ///
 /// For this method a 3D vector is required to guarantee all potential
 /// binning values.
-inline double cast(const Vector3D& position, BinningValue bval) {
+inline double cast(const Vector3D &position, BinningValue bval) {
   switch (bval) {
-    case binX:
-      return position[0];
-    case binY:
-      return position[1];
-    case binZ:
-      return position[2];
-    case binR:
-      return perp(position);
-    case binPhi:
-      return phi(position);
-    case binRPhi:
-      return perp(position) * phi(position);
-    case binH:
-      return theta(position);
-    case binEta:
-      return eta(position);
-    case binMag:
-      return position.norm();
-    default:
-      assert(false and "Invalid BinningValue enum value");
-      return std::numeric_limits<double>::quiet_NaN();
+  case binX:
+    return position[0];
+  case binY:
+    return position[1];
+  case binZ:
+    return position[2];
+  case binR:
+    return perp(position);
+  case binPhi:
+    return phi(position);
+  case binRPhi:
+    return perp(position) * phi(position);
+  case binH:
+    return theta(position);
+  case binEta:
+    return eta(position);
+  case binMag:
+    return position.norm();
+  default:
+    assert(false and "Invalid BinningValue enum value");
+    return std::numeric_limits<double>::quiet_NaN();
   }
 }
 
@@ -164,7 +164,7 @@ inline double cast(const Vector3D& position, BinningValue bval) {
 /// @param [in] m Matrix that will be used for cross products
 /// @param [in] v Vector for cross products
 /// @return Constructed matrix
-inline ActsMatrixD<3, 3> cross(const ActsMatrixD<3, 3>& m, const Vector3D& v) {
+inline ActsMatrixD<3, 3> cross(const ActsMatrixD<3, 3> &m, const Vector3D &v) {
   ActsMatrixD<3, 3> r;
   r.col(0) = m.col(0).cross(v);
   r.col(1) = m.col(1).cross(v);
@@ -174,16 +174,14 @@ inline ActsMatrixD<3, 3> cross(const ActsMatrixD<3, 3>& m, const Vector3D& v) {
 }
 
 /// Access the three-position components in a four-position vector.
-inline auto position(const Vector4D& pos4) {
-  return pos4.segment<3>(ePos0);
-}
+inline auto position(const Vector4D &pos4) { return pos4.segment<3>(ePos0); }
 
 /// Access the three-position components in a free parameters vector.
-inline auto position(const FreeVector& params) {
+inline auto position(const FreeVector &params) {
   return params.segment<3>(eFreePos0);
 }
 
-}  // namespace VectorHelpers
+} // namespace VectorHelpers
 
 namespace detail {
 
@@ -193,15 +191,15 @@ inline double roundWithPrecision(double val, int precision) {
   }
   return val;
 }
-}  // namespace detail
+} // namespace detail
 
 /// Print out a matrix in a structured way.
 /// @param matrix The matrix to print
 /// @param precision Numeric output precision
 /// @param offset Offset in front of matrix lines
 /// @return The printed string
-inline std::string toString(const ActsMatrixXd& matrix, int precision = 4,
-                            const std::string& offset = "") {
+inline std::string toString(const ActsMatrixXd &matrix, int precision = 4,
+                            const std::string &offset = "") {
   std::ostringstream sout;
 
   sout << std::setiosflags(std::ios::fixed) << std::setprecision(precision);
@@ -230,7 +228,7 @@ inline std::string toString(const ActsMatrixXd& matrix, int precision = 4,
         }
       }
       if (i != matrix.rows() -
-                   1) {  // make the end line and the offset in the next line
+                   1) { // make the end line and the offset in the next line
         sout << std::endl;
         sout << offset;
       }
@@ -243,7 +241,7 @@ inline std::string toString(const ActsMatrixXd& matrix, int precision = 4,
 /// @param matrix The translation to print
 /// @param precision Numeric output precision
 /// @return The printed string
-inline std::string toString(const Acts::Translation3D& translation,
+inline std::string toString(const Acts::Translation3D &translation,
                             int precision = 4) {
   Acts::Vector3D trans;
   trans[0] = translation.x();
@@ -257,8 +255,8 @@ inline std::string toString(const Acts::Translation3D& translation,
 /// @param precision Numeric output precision
 /// @param offset Offset in front of matrix lines
 /// @return The printed string
-inline std::string toString(const Acts::Transform3D& transform,
-                            int precision = 4, const std::string& offset = "") {
+inline std::string toString(const Acts::Transform3D &transform,
+                            int precision = 4, const std::string &offset = "") {
   std::ostringstream sout;
   sout << "Translation : " << toString(transform.translation(), precision)
        << std::endl;
@@ -274,11 +272,11 @@ inline std::string toString(const Acts::Transform3D& transform,
 /// @param items The vector of @c shared_ptr
 /// @return The unpacked vector
 template <typename T>
-std::vector<T*> unpack_shared_vector(
-    const std::vector<std::shared_ptr<T>>& items) {
-  std::vector<T*> rawPtrs;
+std::vector<T *>
+unpack_shared_vector(const std::vector<std::shared_ptr<T>> &items) {
+  std::vector<T *> rawPtrs;
   rawPtrs.reserve(items.size());
-  for (const std::shared_ptr<T>& item : items) {
+  for (const std::shared_ptr<T> &item : items) {
     rawPtrs.push_back(item.get());
   }
   return rawPtrs;
@@ -290,11 +288,11 @@ std::vector<T*> unpack_shared_vector(
 /// @param items The vector of @c shared_ptr
 /// @return The unpacked vector
 template <typename T>
-std::vector<const T*> unpack_shared_vector(
-    const std::vector<std::shared_ptr<const T>>& items) {
-  std::vector<const T*> rawPtrs;
+std::vector<const T *>
+unpack_shared_vector(const std::vector<std::shared_ptr<const T>> &items) {
+  std::vector<const T *> rawPtrs;
   rawPtrs.reserve(items.size());
-  for (const std::shared_ptr<const T>& item : items) {
+  for (const std::shared_ptr<const T> &item : items) {
     rawPtrs.push_back(item.get());
   }
   return rawPtrs;
@@ -318,9 +316,9 @@ std::vector<const T*> unpack_shared_vector(
 /// @note @c Callable is expected to have a static member function @c invoke
 /// that is callable with @c Args
 
-//template <template <size_t> class Callable, size_t N, size_t NMAX,
+// template <template <size_t> class Callable, size_t N, size_t NMAX,
 //          typename... Args>
-//decltype(Callable<N>::invoke(std::declval<Args>()...)) template_switch(
+// decltype(Callable<N>::invoke(std::declval<Args>()...)) template_switch(
 //    size_t v, Args&&... args) {
 //  if (v == N) {
 //    return Callable<N>::invoke(std::forward<Args>(args)...);
@@ -352,7 +350,7 @@ MatrixType bitsetToMatrix(const std::bitset<MatrixType::RowsAtCompileTime *
                 "bitsetToMatrix does not support dynamic matrices");
 
   MatrixType m;
-  auto* p = m.data();
+  auto *p = m.data();
   for (size_t i = 0; i < rows * cols; i++) {
     p[i] = bs[rows * cols - 1 - i];
   }
@@ -366,14 +364,14 @@ MatrixType bitsetToMatrix(const std::bitset<MatrixType::RowsAtCompileTime *
 /// @param m Matrix that is converted
 /// @return The converted bitset.
 template <typename Derived>
-auto matrixToBitset(const Eigen::PlainObjectBase<Derived>& m) {
+auto matrixToBitset(const Eigen::PlainObjectBase<Derived> &m) {
   using MatrixType = Eigen::PlainObjectBase<Derived>;
   constexpr size_t rows = MatrixType::RowsAtCompileTime;
   constexpr size_t cols = MatrixType::ColsAtCompileTime;
 
   std::bitset<rows * cols> res;
 
-  auto* p = m.data();
+  auto *p = m.data();
   for (size_t i = 0; i < rows * cols; i++) {
     res[rows * cols - 1 - i] = p[i];
   }
@@ -381,4 +379,4 @@ auto matrixToBitset(const Eigen::PlainObjectBase<Derived>& m) {
   return res;
 }
 
-}  // namespace Acts
+} // namespace Acts

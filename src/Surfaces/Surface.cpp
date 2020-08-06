@@ -16,25 +16,23 @@
 #include <iostream>
 #include <utility>
 
-Acts::Surface::Surface(const Transform3D& tform)
+Acts::Surface::Surface(const Transform3D &tform)
     : GeometryObject(), m_transform(std::move(tform)) {}
 
-Acts::Surface::Surface(const Surface& other)
-    : GeometryObject(other),
-      m_transform(other.m_transform){}
+Acts::Surface::Surface(const Surface &other)
+    : GeometryObject(other), m_transform(other.m_transform) {}
 
-Acts::Surface::Surface(const GeometryContext& gctx, const Surface& other,
-                       const Transform3D& shift)
+Acts::Surface::Surface(const GeometryContext &gctx, const Surface &other,
+                       const Transform3D &shift)
     : GeometryObject(),
-      m_transform(
-          Transform3D(shift * other.transform(gctx))){}
+      m_transform(Transform3D(shift * other.transform(gctx))) {}
 
 Acts::Surface::~Surface() = default;
 
-bool Acts::Surface::isOnSurface(const GeometryContext& gctx,
-                                const Vector3D& position,
-                                const Vector3D& momentum,
-                                const BoundaryCheck& bcheck) const {
+bool Acts::Surface::isOnSurface(const GeometryContext &gctx,
+                                const Vector3D &position,
+                                const Vector3D &momentum,
+                                const BoundaryCheck &bcheck) const {
   // create the local position
   Vector2D lposition{0., 0.};
   // global to local transformation
@@ -46,7 +44,7 @@ bool Acts::Surface::isOnSurface(const GeometryContext& gctx,
   return false;
 }
 
-Acts::Surface& Acts::Surface::operator=(const Surface& other) {
+Acts::Surface &Acts::Surface::operator=(const Surface &other) {
   if (&other != this) {
     GeometryObject::operator=(other);
     // detector element, identifier & layer association are unique
@@ -55,7 +53,7 @@ Acts::Surface& Acts::Surface::operator=(const Surface& other) {
   return *this;
 }
 
-bool Acts::Surface::operator==(const Surface& other) const {
+bool Acts::Surface::operator==(const Surface &other) const {
   // (a) fast exit for pointer comparison
   if (&other == this) {
     return true;
@@ -77,6 +75,6 @@ bool Acts::Surface::operator==(const Surface& other) const {
   return true;
 }
 
-bool Acts::Surface::operator!=(const Acts::Surface& sf) const {
+bool Acts::Surface::operator!=(const Acts::Surface &sf) const {
   return !(operator==(sf));
 }

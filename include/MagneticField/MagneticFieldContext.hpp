@@ -25,6 +25,6 @@ namespace Acts {
 
 using MagneticFieldContext = int;
 
-}  // namespace Acts
+} // namespace Acts
 
 #endif

@@ -24,18 +24,18 @@ namespace Acts {
 /// - (Sensitive) Surfaces    - counts through sensitive surfaces
 ///
 class GeometryID {
- public:
+public:
   using Value = uint64_t;
 
   /// Construct from an already encoded value.
   constexpr GeometryID(Value encoded) : m_value(encoded) {}
   /// Construct default GeometryID with all values set to zero.
   GeometryID() = default;
-  GeometryID(GeometryID&&) = default;
-  GeometryID(const GeometryID&) = default;
+  GeometryID(GeometryID &&) = default;
+  GeometryID(const GeometryID &) = default;
   ~GeometryID() = default;
-  GeometryID& operator=(GeometryID&&) = default;
-  GeometryID& operator=(const GeometryID&) = default;
+  GeometryID &operator=(GeometryID &&) = default;
+  GeometryID &operator=(const GeometryID &) = default;
 
   /// Return the encoded value.
   constexpr Value value() const { return m_value; }
@@ -52,27 +52,27 @@ class GeometryID {
   constexpr Value sensitive() const { return getBits(sensitive_mask); }
 
   /// Set the volume identifier.
-  constexpr GeometryID& setVolume(Value volume) {
+  constexpr GeometryID &setVolume(Value volume) {
     return setBits(volume_mask, volume);
   }
   /// Set the boundary identifier.
-  constexpr GeometryID& setBoundary(Value boundary) {
+  constexpr GeometryID &setBoundary(Value boundary) {
     return setBits(boundary_mask, boundary);
   }
   /// Set the layer identifier.
-  constexpr GeometryID& setLayer(Value layer) {
+  constexpr GeometryID &setLayer(Value layer) {
     return setBits(layer_mask, layer);
   }
   /// Set the approach identifier.
-  constexpr GeometryID& setApproach(Value approach) {
+  constexpr GeometryID &setApproach(Value approach) {
     return setBits(approach_mask, approach);
   }
   /// Set the sensitive identifier.
-  constexpr GeometryID& setSensitive(Value sensitive) {
+  constexpr GeometryID &setSensitive(Value sensitive) {
     return setBits(sensitive_mask, sensitive);
   }
 
- private:
+private:
   // clang-format off
   static constexpr Value volume_mask    = 0xff00000000000000; // 255 volumes
   static constexpr Value boundary_mask  = 0x00ff000000000000; // 255 boundaries
@@ -96,7 +96,7 @@ class GeometryID {
     return (m_value & mask) >> extractShift(mask);
   }
   /// Set the masked bits to id in the encoded value.
-  constexpr GeometryID& setBits(Value mask, Value id) {
+  constexpr GeometryID &setBits(Value mask, Value id) {
     m_value = (m_value & ~mask) | ((id << extractShift(mask)) & mask);
     // return *this here so we need to write less lines in the set... methods
     return *this;
@@ -110,6 +110,6 @@ class GeometryID {
   }
 };
 
-//std::ostream& operator<<(std::ostream& os, GeometryID id);
+// std::ostream& operator<<(std::ostream& os, GeometryID id);
 
-}  // namespace Acts
+} // namespace Acts

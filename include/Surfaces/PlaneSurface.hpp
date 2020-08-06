@@ -12,9 +12,9 @@
 
 #pragma once
 
-#include <limits>
 #include "Geometry/GeometryContext.hpp"
 #include "Geometry/GeometryStatics.hpp"
+#include <limits>
 //#include "Surfaces/RectangleBounds.hpp"
 #include "Surfaces/PlanarBounds.hpp"
 #include "Surfaces/Surface.hpp"
@@ -35,42 +35,41 @@ namespace Acts {
 class PlaneSurface : public Surface {
   friend Surface;
 
- public:
+public:
   /// Copy Constructor
   ///
   /// @param psf is the source surface for the copy
-  PlaneSurface(const PlaneSurface& other);
+  PlaneSurface(const PlaneSurface &other);
 
   /// Copy constructor - with shift
   ///
   /// @param gctx The current geometry context object, e.g. alignment
   /// @param other is the source cone surface
   /// @param transf is the additional transfrom applied after copying
-  PlaneSurface(const GeometryContext& gctx, const PlaneSurface& other,
-               const Transform3D& transf);
+  PlaneSurface(const GeometryContext &gctx, const PlaneSurface &other,
+               const Transform3D &transf);
 
   /// Dedicated Constructor with normal vector
   /// This is for curvilinear surfaces which are by definition boundless
   ///
   /// @param center is the center position of the surface
   /// @param normal is thenormal vector of the plane surface
-  PlaneSurface(const Vector3D& center, const Vector3D& normal);
+  PlaneSurface(const Vector3D &center, const Vector3D &normal);
 
   /// Constructor for Planes with bounds object
   ///
   /// @param htrans transform in 3D that positions this surface
   /// @param pbounds bounds object to describe the actual surface area
-  PlaneSurface(const Transform3D& htrans,
-               const PlanarBounds* pbounds);
+  PlaneSurface(const Transform3D &htrans, const PlanarBounds *pbounds);
 
- public:
+public:
   /// Destructor - defaulted
   ~PlaneSurface() override = default;
 
   /// Assignment operator
   ///
   /// @param other The source PlaneSurface for assignment
-  PlaneSurface& operator=(const PlaneSurface& other);
+  PlaneSurface &operator=(const PlaneSurface &other);
 
   /// Normal vector return
   ///
@@ -78,8 +77,8 @@ class PlaneSurface : public Surface {
   /// @param lposition is the local position is ignored
   ///
   /// return a Vector3D by value
-  const Vector3D normal(const GeometryContext& gctx,
-                        const Vector2D& lposition) const final;
+  const Vector3D normal(const GeometryContext &gctx,
+                        const Vector2D &lposition) const final;
 
   /// Normal vector return without argument
   using Surface::normal;
@@ -91,14 +90,14 @@ class PlaneSurface : public Surface {
   /// @param bValue is the binning type to be used
   ///
   /// @return position that can beused for this binning
-  const Vector3D binningPosition(const GeometryContext& gctx,
+  const Vector3D binningPosition(const GeometryContext &gctx,
                                  BinningValue bValue) const final;
 
   /// Return the surface type
   SurfaceType type() const override;
 
   /// Return method for bounds object of this surfrace
-  const SurfaceBounds& bounds() const override;
+  const SurfaceBounds &bounds() const override;
 
   /// Local to global transformation
   /// For planar surfaces the momentum is ignroed in the local to global
@@ -109,9 +108,9 @@ class PlaneSurface : public Surface {
   /// @param momentum global 3D momentum representation (optionally ignored)
   /// @param position global 3D position to be filled (given by reference for
   /// method symmetry)
-  void localToGlobal(const GeometryContext& gctx, const Vector2D& lposition,
-                     const Vector3D& momentum,
-                     Vector3D& position) const override;
+  void localToGlobal(const GeometryContext &gctx, const Vector2D &lposition,
+                     const Vector3D &momentum,
+                     Vector3D &position) const override;
 
   /// Global to local transformation
   /// For planar surfaces the momentum is ignroed in the global to local
@@ -126,9 +125,9 @@ class PlaneSurface : public Surface {
   ///
   /// @return boolean indication if operation was successful (fail means global
   /// position was not on surface)
-  bool globalToLocal(const GeometryContext& gctx, const Vector3D& position,
-                     const Vector3D& momentum,
-                     Vector2D& lposition) const override;
+  bool globalToLocal(const GeometryContext &gctx, const Vector3D &position,
+                     const Vector3D &momentum,
+                     Vector2D &lposition) const override;
 
   /// Method that calculates the correction due to incident angle
   ///
@@ -138,8 +137,8 @@ class PlaneSurface : public Surface {
   /// @note this is the final implementation of the pathCorrection function
   ///
   /// @return a double representing the scaling factor
-  double pathCorrection(const GeometryContext& gctx, const Vector3D& position,
-                        const Vector3D& direction) const final;
+  double pathCorrection(const GeometryContext &gctx, const Vector3D &position,
+                        const Vector3D &direction) const final;
 
   /// @brief Straight line intersection schema
   ///
@@ -167,19 +166,19 @@ class PlaneSurface : public Surface {
   /// - perpendicular to the normal of the plane
   ///
   /// @return the Intersection object
-  Intersection intersectionEstimate(
-      const GeometryContext& gctx, const Vector3D& position,
-      const Vector3D& direction,
-      const BoundaryCheck& bcheck = false) const final;
+  Intersection
+  intersectionEstimate(const GeometryContext &gctx, const Vector3D &position,
+                       const Vector3D &direction,
+                       const BoundaryCheck &bcheck = false) const final;
 
   /// Return properly formatted class name for screen output
   std::string name() const override;
 
- protected:
+protected:
   /// the bounds of this surface
-  const PlanarBounds* m_bounds;
+  const PlanarBounds *m_bounds;
 };
 
 #include "Surfaces/detail/PlaneSurface.ipp"
 
-}  // end of namespace Acts
+} // end of namespace Acts

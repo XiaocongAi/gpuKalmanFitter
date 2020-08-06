@@ -1,3 +1,4 @@
+#include "EventData/TrackParameters.hpp"
 #include "Geometry/GeometryContext.hpp"
 #include "MagneticField/MagneticFieldContext.hpp"
 #include "Plugins/BFieldOptions.hpp"
@@ -5,7 +6,6 @@
 #include "Propagator/EigenStepper.hpp"
 #include "Propagator/Propagator.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
-#include "EventData/TrackParameters.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -23,7 +23,8 @@ static void show_usage(std::string name) {
             << "\t-p,--pt \tSpecify the pt of particle\n"
             << "\t-o,--output \tIndicator for writing propagation results\n"
             << "\t-d,--device \tSpecify the device: 'gpu' or 'cpu'\n"
-            << "\t-b,--bf-map \tSpecify the path of *.txt for interpolated " "BField map\n"
+            << "\t-b,--bf-map \tSpecify the path of *.txt for interpolated "
+               "BField map\n"
             << std::endl;
 }
 
@@ -36,35 +37,35 @@ struct ConstantBField {
   }
 };
 
-
 // Test actor
-struct VoidActor{
-struct this_result{
- bool status = false;
-};
-using result_type = this_result;
+struct VoidActor {
+  struct this_result {
+    bool status = false;
+  };
+  using result_type = this_result;
 
-template <typename propagator_state_t, typename stepper_t>
-    void operator()(propagator_state_t& state, const stepper_t& stepper,
-                    result_type& result) const {
-	    return;
-    }
+  template <typename propagator_state_t, typename stepper_t>
+  void operator()(propagator_state_t &state, const stepper_t &stepper,
+                  result_type &result) const {
+    return;
+  }
 };
 
 // Test aborter
-struct VoidAborter{
+struct VoidAborter {
 
-template <typename propagator_state_t, typename stepper_t, typename result_t>
-    bool operator()(propagator_state_t& state, const stepper_t& stepper,
-                    result_t& result) const {
-            return false;
-    }
+  template <typename propagator_state_t, typename stepper_t, typename result_t>
+  bool operator()(propagator_state_t &state, const stepper_t &stepper,
+                  result_t &result) const {
+    return false;
+  }
 };
 
 using Stepper = EigenStepper<ConstantBField>;
-//using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
+// using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
 using PropagatorType = Propagator<Stepper>;
-using PropResultType = PropagatorResult<CurvilinearParameters, typename VoidActor::result_type>;
+using PropResultType =
+    PropagatorResult<CurvilinearParameters, typename VoidActor::result_type>;
 using PropOptionsType = PropagatorOptions<VoidActor, VoidAborter>;
 
 int main(int argc, char *argv[]) {
@@ -108,13 +109,14 @@ int main(int argc, char *argv[]) {
   GeometryContext gctx = GeometryContext();
   MagneticFieldContext mctx = MagneticFieldContext();
 
-  //InterpolatedBFieldMap3D bField = Options::readBField(bFieldFileName);
-  //std::cout
-  //    << "Reading BField and creating a 3D InterpolatedBFieldMap instance done"
+  // InterpolatedBFieldMap3D bField = Options::readBField(bFieldFileName);
+  // std::cout
+  //    << "Reading BField and creating a 3D InterpolatedBFieldMap instance
+  //    done"
   //    << std::endl;
 
   // Construct a stepper with the bField
-  //Stepper stepper(bField);
+  // Stepper stepper(bField);
   Stepper stepper;
   // Construct a propagator
   PropagatorType propagator(stepper);
@@ -127,29 +129,26 @@ int main(int argc, char *argv[]) {
   std::normal_distribution<double> gauss(0., 1.);
   std::uniform_real_distribution<double> randPhi(-1.0 * M_PI, M_PI);
   std::uniform_real_distribution<double> randTheta(0, M_PI);
-  //CurvilinearParameters startPars[nTracks];
+  // CurvilinearParameters startPars[nTracks];
   std::vector<CurvilinearParameters> startPars;
 
   for (int i = 0; i < nTracks; i++) {
     BoundSymMatrix cov = BoundSymMatrix::Zero();
-      cov <<
-        0.01, 0., 0., 0., 0., 0.,
-        0., 0.01, 0., 0., 0., 0.,
-        0., 0., 0.0001, 0., 0., 0.,
-        0., 0., 0., 0.0001, 0., 0.,
-        0., 0., 0., 0., 0.0001, 0.,
-        0., 0., 0., 0.,     0., 1.;
+    cov << 0.01, 0., 0., 0., 0., 0., 0., 0.01, 0., 0., 0., 0., 0., 0., 0.0001,
+        0., 0., 0., 0., 0., 0., 0.0001, 0., 0., 0., 0., 0., 0., 0.0001, 0., 0.,
+        0., 0., 0., 0., 1.;
 
     double q = 1;
-    double time =0;
-    Vector3D pos(0, 0.1 * gauss(generator), 0.1 * gauss(generator)); // Units: mm
+    double time = 0;
+    Vector3D pos(0, 0.1 * gauss(generator),
+                 0.1 * gauss(generator)); // Units: mm
     double phi = randPhi(generator);
     double theta = randTheta(generator);
     Vector3D mom(1, 0, 0); // Units: GeV
-    //CurvilinearParameters rStart(cov, pos, mom, q, time);
-    //startPars[i] = rStart;
-    
-    startPars.emplace_back(cov, pos, mom, q, time); 
+    // CurvilinearParameters rStart(cov, pos, mom, q, time);
+    // startPars[i] = rStart;
+
+    startPars.emplace_back(cov, pos, mom, q, time);
     // std::cout << " rPos = (" << pars[i].position().x() << ", "
     //           << pars[i].position().y() << ", " << pars[i].position().z()
     //           << ") " << std::endl;
@@ -182,12 +181,13 @@ int main(int argc, char *argv[]) {
           device + "_output/Track-" + std::to_string(it) + ".obj";
       obj_track.open(fileName.c_str());
 
-      //for (int iv = 0; iv < res.steps(); iv++) {
+      // for (int iv = 0; iv < res.steps(); iv++) {
       //  obj_track << "v " << res.position.col(iv).x() << " "
-       //           << res.position.col(iv).y() << " " << res.position.col(iv).z()
-        //          << std::endl;
+      //           << res.position.col(iv).y() << " " <<
+      //           res.position.col(iv).z()
+      //          << std::endl;
       //}
-      //for (unsigned int iv = 2; iv <= res.steps(); ++iv) {
+      // for (unsigned int iv = 2; iv <= res.steps(); ++iv) {
       //  obj_track << "l " << iv - 1 << " " << iv << std::endl;
       //}
 

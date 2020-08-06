@@ -63,8 +63,8 @@ inline ActsVector<T, 3> makeDirectionUnitFromPhiTheta(T phi, T theta) {
 /// The special case of the direction vector pointing along the z-axis is
 /// handled by forcing the unit vector to along the x-axis.
 template <typename InputVector>
-inline auto makeCurvilinearUnitU(
-    const Eigen::MatrixBase<InputVector>& direction) {
+inline auto
+makeCurvilinearUnitU(const Eigen::MatrixBase<InputVector> &direction) {
   EIGEN_STATIC_ASSERT_FIXED_SIZE(InputVector);
   EIGEN_STATIC_ASSERT_VECTOR_ONLY(InputVector);
   static_assert(3 <= InputVector::RowsAtCompileTime,
@@ -105,8 +105,8 @@ inline auto makeCurvilinearUnitU(
 ///
 /// with the additional condition that `U` is located in the global x-y plane.
 template <typename InputVector>
-inline auto makeCurvilinearUnitVectors(
-    const Eigen::MatrixBase<InputVector>& direction) {
+inline auto
+makeCurvilinearUnitVectors(const Eigen::MatrixBase<InputVector> &direction) {
   EIGEN_STATIC_ASSERT_FIXED_SIZE(InputVector);
   EIGEN_STATIC_ASSERT_VECTOR_ONLY(InputVector);
   static_assert(3 <= InputVector::RowsAtCompileTime,
@@ -121,4 +121,4 @@ inline auto makeCurvilinearUnitVectors(
   return unitVectors;
 }
 
-}  // namespace Acts
+} // namespace Acts

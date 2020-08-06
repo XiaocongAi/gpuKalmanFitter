@@ -28,7 +28,7 @@ namespace Acts {
 /// - the BoundsType and a set of parameters to simplify persistency
 ///
 class SurfaceBounds {
- public:
+public:
   /// @enum BoundsType
   ///
   /// This enumerator simplifies the persistency,
@@ -71,26 +71,25 @@ class SurfaceBounds {
   /// @param lposition Local position (assumed to be in right surface frame)
   /// @param bcheck boundary check directive
   /// @return boolean indicator for the success of this operation
-  virtual bool inside(const Vector2D& lposition,
-                      const BoundaryCheck& bcheck) const = 0;
+  virtual bool inside(const Vector2D &lposition,
+                      const BoundaryCheck &bcheck) const = 0;
 
   /// Minimal distance to boundary ( > 0 if outside and <=0 if inside)
   ///
   /// @param lposition is the local position to check for the distance
   /// @return is a signed distance parameter
-  virtual double distanceToBoundary(const Vector2D& lposition) const = 0;
-
+  virtual double distanceToBoundary(const Vector2D &lposition) const = 0;
 };
 
-inline bool operator==(const SurfaceBounds& lhs, const SurfaceBounds& rhs) {
+inline bool operator==(const SurfaceBounds &lhs, const SurfaceBounds &rhs) {
   if (&lhs == &rhs) {
     return true;
   }
   return (lhs.type() == rhs.type()) && (lhs.valueStore() == rhs.valueStore());
 }
 
-inline bool operator!=(const SurfaceBounds& lhs, const SurfaceBounds& rhs) {
+inline bool operator!=(const SurfaceBounds &lhs, const SurfaceBounds &rhs) {
   return !(lhs == rhs);
 }
 
-}  // namespace Acts
+} // namespace Acts

@@ -16,7 +16,7 @@ namespace Acts {
 ///
 struct unbound_parameter {
   static constexpr bool may_modify_value{
-      false};  ///< parameter values need no adjustment
+      false}; ///< parameter values need no adjustment
 
   ///
   /// @brief retrieve value for unconstrained parameter value ranges
@@ -26,13 +26,10 @@ struct unbound_parameter {
   ///
   /// @return identical input parameter value
   ///
-  template <typename T>
-  static T getValue(const T& input) {
-    return input;
-  }
+  template <typename T> static T getValue(const T &input) { return input; }
 
   template <typename T>
-  static T getDifference(const T& first, const T& second) {
+  static T getDifference(const T &first, const T &second) {
     return first - second;
   }
 };
@@ -54,12 +51,11 @@ struct local_parameter : public unbound_parameter {};
 /// @tparam MAX pointer to a @c constexpr function returning the upper bound of
 /// the value range
 ///
-template <typename T, T (*MIN)(), T (*MAX)()>
-struct bound_parameter {
+template <typename T, T (*MIN)(), T (*MAX)()> struct bound_parameter {
   static constexpr bool may_modify_value{
-      true};                      ///< parameter values may need adjustment
-  static constexpr T min{MIN()};  ///< lower bound of range
-  static constexpr T max{MAX()};  ///< upper bound of range
+      true};                     ///< parameter values may need adjustment
+  static constexpr T min{MIN()}; ///< lower bound of range
+  static constexpr T max{MAX()}; ///< upper bound of range
 
   ///
   /// @brief retrieve value for constrained parameter value ranges
@@ -71,13 +67,12 @@ struct bound_parameter {
   /// bound_parameter<U<MIN<MAX>::min and
   ///         @c bound_parameter<U,MIN,MAX>::max.
   ///
-  template <typename U>
-  static U getValue(const U& input) {
+  template <typename U> static U getValue(const U &input) {
     return (input > max) ? max : ((input < min) ? min : input);
   }
 
   template <typename U>
-  static U getDifference(const U& first, const U& second) {
+  static U getDifference(const U &first, const U &second) {
     return getValue(first) - getValue(second);
   }
 };
@@ -93,12 +88,11 @@ struct bound_parameter {
 /// @tparam MAX pointer to a @c constexpr function returning the upper bound of
 /// the value range
 ///
-template <typename T, T (*MIN)(), T (*MAX)()>
-struct cyclic_parameter {
+template <typename T, T (*MIN)(), T (*MAX)()> struct cyclic_parameter {
   static constexpr bool may_modify_value{
-      true};                      ///< parameter values may need adjustment
-  static constexpr T min{MIN()};  ///< lower bound of range
-  static constexpr T max{MAX()};  ///< upper bound of range
+      true};                     ///< parameter values may need adjustment
+  static constexpr T min{MIN()}; ///< lower bound of range
+  static constexpr T max{MAX()}; ///< upper bound of range
 
   ///
   /// @brief retrieve value for constrained cyclic parameter value ranges
@@ -111,8 +105,7 @@ struct cyclic_parameter {
   /// of this
   ///         parameter type.
   ///
-  template <typename U>
-  static U getValue(const U& input) {
+  template <typename U> static U getValue(const U &input) {
     if (min <= input && input < max) {
       return input;
     } else {
@@ -121,7 +114,7 @@ struct cyclic_parameter {
   }
 
   template <typename U>
-  static U getDifference(const U& first, const U& second) {
+  static U getDifference(const U &first, const U &second) {
     static constexpr U half_period = (max - min) / 2;
     U tmp = getValue(first) - getValue(second);
     return (tmp < -half_period
@@ -156,4 +149,4 @@ struct cyclic_parameter {
 //  template<typename ParameterPolicy,typename ParameterPolicy::par_id_type
 //  parID>
 //  struct parameter_traits;
-}  // namespace Acts
+} // namespace Acts

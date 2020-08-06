@@ -22,7 +22,7 @@ namespace Acts {
 /// Returns all inside checks to true and can templated for all bounds
 
 class InfiniteBounds : public SurfaceBounds {
- public:
+public:
   InfiniteBounds() = default;
   ~InfiniteBounds() override = default;
 
@@ -37,20 +37,19 @@ class InfiniteBounds : public SurfaceBounds {
   /// ignores input parameters
   ///
   /// @return always true
-  bool inside(const Vector2D& /*lposition*/,
-              const BoundaryCheck& /*bcheck*/) const final {
+  bool inside(const Vector2D & /*lposition*/,
+              const BoundaryCheck & /*bcheck*/) const final {
     return true;
   }
 
   /// Minimal distance calculation
   /// ignores input parameter
   /// @return always 0. (should be -NaN)
-  double distanceToBoundary(const Vector2D& /*position*/) const final {
+  double distanceToBoundary(const Vector2D & /*position*/) const final {
     return 0;
   }
-
 };
 
 static const InfiniteBounds s_noBounds{};
 
-}  // namespace Acts
+} // namespace Acts

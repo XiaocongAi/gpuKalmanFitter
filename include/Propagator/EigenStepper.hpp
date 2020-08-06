@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Surfaces/Surface.hpp"
 #include "EventData/TrackParameters.hpp"
 #include "Propagator/ConstrainedStep.hpp"
 #include "Propagator/detail/SteppingHelper.hpp"
+#include "Surfaces/Surface.hpp"
 #include "Utilities/Definitions.hpp"
-#include "Utilities/ParameterDefinitions.hpp"
 #include "Utilities/Helpers.hpp"
 #include "Utilities/Intersection.hpp"
+#include "Utilities/ParameterDefinitions.hpp"
 
 #include <iostream>
 #include <numeric>
@@ -41,23 +41,24 @@ template <typename bfield_t> struct EigenStepper {
     template <typename parameters_t>
     ACTS_DEVICE_FUNC explicit State(
         std::reference_wrapper<const GeometryContext> gctx,
-	const parameters_t &par, NavigationDirection ndir = forward,
+        const parameters_t &par, NavigationDirection ndir = forward,
         double ssize = std::numeric_limits<double>::max(),
         double stolerance = s_onSurfaceTolerance)
         : pos(par.position()), dir(par.momentum().normalized()),
-          p(par.momentum().norm()), q(par.charge()), t(par.time()), navDir(ndir),
-          stepSize(ndir * std::abs(ssize)), tolerance(stolerance),geoContext(gctx) {
-	    // Init the jacobian matrix if needed
-            if (par.covariance()) {
-            // Get the reference surface for navigation
-            const auto& surface = par.referenceSurface();
-            // set the covariance transport flag to true and copy
-            covTransport = true;
-            cov = BoundSymMatrix(*par.covariance());
-            surface.initJacobianToGlobal(gctx, jacToGlobal, pos, dir,
-                                         par.parameters());
-	  }
-	  }
+          p(par.momentum().norm()), q(par.charge()), t(par.time()),
+          navDir(ndir), stepSize(ndir * std::abs(ssize)), tolerance(stolerance),
+          geoContext(gctx) {
+      // Init the jacobian matrix if needed
+      if (par.covariance()) {
+        // Get the reference surface for navigation
+        const auto &surface = par.referenceSurface();
+        // set the covariance transport flag to true and copy
+        covTransport = true;
+        cov = BoundSymMatrix(*par.covariance());
+        surface.initJacobianToGlobal(gctx, jacToGlobal, pos, dir,
+                                     par.parameters());
+      }
+    }
 
     /// Global particle position
     Vector3D pos = Vector3D(0., 0., 0.);
@@ -152,30 +153,30 @@ template <typename bfield_t> struct EigenStepper {
   template <typename propagator_state_t>
   ACTS_DEVICE_FUNC bool step(propagator_state_t &state) const;
 
-   /// Global particle position accessor
+  /// Global particle position accessor
   ///
   /// @param state [in] The stepping state (thread-local cache)
-  Vector3D position(const State& state) const { return state.pos; }
+  Vector3D position(const State &state) const { return state.pos; }
 
   /// Momentum direction accessor
   ///
   /// @param state [in] The stepping state (thread-local cache)
-  Vector3D direction(const State& state) const { return state.dir; }
+  Vector3D direction(const State &state) const { return state.dir; }
 
   /// Actual momentum accessor
   ///
   /// @param state [in] The stepping state (thread-local cache)
-  double momentum(const State& state) const { return state.p; }
+  double momentum(const State &state) const { return state.p; }
 
   /// Charge access
   ///
   /// @param state [in] The stepping state (thread-local cache)
-  double charge(const State& state) const { return state.q; }
+  double charge(const State &state) const { return state.q; }
 
   /// Time access
   ///
   /// @param state [in] The stepping state (thread-local cache)
-  double time(const State& state) const { return state.t; }
+  double time(const State &state) const { return state.t; }
 
   /// Update surface status
   ///
@@ -185,8 +186,8 @@ template <typename bfield_t> struct EigenStepper {
   /// @param state [in,out] The stepping state (thread-local cache)
   /// @param surface [in] The surface provided
   /// @param bcheck [in] The boundary check for this status update
-  Intersection::Status updateSurfaceStatus(State& state, const Surface& surface,
-                                           const BoundaryCheck& bcheck) const {
+  Intersection::Status updateSurfaceStatus(State &state, const Surface &surface,
+                                           const BoundaryCheck &bcheck) const {
     return detail::updateSingleSurfaceStatus<EigenStepper>(*this, state,
                                                            surface, bcheck);
   }
@@ -202,7 +203,7 @@ template <typename bfield_t> struct EigenStepper {
   /// @param oIntersection [in] The ObjectIntersection to layer, boundary, etc
   /// @param release [in] boolean to trigger step size release
   template <typename object_intersection_t>
-  void updateStepSize(State& state, const object_intersection_t& oIntersection,
+  void updateStepSize(State &state, const object_intersection_t &oIntersection,
                       bool release = true) const {
     detail::updateSingleStepSize<EigenStepper>(state, oIntersection, release);
   }
@@ -212,7 +213,7 @@ template <typename bfield_t> struct EigenStepper {
   /// @param state [in,out] The stepping state (thread-local cache)
   /// @param stepSize [in] The step size value
   /// @param stype [in] The step size type to be set
-  void setStepSize(State& state, double stepSize,
+  void setStepSize(State &state, double stepSize,
                    ConstrainedStep::Type stype = ConstrainedStep::actor) const {
     state.previousStepSize = state.stepSize;
     state.stepSize.update(stepSize, stype, true);
@@ -221,14 +222,14 @@ template <typename bfield_t> struct EigenStepper {
   /// Release the Step size
   ///
   /// @param state [in,out] The stepping state (thread-local cache)
-  void releaseStepSize(State& state) const {
+  void releaseStepSize(State &state) const {
     state.stepSize.release(ConstrainedStep::actor);
   }
 
   /// Overstep limit
   ///
   /// @param state [in] The stepping state (thread-local cache)
-  double overstepLimit(const State& /*state*/) const {
+  double overstepLimit(const State & /*state*/) const {
     // A dynamic overstep limit could sit here
     return -m_overstepLimit;
   }
@@ -247,7 +248,7 @@ template <typename bfield_t> struct EigenStepper {
   ///   - the parameters at the surface
   ///   - the stepwise jacobian towards it (from last bound)
   ///   - and the path length (from start - for ordering)
-  BoundState boundState(State& state, const Surface& surface) const;
+  BoundState boundState(State &state, const Surface &surface) const;
 
   /// Create and return a curvilinear state at the current position
   ///
@@ -260,14 +261,14 @@ template <typename bfield_t> struct EigenStepper {
   ///   - the curvilinear parameters at given position
   ///   - the stepweise jacobian towards it (from last bound)
   ///   - and the path length (from start - for ordering)
-  CurvilinearState curvilinearState(State& state) const;
+  CurvilinearState curvilinearState(State &state) const;
 
   /// Method to update a stepper state to the some parameters
   ///
   /// @param [in,out] state State object that will be updated
   /// @param [in] pars Parameters that will be written into @p state
-  void update(State& state, const FreeVector& parameters,
-              const Covariance& covariance) const;
+  void update(State &state, const FreeVector &parameters,
+              const Covariance &covariance) const;
 
   /// Method to update momentum, direction and p
   ///
@@ -275,17 +276,17 @@ template <typename bfield_t> struct EigenStepper {
   /// @param [in] uposition the updated position
   /// @param [in] udirection the updated direction
   /// @param [in] up the updated momentum value
-  void update(State& state, const Vector3D& uposition,
-              const Vector3D& udirection, double up, double time) const;
+  void update(State &state, const Vector3D &uposition,
+              const Vector3D &udirection, double up, double time) const;
 
-   /// Method for on-demand transport of the covariance
+  /// Method for on-demand transport of the covariance
   /// to a new curvilinear frame at current  position,
   /// or direction of the state
   ///
   /// @param [in,out] state State of the stepper
   ///
   /// @return the full transport jacobian
-  void covarianceTransport(State& state) const;
+  void covarianceTransport(State &state) const;
 
   /// Method for on-demand transport of the covariance
   /// to a new curvilinear frame at current position,
@@ -296,7 +297,7 @@ template <typename bfield_t> struct EigenStepper {
   /// @param [in,out] state State of the stepper
   /// @param [in] surface is the surface to which the covariance is forwarded to
   /// @note no check is done if the position is actually on the surface
-  void covarianceTransport(State& state, const Surface& surface) const;
+  void covarianceTransport(State &state, const Surface &surface) const;
 
 private:
   /// Magnetic field inside of the detector

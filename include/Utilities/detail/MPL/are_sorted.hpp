@@ -60,6 +60,6 @@ struct are_sorted<false, false, T, a, b, N...> {
   enum { value = (a >= b && are_sorted<false, false, T, b, N...>::value) };
 };
 /// @endcond
-}  // namespace detail
+} // namespace detail
 /// @endcond
-}  // namespace Acts
+} // namespace Acts

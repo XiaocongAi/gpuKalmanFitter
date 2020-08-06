@@ -25,6 +25,6 @@ namespace Acts {
 
 using GeometryContext = int;
 
-}  // namespace Acts
+} // namespace Acts
 
 #endif

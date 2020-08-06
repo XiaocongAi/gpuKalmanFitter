@@ -29,25 +29,22 @@ namespace detail {
 ///
 /// @post All values in the argument `parVector` are within the valid
 ///       parameter range.
-template <ParID_t... params>
-struct value_corrector;
+template <ParID_t... params> struct value_corrector;
 
 /// @cond
-template <typename R, ParID_t... params>
-struct value_corrector_impl;
+template <typename R, ParID_t... params> struct value_corrector_impl;
 
-template <ParID_t... params>
-struct value_corrector {
+template <ParID_t... params> struct value_corrector {
   using ParVector_t = ActsVector<ParValue_t, sizeof...(params)>;
 
-  static void result(ParVector_t& values) {
+  static void result(ParVector_t &values) {
     value_corrector_impl<ParVector_t, params...>::calculate(values, 0);
   }
 };
 
 template <typename R, ParID_t first, ParID_t... others>
 struct value_corrector_impl<R, first, others...> {
-  static void calculate(R& values, unsigned int pos) {
+  static void calculate(R &values, unsigned int pos) {
     using parameter_type = BoundParameterType<first>;
     if (parameter_type::may_modify_value) {
       values(pos) = parameter_type::getValue(values(pos));
@@ -56,9 +53,8 @@ struct value_corrector_impl<R, first, others...> {
   }
 };
 
-template <typename R, ParID_t last>
-struct value_corrector_impl<R, last> {
-  static void calculate(R& values, unsigned int pos) {
+template <typename R, ParID_t last> struct value_corrector_impl<R, last> {
+  static void calculate(R &values, unsigned int pos) {
     using parameter_type = BoundParameterType<last>;
     if (parameter_type::may_modify_value) {
       values(pos) = parameter_type::getValue(values(pos));
@@ -66,6 +62,6 @@ struct value_corrector_impl<R, last> {
   }
 };
 /// @endcond
-}  // namespace detail
+} // namespace detail
 /// @endcond
-}  // namespace Acts
+} // namespace Acts
