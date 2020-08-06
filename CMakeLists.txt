@@ -10,18 +10,21 @@ set(CMAKE_CXX_STANDARD 17)
 include(CheckLanguage)
 check_language(CUDA)
 
-if(NOT DEFINED CMAKE_CUDA_STANDARD)
-    set(CMAKE_CUDA_STANDARD 17)
-    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-endif()
+# if(NOT DEFINED CMAKE_CUDA_STANDARD)
+#     set(CMAKE_CUDA_STANDARD 17)
+#     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+# endif()
 
 aux_source_directory(src/MagneticField LIB_SRC_BField)
 aux_source_directory(src/Plugins LIB_SRC_Plugins)
 aux_source_directory(src/Surfaces LIB_SRC_Surfaces)
+aux_source_directory(src/Propagator/detail LIB_SRC_Propagator)
 
 find_package(CUDA)
+message(${CUDA_TOOLKIT_INCLUDE})
 include_directories(${CUDA_TOOLKIT_INCLUDE})
-find_package(OpenMP)
+# include_directories(${CUDA_TOOLKIT_INCLUDE}/crt)
+#find_package(OpenMP)
 
 # import Eigen
 include(cmake/FindEigen.cmake)
@@ -30,9 +33,10 @@ include(cmake/FindEigen.cmake)
 set(CMAKE_INSTALL_RPATH "$ORIGIN/../bin")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
 
-add_library(Actscore SHARED ${LIB_SRC_MAT} ${LIB_SRC_SUR} ${LIB_SRC_BField} ${LIB_SRC_Plugins} ${LIB_SRC_Surfaces})
+add_library(Actscore SHARED ${LIB_SRC_MAT} ${LIB_SRC_SUR} ${LIB_SRC_BField} ${LIB_SRC_Plugins} ${LIB_SRC_Surfaces} ${LIB_SRC_Propagator})
 
-target_link_libraries(Actscore PUBLIC OpenMP::OpenMP_CXX)
+#target_link_libraries(Actscore PUBLIC OpenMP::OpenMP_CXX  Eigen3::Eigen)
+target_link_libraries(Actscore PUBLIC Eigen3::Eigen)
 target_include_directories(Actscore
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -42,6 +46,7 @@ target_include_directories(Actscore
   )
 
 add_subdirectory(exe_cuda)
+add_subdirectory(exe_gcc)
 
 # install-tree
 set(CONF_INCLUDE_DIRS "\${CMAKE_CURRENT_LIST_DIR}/../include")

@@ -1,8 +1,11 @@
-#include "EventData/TrackParameters.hpp"
+#include "Geometry/GeometryContext.hpp"
+#include "MagneticField/MagneticFieldContext.hpp"
 #include "Plugins/BFieldOptions.hpp"
 #include "Plugins/BFieldUtils.hpp"
 #include "Propagator/EigenStepper.hpp"
 #include "Propagator/Propagator.hpp"
+#include "Utilities/ParameterDefinitions.hpp"
+#include "EventData/TrackParameters.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -37,6 +40,7 @@ static void show_usage(std::string name) {
             << std::endl;
 }
 
+
 using namespace Acts;
 
 // Struct for B field
@@ -46,16 +50,38 @@ struct ConstantBField {
   }
 };
 
-constexpr unsigned int maxSteps = 1000;
+// Test actor
+struct VoidActor{
+struct this_result{
+ bool status = false;
+};
+using result_type = this_result;
+
+template <typename propagator_state_t, typename stepper_t>
+    void operator()(propagator_state_t& state, const stepper_t& stepper,
+                    result_type& result) const {
+            return;
+    }
+};
+
+// Test aborter
+struct VoidAborter{
+template <typename propagator_state_t, typename stepper_t, typename result_t>
+    bool operator()(propagator_state_t& state, const stepper_t& stepper,
+                    result_t& result) const {
+            return false;
+    }
+};
 
 //using Stepper = EigenStepper<ConstantBField>;
 using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
 using PropagatorType = Propagator<Stepper>;
-using PropResultType = PropagatorResult<maxSteps>;
+using PropResultType = PropagatorResult<CurvilinearParameters, typename VoidActor::result_type>;
+using PropOptionsType = PropagatorOptions<VoidActor, VoidAborter>;
 
 // Device code
-__global__ void propKernel(PropagatorType *propagator, TrackParameters *tpars,
-                           PropagatorOptions *propOptions,
+__global__ void propKernel(PropagatorType *propagator, CurvilinearParameters *tpars,
+                           PropOptionsType *propOptions,
                            PropResultType *propResult, Vector3D *gridValPtr,
                            int N) {
   // Awkwardly make the grid values pointer to point to memeory on device
@@ -65,10 +91,7 @@ __global__ void propKernel(PropagatorType *propagator, TrackParameters *tpars,
 
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if (i < N) {
-    propagator->propagate(tpars[i], *propOptions, propResult[i]);
-    // printf("propResult: position = (%f, %f, %f)",
-    // propResult[i].position.col(1).x(), propResult[i].position.col(1).y(),
-    // propResult[i].position.col(1).z());
+    propResult[i] = propagator->propagate(tpars[i], *propOptions);
   }
 }
 
@@ -109,6 +132,10 @@ int main(int argc, char *argv[]) {
             << ". Writing results to obj file? " << output << " ----- "
             << std::endl;
 
+    // Create a test context
+  GeometryContext gctx = GeometryContext();
+  MagneticFieldContext mctx = MagneticFieldContext();
+
   InterpolatedBFieldMap3D bField = Options::readBField(bFieldFileName);
   std::cout
       << "Reading BField and creating a 3D InterpolatedBFieldMap instance done"
@@ -119,28 +146,33 @@ int main(int argc, char *argv[]) {
   // Construct a propagator
   PropagatorType propagator(stepper);
   // Construct the propagation options object
-  PropagatorOptions propOptions;
+  PropOptionsType propOptions(gctx, mctx); 
   propOptions.maxSteps = 1000;
-  propOptions.maxStepSize = 1000;
 
   // Construct random starting track parameters
   std::default_random_engine generator(42);
   std::normal_distribution<double> gauss(0., 1.);
   std::uniform_real_distribution<double> unif(-1.0 * M_PI, M_PI);
-  std::vector<TrackParameters> pars;
-  pars.reserve(nTracks);
+  std::vector<CurvilinearParameters> startPars;
+  startPars.reserve(nTracks);
   for (int i = 0; i < nTracks; i++) {
-    Vector3D rPos(0.1 * gauss(generator), 0.1 * gauss(generator),
-                  0); // Units: mm
-    double phi = unif(generator);
-    Vector3D rMom(pT * cos(phi), pT * sin(phi),
-                  pT); // Units: GeV
+    BoundSymMatrix cov = BoundSymMatrix::Zero();
+    cov <<
+      0.01, 0., 0., 0., 0., 0.,
+      0., 0.01, 0., 0., 0., 0.,
+      0., 0., 0.0001, 0., 0., 0.,
+      0., 0., 0., 0.0001, 0., 0.,
+      0., 0., 0., 0., 0.0001, 0.,
+      0., 0., 0., 0.,     0., 1.;
+
     double q = 1;
-    TrackParameters rStart(rPos, rMom, q);
-    pars[i] = rStart;
-    // std::cout << " rPos = (" << pars[i].position().x() << ", "
-    //           << pars[i].position().y() << ", " << pars[i].position().z()
-    //           << ") " << std::endl;
+    double time =0;
+    Vector3D pos(0, 0.1 * gauss(generator), 0.1 * gauss(generator)); // Units: mm
+    //double phi = randPhi(generator);
+    //double theta = randTheta(generator);
+    Vector3D mom(1, 0, 0); // Units: GeV
+    
+    startPars.emplace_back(cov, pos, mom, q, time);
   }
 
   // Propagation result
@@ -163,23 +195,23 @@ int main(int argc, char *argv[]) {
 
     // Allocate memory on device
     PropagatorType *d_propagator;
-    PropagatorOptions *d_opt;
-    TrackParameters *d_pars;
+    PropOptionsType *d_opt;
+    CurvilinearParameters *d_pars;
     PropResultType *d_ress;
     GridValueType *d_gridValPtr;
 
     GPUERRCHK(cudaMalloc(&d_propagator, sizeof(PropagatorType)));
-    GPUERRCHK(cudaMalloc(&d_opt, sizeof(PropagatorOptions)));
-    GPUERRCHK(cudaMalloc(&d_pars, nTracks * sizeof(TrackParameters)));
+    GPUERRCHK(cudaMalloc(&d_opt, sizeof(PropOptionsType)));
+    GPUERRCHK(cudaMalloc(&d_pars, nTracks * sizeof(CurvilinearParameters)));
     GPUERRCHK(cudaMalloc(&d_ress, nTracks * sizeof(PropResultType)));
     GPUERRCHK(cudaMalloc(&d_gridValPtr, gridSize * sizeof(GridValueType)));
 
     // Copy from host to device
     GPUERRCHK(cudaMemcpy(d_propagator, &propagator, sizeof(propagator),
                          cudaMemcpyHostToDevice));
-    GPUERRCHK(cudaMemcpy(d_opt, &propOptions, sizeof(PropagatorOptions),
+    GPUERRCHK(cudaMemcpy(d_opt, &propOptions, sizeof(PropOptionsType),
                          cudaMemcpyHostToDevice));
-    GPUERRCHK(cudaMemcpy(d_pars, pars.data(), nTracks * sizeof(TrackParameters),
+    GPUERRCHK(cudaMemcpy(d_pars, startPars.data(), nTracks * sizeof(CurvilinearParameters),
                          cudaMemcpyHostToDevice));
     GPUERRCHK(cudaMemcpy(d_ress, ress.data(), nTracks * sizeof(PropResultType),
                          cudaMemcpyHostToDevice));
@@ -209,7 +241,7 @@ int main(int argc, char *argv[]) {
     // Run on host
     #pragma omp parallel for
     for (int it = 0; it < nTracks; it++) {
-      propagator.propagate(pars[it], propOptions, ress[it]);
+      ress[it] = propagator.propagate(startPars[it], propOptions);
     }
   }
   auto end = std::chrono::high_resolution_clock::now();
@@ -228,15 +260,6 @@ int main(int argc, char *argv[]) {
       std::string fileName =
           device + "_output/Track-" + std::to_string(it) + ".obj";
       obj_track.open(fileName.c_str());
-
-      for (int iv = 0; iv < res.steps(); iv++) {
-        obj_track << "v " << res.position.col(iv).x() << " "
-                  << res.position.col(iv).y() << " " << res.position.col(iv).z()
-                  << std::endl;
-      }
-      for (unsigned int iv = 2; iv <= res.steps(); ++iv) {
-        obj_track << "l " << iv - 1 << " " << iv << std::endl;
-      }
 
       obj_track.close();
     }

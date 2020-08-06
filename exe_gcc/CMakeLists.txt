@@ -1,8 +1,7 @@
-add_executable(main_cuda main.cu)
-target_link_libraries(main_cuda Actscore )
+add_executable(main_gcc main.cpp)
+target_link_libraries(main_gcc Actscore)
 
-
-install(TARGETS main_cuda
+install(TARGETS main_gcc
   EXPORT ${PROJECT_NAME}Targets
   RUNTIME       DESTINATION bin      COMPONENT runtime
   LIBRARY       DESTINATION bin      COMPONENT runtime
