@@ -46,7 +46,7 @@ class SingleBoundTrackParameters : public SingleTrackParameters<ChargePolicy> {
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, ChargedPolicy>::value, int> = 0>
   SingleBoundTrackParameters(const GeometryContext& gctx,
-                             std::optional<CovarianceMatrix> cov,
+                             const CovarianceMatrix& cov,
                              const ParametersVector& parValues,
                              const Surface* surface)
       : SingleTrackParameters<ChargePolicy>(
@@ -78,7 +78,7 @@ class SingleBoundTrackParameters : public SingleTrackParameters<ChargePolicy> {
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, ChargedPolicy>::value, int> = 0>
   SingleBoundTrackParameters(const GeometryContext& gctx,
-                             std::optional<CovarianceMatrix> cov,
+                             const CovarianceMatrix& cov,
                              const Vector3D& position, const Vector3D& momentum,
                              Scalar dCharge, Scalar dTime,
                              const Surface* surface)
@@ -107,7 +107,7 @@ class SingleBoundTrackParameters : public SingleTrackParameters<ChargePolicy> {
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, NeutralPolicy>::value, int> = 0>
   SingleBoundTrackParameters(const GeometryContext& gctx,
-                             std::optional<CovarianceMatrix> cov,
+                             const CovarianceMatrix& cov,
                              const ParametersVector& parValues,
                              const Surface* surface)
       : SingleTrackParameters<ChargePolicy>(
@@ -139,7 +139,7 @@ class SingleBoundTrackParameters : public SingleTrackParameters<ChargePolicy> {
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, NeutralPolicy>::value, int> = 0>
   SingleBoundTrackParameters(const GeometryContext& gctx,
-                             std::optional<CovarianceMatrix> cov,
+                             const CovarianceMatrix& cov,
                              const Vector3D& position, const Vector3D& momentum,
                              Scalar dTime,
                              const Surface* surface)

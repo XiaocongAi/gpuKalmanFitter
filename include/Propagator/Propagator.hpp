@@ -37,9 +37,9 @@ struct PropagatorResult {
   // The single action result
   result_t result;
 
-  std::optional<parameters_t> endParameters{std::nullopt};
+  //std::unique_ptr<const parameters_t> endParameters = nullptr;
 
-  BoundMatrix transportJacobian;
+  BoundMatrix transportJacobian{BoundMatrix::Zero()};
 
  /// Number of propagation steps that were carried out
   unsigned int steps = 0;

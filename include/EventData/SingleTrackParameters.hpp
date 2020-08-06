@@ -104,7 +104,7 @@ class SingleTrackParameters {
   /// this call.
   ///
   /// @sa ParameterSet::getCovariance
-  const std::optional<CovarianceMatrix>& covariance() const {
+  const CovarianceMatrix* covariance() const {
     return getParameterSet().getCovariance();
   }
 
@@ -156,7 +156,7 @@ class SingleTrackParameters {
   /// @param momentum 3D vector with global momentum
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, ChargedPolicy>::value, int> = 0>
-  SingleTrackParameters(std::optional<CovarianceMatrix> cov,
+  SingleTrackParameters(const CovarianceMatrix& cov,
                         const ParametersVector& parValues,
                         const Vector3D& position, const Vector3D& momentum)
       : m_oChargePolicy(
@@ -173,7 +173,7 @@ class SingleTrackParameters {
   /// @param momentum 3D vector with global momentum
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, NeutralPolicy>::value, int> = 0>
-  SingleTrackParameters(std::optional<CovarianceMatrix> cov,
+  SingleTrackParameters(const CovarianceMatrix& cov,
                         const ParametersVector& parValues,
                         const Vector3D& position, const Vector3D& momentum)
       : m_oChargePolicy(),

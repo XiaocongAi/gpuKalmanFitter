@@ -32,9 +32,8 @@ Acts::Propagator<S, N>::propagate(const parameters_t &start,
       // Perform a propagation step - it takes the propagation state
       bool res = m_stepper.step(state);
       // How to handle the error here
-      if (not res) {
-	      throw ; 
-      }
+      //if (not res) {
+      //}
       // Accumulate the path length
       //double s = *res;
       //result.pathLength += s;
@@ -63,7 +62,7 @@ Acts::Propagator<S, N>::propagate(const parameters_t &start,
   /// Convert into return type and fill the result object
   auto curvState = m_stepper.curvilinearState(state.stepping);
   // Fill the end parameters
-  result.endParameters = std::get<CurvilinearParameters>(curvState);
+  //result.endParameters = std::make_unique<const CurvilinearParameters>(std::get<CurvilinearParameters>(curvState));
   // Only fill the transport jacobian when covariance transport was done
   if (state.stepping.covTransport) {
     result.transportJacobian = std::get<Jacobian>(curvState);

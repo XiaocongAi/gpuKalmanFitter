@@ -42,18 +42,18 @@ namespace VectorHelpers {
 template <typename Derived>
 double phi(const Eigen::MatrixBase<Derived>& v) noexcept {
   constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
-  if constexpr (rows != -1) {
-    // static size, do compile time check
-    static_assert(rows >= 2,
-                  "Phi function not valid for vectors not at least 2D");
-  } else {
-    // dynamic size
-    if (v.rows() < 2) {
-      std::cerr << "Phi function not valid for vectors not at least 2D"
-                << std::endl;
-      std::abort();
-    }
-  }
+  //if constexpr (rows != -1) {
+  //  // static size, do compile time check
+  //  static_assert(rows >= 2,
+  //                "Phi function not valid for vectors not at least 2D");
+  //} else {
+  //  // dynamic size
+  //  if (v.rows() < 2) {
+  //    std::cerr << "Phi function not valid for vectors not at least 2D"
+  //              << std::endl;
+  //    std::abort();
+  //  }
+  //}
 
   return std::atan2(v[1], v[0]);
 }
@@ -67,18 +67,18 @@ double phi(const Eigen::MatrixBase<Derived>& v) noexcept {
 template <typename Derived>
 double perp(const Eigen::MatrixBase<Derived>& v) noexcept {
   constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
-  if constexpr (rows != -1) {
-    // static size, do compile time check
-    static_assert(rows >= 2,
-                  "Perp function not valid for vectors not at least 2D");
-  } else {
-    // dynamic size
-    if (v.rows() < 2) {
-      std::cerr << "Perp function not valid for vectors not at least 2D"
-                << std::endl;
-      std::abort();
-    }
-  }
+//  if constexpr (rows != -1) {
+//    // static size, do compile time check
+//    static_assert(rows >= 2,
+//                  "Perp function not valid for vectors not at least 2D");
+//  } else {
+//    // dynamic size
+//    if (v.rows() < 2) {
+//      std::cerr << "Perp function not valid for vectors not at least 2D"
+//                << std::endl;
+//      std::abort();
+//    }
+//  }
   return std::sqrt(v[0] * v[0] + v[1] * v[1]);
 }
 
@@ -91,16 +91,16 @@ double perp(const Eigen::MatrixBase<Derived>& v) noexcept {
 template <typename Derived>
 double theta(const Eigen::MatrixBase<Derived>& v) noexcept {
   constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
-  if constexpr (rows != -1) {
-    // static size, do compile time check
-    static_assert(rows >= 3, "Theta function not valid for non-3D vectors.");
-  } else {
-    // dynamic size
-    if (v.rows() < 3) {
-      std::cerr << "Theta function not valid for non-3D vectors." << std::endl;
-      std::abort();
-    }
-  }
+  //if constexpr (rows != -1) {
+  //  // static size, do compile time check
+  //  static_assert(rows >= 3, "Theta function not valid for non-3D vectors.");
+  //} else {
+  //  // dynamic size
+  //  if (v.rows() < 3) {
+  //    std::cerr << "Theta function not valid for non-3D vectors." << std::endl;
+  //    std::abort();
+  //  }
+  //}
 
   return std::atan2(std::sqrt(v[0] * v[0] + v[1] * v[1]), v[2]);
 }
@@ -114,16 +114,16 @@ double theta(const Eigen::MatrixBase<Derived>& v) noexcept {
 template <typename Derived>
 double eta(const Eigen::MatrixBase<Derived>& v) noexcept {
   constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
-  if constexpr (rows != -1) {
-    // static size, do compile time check
-    static_assert(rows >= 3, "Eta function not valid for non-3D vectors.");
-  } else {
-    // dynamic size
-    if (v.rows() < 3) {
-      std::cerr << "Eta function not valid for non-3D vectors." << std::endl;
-      std::abort();
-    }
-  }
+//  if constexpr (rows != -1) {
+//    // static size, do compile time check
+//    static_assert(rows >= 3, "Eta function not valid for non-3D vectors.");
+//  } else {
+//    // dynamic size
+//    if (v.rows() < 3) {
+//      std::cerr << "Eta function not valid for non-3D vectors." << std::endl;
+//      std::abort();
+//    }
+//  }
 
   return std::atanh(v[2] / v.norm());
 }
@@ -317,21 +317,22 @@ std::vector<const T*> unpack_shared_vector(
 /// @param args Additional arguments passed to @c Callable::invoke().
 /// @note @c Callable is expected to have a static member function @c invoke
 /// that is callable with @c Args
-template <template <size_t> class Callable, size_t N, size_t NMAX,
-          typename... Args>
-decltype(Callable<N>::invoke(std::declval<Args>()...)) template_switch(
-    size_t v, Args&&... args) {
-  if (v == N) {
-    return Callable<N>::invoke(std::forward<Args>(args)...);
-  }
-  if constexpr (N < NMAX) {
-    return template_switch<Callable, N + 1, NMAX>(v,
-                                                  std::forward<Args>(args)...);
-  }
-  std::cerr << "template_switch<Fn, " << N << ", " << NMAX << ">(v=" << v
-            << ") is not valid (v > NMAX)" << std::endl;
-  std::abort();
-}
+
+//template <template <size_t> class Callable, size_t N, size_t NMAX,
+//          typename... Args>
+//decltype(Callable<N>::invoke(std::declval<Args>()...)) template_switch(
+//    size_t v, Args&&... args) {
+//  if (v == N) {
+//    return Callable<N>::invoke(std::forward<Args>(args)...);
+//  }
+//  if constexpr (N < NMAX) {
+//    return template_switch<Callable, N + 1, NMAX>(v,
+//                                                  std::forward<Args>(args)...);
+//  }
+//  std::cerr << "template_switch<Fn, " << N << ", " << NMAX << ">(v=" << v
+//            << ") is not valid (v > NMAX)" << std::endl;
+//  std::abort();
+//}
 
 /// Convert a bitset to a matrix of integers, with each element set to the bit
 /// value.

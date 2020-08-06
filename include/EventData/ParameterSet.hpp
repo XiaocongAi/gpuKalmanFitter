@@ -127,14 +127,11 @@ class ParameterSet {
    */
   template <typename... Tail>
   ParameterSet(
-      std::optional<CovarianceMatrix> cov,
+      const CovarianceMatrix& cov,
       std::enable_if_t<sizeof...(Tail) + 1 == kNumberOfParameters, ParValue_t>
           head,
       Tail... values)
-      : m_vValues(kNumberOfParameters) {
-    if (cov) {
-      m_optCovariance = std::move(*cov);
-    }
+      : m_vValues(kNumberOfParameters), m_optCovariance(cov) {
     detail::initialize_parset<parameter_indices_t, params...>::init(*this, head,
                                                                     values...);
   }
@@ -151,12 +148,9 @@ class ParameterSet {
    * @param cov unique pointer to covariance matrix (nullptr is accepted)
    * @param values vector with parameter values
    */
-  ParameterSet(std::optional<CovarianceMatrix> cov,
+  ParameterSet(const CovarianceMatrix& cov,
                const ParameterVector& values)
-      : m_vValues(kNumberOfParameters) {
-    if (cov) {
-      m_optCovariance = std::move(*cov);
-    }
+      : m_vValues(kNumberOfParameters), m_optCovariance(cov) {
     detail::initialize_parset<parameter_indices_t, params...>::init(*this,
                                                                     values);
   }
@@ -176,10 +170,7 @@ class ParameterSet {
    * @param copy object whose content is moved into the new @c ParameterSet
    * object
    */
-  ParameterSet(Self&& copy) : m_vValues(std::move(copy.m_vValues)) {
-    if (copy.m_optCovariance) {
-      m_optCovariance = std::move(*copy.m_optCovariance);
-    }
+  ParameterSet(Self&& copy) : m_vValues(std::move(copy.m_vValues)), m_optCovariance(std::move(copy.m_optCovariance)) {
   }
 
   /**
@@ -325,8 +316,8 @@ class ParameterSet {
    *
    * @return raw pointer to covariance matrix (can be a nullptr)
    */
-  const std::optional<CovarianceMatrix>& getCovariance() const {
-    return m_optCovariance;
+  const CovarianceMatrix* getCovariance() const {
+    return &m_optCovariance;
   }
 
   /**
@@ -343,12 +334,8 @@ class ParameterSet {
    */
   template <parameter_indices_t parameter>
   ParValue_t getUncertainty() const {
-    if (m_optCovariance) {
       size_t index = getIndex<parameter>();
-      return sqrt((*m_optCovariance)(index, index));
-    } else {
-      return -1;
-    }
+      return sqrt(m_optCovariance(index, index));
   }
 
   /**
@@ -378,13 +365,7 @@ class ParameterSet {
       return false;
     }
     // both have covariance matrices set
-    if ((m_optCovariance && rhs.m_optCovariance) &&
-        (*m_optCovariance != *rhs.m_optCovariance)) {
-      return false;
-    }
-    // only one has a covariance matrix set
-    if ((m_optCovariance && !rhs.m_optCovariance) ||
-        (!m_optCovariance && rhs.m_optCovariance)) {
+    if (m_optCovariance != rhs.m_optCovariance) {
       return false;
     }
 
@@ -589,8 +570,7 @@ class ParameterSet {
   ParameterVector m_vValues{
       ParameterVector::Zero()};  ///< column vector containing
                                  ///< values of local parameters
-  std::optional<CovarianceMatrix> m_optCovariance{
-      std::nullopt};  ///< an optional covariance matrix
+  CovarianceMatrix m_optCovariance{CovarianceMatrix::Zero()};
 
   static const Projection sProjector;  ///< matrix to project full parameter
                                        /// vector onto local parameter space

@@ -380,7 +380,8 @@ inline Acts::Vector2D Acts::BoundaryCheck::computeClosestPointOnPolygon(
                  ? (point - ll0).dot(weighted_n) / f
                  : 0.5;  // ll0 and ll1 are so close it doesn't matter
     // u must be in [0, 1] to still be on the polygon segment
-    return ll0 + std::clamp(u, 0.0, 1.0) * n;
+    double v = (u < 0.0) ? 0.0 : (1.0 < u) ? 1.0 : u;
+    return ll0 + v * n;
   };
 
   auto iv = std::begin(vertices);

@@ -74,7 +74,7 @@ BField::txt::fieldMapperXYZ(
   yPos.reserve(nPoints);
   zPos.reserve(nPoints);
   bField.reserve(nPoints);
-  std::cout << "nPoints = " << nPoints << std::endl;
+ 
   // [1] Read in file and fill values
   std::ifstream map_file(fieldMapFile.c_str(), std::ios::in);
   std::string line;

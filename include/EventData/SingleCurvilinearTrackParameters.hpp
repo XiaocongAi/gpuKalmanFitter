@@ -42,7 +42,7 @@ class SingleCurvilinearTrackParameters
   /// @param[in] dCharge The charge of this track parameterisation
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, ChargedPolicy>::value, int> = 0>
-  SingleCurvilinearTrackParameters(std::optional<CovarianceMatrix> cov,
+  SingleCurvilinearTrackParameters(const CovarianceMatrix& cov,
                                    const Vector3D& position,
                                    const Vector3D& momentum, Scalar dCharge,
                                    Scalar dTime)
@@ -62,7 +62,7 @@ class SingleCurvilinearTrackParameters
   /// @param[in] momentum The global momentum of this track parameterisation
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, NeutralPolicy>::value, int> = 0>
-  SingleCurvilinearTrackParameters(std::optional<CovarianceMatrix> cov,
+  SingleCurvilinearTrackParameters(const CovarianceMatrix& cov,
                                    const Vector3D& position,
                                    const Vector3D& momentum, Scalar dTime)
       : SingleTrackParameters<ChargePolicy>(
@@ -126,7 +126,7 @@ class SingleCurvilinearTrackParameters
   /// (0,0), hence an update is an effective shift of the reference
   template <
       ParID_t par,
-      std::enable_if_t<std::is_same_v<BoundParameterType<par>, local_parameter>,
+      std::enable_if_t<std::is_same<BoundParameterType<par>, local_parameter>::value,
                        int> = 0>
   void set(const GeometryContext& gctx, Scalar newValue) {
     // set the parameter & update the new global position
@@ -151,7 +151,7 @@ class SingleCurvilinearTrackParameters
   /// causes a recalculation of the surface
   template <ParID_t par,
             std::enable_if_t<
-                not std::is_same_v<BoundParameterType<par>, local_parameter>,
+                not std::is_same<BoundParameterType<par>, local_parameter>::value,
                 int> = 0>
   void set(const GeometryContext& gctx, Scalar newValue) {
     this->getParameterSet().template setParameter<par>(newValue);
