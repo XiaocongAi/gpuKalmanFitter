@@ -26,7 +26,8 @@ namespace Acts {
 ///       unexpected implicit type conversions and forces the user to
 ///       explicitely cast missmatched input types.
 template <typename T>
-ACTS_DEVICE_FUNC inline ActsVector<T, 3> makeDirectionUnitFromPhiEta(T phi, T eta) {
+ACTS_DEVICE_FUNC inline ActsVector<T, 3> makeDirectionUnitFromPhiEta(T phi,
+                                                                     T eta) {
   const auto coshEtaInv = 1 / std::cosh(eta);
   return {
       std::cos(phi) * coshEtaInv,
@@ -45,7 +46,8 @@ ACTS_DEVICE_FUNC inline ActsVector<T, 3> makeDirectionUnitFromPhiEta(T phi, T et
 ///       unexpected implicit type conversions and forces the user to
 ///       explicitely cast missmatched input types.
 template <typename T>
-ACTS_DEVICE_FUNC inline ActsVector<T, 3> makeDirectionUnitFromPhiTheta(T phi, T theta) {
+ACTS_DEVICE_FUNC inline ActsVector<T, 3>
+makeDirectionUnitFromPhiTheta(T phi, T theta) {
   const auto cosTheta = std::cos(theta);
   const auto sinTheta = std::sin(theta);
   return {

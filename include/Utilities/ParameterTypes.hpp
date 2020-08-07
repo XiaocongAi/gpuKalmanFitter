@@ -26,7 +26,9 @@ struct unbound_parameter {
   ///
   /// @return identical input parameter value
   ///
-  template <typename T> ACTS_DEVICE_FUNC static T getValue(const T &input) { return input; }
+  template <typename T> ACTS_DEVICE_FUNC static T getValue(const T &input) {
+    return input;
+  }
 
   template <typename T>
   ACTS_DEVICE_FUNC static T getDifference(const T &first, const T &second) {

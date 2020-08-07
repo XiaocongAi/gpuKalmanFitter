@@ -42,9 +42,9 @@ struct coordinate_transformation {
   /// @param s the surface for the local to global transform
   ///
   /// @return position in the global frame
-  ACTS_DEVICE_FUNC static Vector3D parameters2globalPosition(const GeometryContext &gctx,
-                                            const ParVector_t &pars,
-                                            const Surface &s) {
+  ACTS_DEVICE_FUNC static Vector3D
+  parameters2globalPosition(const GeometryContext &gctx,
+                            const ParVector_t &pars, const Surface &s) {
     Vector3D globalPosition;
     s.localToGlobal(gctx, Vector2D(pars(Acts::eLOC_0), pars(Acts::eLOC_1)),
                     parameters2globalMomentum(pars), globalPosition);
@@ -60,7 +60,8 @@ struct coordinate_transformation {
   /// @param pars the parameter vector
   ///
   /// @return momentum in the global frame
-  ACTS_DEVICE_FUNC static Vector3D parameters2globalMomentum(const ParVector_t &pars) {
+  ACTS_DEVICE_FUNC static Vector3D
+  parameters2globalMomentum(const ParVector_t &pars) {
     Vector3D momentum;
     double p = std::abs(1. / pars(Acts::eQOP));
     double phi = pars(Acts::ePHI);
@@ -82,9 +83,9 @@ struct coordinate_transformation {
   /// @param charge of the particle/track
   ///
   /// @return curvilinear parameter representation
-  ACTS_DEVICE_FUNC static ParVector_t global2curvilinear(const Vector3D & /*pos*/,
-                                        const Vector3D &mom, double charge,
-                                        double time) {
+  ACTS_DEVICE_FUNC static ParVector_t
+  global2curvilinear(const Vector3D & /*pos*/, const Vector3D &mom,
+                     double charge, double time) {
     using VectorHelpers::phi;
     using VectorHelpers::theta;
     ParVector_t parameters;
@@ -108,10 +109,10 @@ struct coordinate_transformation {
   /// @param s the surface for the global to local transform
   ///
   /// @return the track parameterisation
-  ACTS_DEVICE_FUNC static ParVector_t global2parameters(const GeometryContext &gctx,
-                                       const Vector3D &pos, const Vector3D &mom,
-                                       double charge, double time,
-                                       const Surface &s) {
+  ACTS_DEVICE_FUNC static ParVector_t
+  global2parameters(const GeometryContext &gctx, const Vector3D &pos,
+                    const Vector3D &mom, double charge, double time,
+                    const Surface &s) {
     using VectorHelpers::phi;
     using VectorHelpers::theta;
     Vector2D localPosition;

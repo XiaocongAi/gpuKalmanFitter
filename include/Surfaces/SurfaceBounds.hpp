@@ -72,13 +72,14 @@ public:
   /// @param bcheck boundary check directive
   /// @return boolean indicator for the success of this operation
   ACTS_DEVICE_FUNC virtual bool inside(const Vector2D &lposition,
-                      const BoundaryCheck &bcheck) const = 0;
+                                       const BoundaryCheck &bcheck) const = 0;
 
   /// Minimal distance to boundary ( > 0 if outside and <=0 if inside)
   ///
   /// @param lposition is the local position to check for the distance
   /// @return is a signed distance parameter
-  ACTS_DEVICE_FUNC virtual double distanceToBoundary(const Vector2D &lposition) const = 0;
+  ACTS_DEVICE_FUNC virtual double
+  distanceToBoundary(const Vector2D &lposition) const = 0;
 };
 
 inline bool operator==(const SurfaceBounds &lhs, const SurfaceBounds &rhs) {

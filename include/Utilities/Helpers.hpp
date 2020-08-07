@@ -41,7 +41,7 @@ namespace VectorHelpers {
 /// @return The value of the angle in the transverse plane.
 template <typename Derived>
 ACTS_DEVICE_FUNC double phi(const Eigen::MatrixBase<Derived> &v) noexcept {
-  //constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
+  // constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
   // if constexpr (rows != -1) {
   //  // static size, do compile time check
   //  static_assert(rows >= 2,
@@ -66,7 +66,7 @@ ACTS_DEVICE_FUNC double phi(const Eigen::MatrixBase<Derived> &v) noexcept {
 /// @return The transverse radius value.
 template <typename Derived>
 ACTS_DEVICE_FUNC double perp(const Eigen::MatrixBase<Derived> &v) noexcept {
-  //constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
+  // constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
   //  if constexpr (rows != -1) {
   //    // static size, do compile time check
   //    static_assert(rows >= 2,
@@ -90,7 +90,7 @@ ACTS_DEVICE_FUNC double perp(const Eigen::MatrixBase<Derived> &v) noexcept {
 /// @return The theta value
 template <typename Derived>
 ACTS_DEVICE_FUNC double theta(const Eigen::MatrixBase<Derived> &v) noexcept {
-  //constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
+  // constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
   // if constexpr (rows != -1) {
   //  // static size, do compile time check
   //  static_assert(rows >= 3, "Theta function not valid for non-3D vectors.");
@@ -113,7 +113,7 @@ ACTS_DEVICE_FUNC double theta(const Eigen::MatrixBase<Derived> &v) noexcept {
 /// @return The pseudorapidity value
 template <typename Derived>
 ACTS_DEVICE_FUNC double eta(const Eigen::MatrixBase<Derived> &v) noexcept {
-  //constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
+  // constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
   //  if constexpr (rows != -1) {
   //    // static size, do compile time check
   //    static_assert(rows >= 3, "Eta function not valid for non-3D vectors.");
@@ -164,7 +164,8 @@ inline double cast(const Vector3D &position, BinningValue bval) {
 /// @param [in] m Matrix that will be used for cross products
 /// @param [in] v Vector for cross products
 /// @return Constructed matrix
-ACTS_DEVICE_FUNC inline ActsMatrixD<3, 3> cross(const ActsMatrixD<3, 3> &m, const Vector3D &v) {
+ACTS_DEVICE_FUNC inline ActsMatrixD<3, 3> cross(const ActsMatrixD<3, 3> &m,
+                                                const Vector3D &v) {
   ActsMatrixD<3, 3> r;
   r.col(0) = m.col(0).cross(v);
   r.col(1) = m.col(1).cross(v);
@@ -174,7 +175,9 @@ ACTS_DEVICE_FUNC inline ActsMatrixD<3, 3> cross(const ActsMatrixD<3, 3> &m, cons
 }
 
 /// Access the three-position components in a four-position vector.
-ACTS_DEVICE_FUNC inline auto position(const Vector4D &pos4) { return pos4.segment<3>(ePos0); }
+ACTS_DEVICE_FUNC inline auto position(const Vector4D &pos4) {
+  return pos4.segment<3>(ePos0);
+}
 
 /// Access the three-position components in a free parameters vector.
 ACTS_DEVICE_FUNC inline auto position(const FreeVector &params) {

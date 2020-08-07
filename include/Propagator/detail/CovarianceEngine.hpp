@@ -48,8 +48,8 @@ namespace detail {
 ///   - the parameters at the surface
 ///   - the stepwise jacobian towards it (from last bound)
 ///   - and the path length (from start - for ordering)
-std::tuple<BoundParameters, BoundMatrix, double>
-ACTS_DEVICE_FUNC boundState(const GeometryContext &geoContext, BoundSymMatrix &covarianceMatrix,
+std::tuple<BoundParameters, BoundMatrix, double> ACTS_DEVICE_FUNC
+boundState(const GeometryContext &geoContext, BoundSymMatrix &covarianceMatrix,
            BoundMatrix &jacobian, FreeMatrix &transportJacobian,
            FreeVector &derivatives, BoundToFreeMatrix &jacobianLocalToGlobal,
            const FreeVector &parameters, bool covTransport,
@@ -75,8 +75,8 @@ ACTS_DEVICE_FUNC boundState(const GeometryContext &geoContext, BoundSymMatrix &c
 ///   - the curvilinear parameters at given position
 ///   - the stepweise jacobian towards it (from last bound)
 ///   - and the path length (from start - for ordering)
-std::tuple<CurvilinearParameters, BoundMatrix, double>
-ACTS_DEVICE_FUNC curvilinearState(BoundSymMatrix &covarianceMatrix, BoundMatrix &jacobian,
+std::tuple<CurvilinearParameters, BoundMatrix, double> ACTS_DEVICE_FUNC
+curvilinearState(BoundSymMatrix &covarianceMatrix, BoundMatrix &jacobian,
                  FreeMatrix &transportJacobian, FreeVector &derivatives,
                  BoundToFreeMatrix &jacobianLocalToGlobal,
                  const FreeVector &parameters, bool covTransport,
@@ -97,12 +97,12 @@ ACTS_DEVICE_FUNC curvilinearState(BoundSymMatrix &covarianceMatrix, BoundMatrix 
 /// @param [in] surface is the surface to which the covariance is
 ///        forwarded to
 /// @note No check is done if the position is actually on the surface
-ACTS_DEVICE_FUNC void covarianceTransport(const GeometryContext &geoContext,
-                         BoundSymMatrix &covarianceMatrix,
-                         BoundMatrix &jacobian, FreeMatrix &transportJacobian,
-                         FreeVector &derivatives,
-                         BoundToFreeMatrix &jacobianLocalToGlobal,
-                         const FreeVector &parameters, const Surface &surface);
+ACTS_DEVICE_FUNC void
+covarianceTransport(const GeometryContext &geoContext,
+                    BoundSymMatrix &covarianceMatrix, BoundMatrix &jacobian,
+                    FreeMatrix &transportJacobian, FreeVector &derivatives,
+                    BoundToFreeMatrix &jacobianLocalToGlobal,
+                    const FreeVector &parameters, const Surface &surface);
 
 /// @brief Method for on-demand transport of the covariance to a new frame at
 /// current position in parameter space
@@ -115,10 +115,10 @@ ACTS_DEVICE_FUNC void covarianceTransport(const GeometryContext &geoContext,
 /// @param [in, out] jacobianLocalToGlobal Projection jacobian of the last bound
 /// parametrisation to free parameters
 /// @param [in] direction Normalised direction vector
-ACTS_DEVICE_FUNC void covarianceTransport(BoundSymMatrix &covarianceMatrix,
-                         BoundMatrix &jacobian, FreeMatrix &transportJacobian,
-                         FreeVector &derivatives,
-                         BoundToFreeMatrix &jacobianLocalToGlobal,
-                         const Vector3D &direction);
+ACTS_DEVICE_FUNC void
+covarianceTransport(BoundSymMatrix &covarianceMatrix, BoundMatrix &jacobian,
+                    FreeMatrix &transportJacobian, FreeVector &derivatives,
+                    BoundToFreeMatrix &jacobianLocalToGlobal,
+                    const Vector3D &direction);
 } // namespace detail
 } // namespace Acts

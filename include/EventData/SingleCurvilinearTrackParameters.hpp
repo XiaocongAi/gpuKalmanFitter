@@ -43,9 +43,10 @@ public:
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, ChargedPolicy>::value, int> = 0>
   ACTS_DEVICE_FUNC SingleCurvilinearTrackParameters(const CovarianceMatrix &cov,
-                                   const Vector3D &position,
-                                   const Vector3D &momentum, Scalar dCharge,
-                                   Scalar dTime)
+                                                    const Vector3D &position,
+                                                    const Vector3D &momentum,
+                                                    Scalar dCharge,
+                                                    Scalar dTime)
       : SingleTrackParameters<ChargePolicy>(
             std::move(cov),
             detail::coordinate_transformation::global2curvilinear(
@@ -63,8 +64,9 @@ public:
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, NeutralPolicy>::value, int> = 0>
   ACTS_DEVICE_FUNC SingleCurvilinearTrackParameters(const CovarianceMatrix &cov,
-                                   const Vector3D &position,
-                                   const Vector3D &momentum, Scalar dTime)
+                                                    const Vector3D &position,
+                                                    const Vector3D &momentum,
+                                                    Scalar dTime)
       : SingleTrackParameters<ChargePolicy>(
             std::move(cov),
             detail::coordinate_transformation::global2curvilinear(
@@ -91,8 +93,8 @@ public:
 
   /// @brief copy assignment operator - charged/netural
   /// virtual constructor for type creation without casting
-  SingleCurvilinearTrackParameters<ChargePolicy> &
-  ACTS_DEVICE_FUNC operator=(const SingleCurvilinearTrackParameters<ChargePolicy> &rhs) {
+  SingleCurvilinearTrackParameters<ChargePolicy> &ACTS_DEVICE_FUNC
+  operator=(const SingleCurvilinearTrackParameters<ChargePolicy> &rhs) {
     // check for self-assignment
     if (this != &rhs) {
       SingleTrackParameters<ChargePolicy>::operator=(rhs);
@@ -103,8 +105,8 @@ public:
 
   /// @brief move assignment operator - charged/netural
   /// virtual constructor for type creation without casting
-  SingleCurvilinearTrackParameters<ChargePolicy> &
-  ACTS_DEVICE_FUNC operator=(SingleCurvilinearTrackParameters<ChargePolicy> &&rhs) {
+  SingleCurvilinearTrackParameters<ChargePolicy> &ACTS_DEVICE_FUNC
+  operator=(SingleCurvilinearTrackParameters<ChargePolicy> &&rhs) {
     // check for self-assignment
     if (this != &rhs) {
       SingleTrackParameters<ChargePolicy>::operator=(std::move(rhs));
@@ -158,7 +160,9 @@ public:
   }
 
   /// @brief access to the reference surface
-  ACTS_DEVICE_FUNC const Surface &referenceSurface() const final { return m_upSurface; }
+  ACTS_DEVICE_FUNC const Surface &referenceSurface() const final {
+    return m_upSurface;
+  }
 
   /// @brief access to the measurement frame, i.e. the rotation matrix with
   /// respect to the global coordinate system, in which the local error
@@ -169,7 +173,8 @@ public:
   ///
   /// @note For a curvilinear track parameterisation this is identical to
   /// the rotation matrix of the intrinsic planar surface.
-  ACTS_DEVICE_FUNC RotationMatrix3D referenceFrame(const GeometryContext &gctx) const {
+  ACTS_DEVICE_FUNC RotationMatrix3D
+  referenceFrame(const GeometryContext &gctx) const {
     return m_upSurface.transform(gctx).linear();
   }
 

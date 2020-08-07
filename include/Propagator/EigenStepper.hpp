@@ -40,8 +40,8 @@ template <typename bfield_t> struct EigenStepper {
     /// @note the covariance matrix is copied when needed
     template <typename parameters_t>
     ACTS_DEVICE_FUNC explicit State(
-        const GeometryContext& gctx,
-        const parameters_t &par, NavigationDirection ndir = forward,
+        const GeometryContext &gctx, const parameters_t &par,
+        NavigationDirection ndir = forward,
         double ssize = std::numeric_limits<double>::max(),
         double stolerance = s_onSurfaceTolerance)
         : pos(par.position()), dir(par.momentum().normalized()),
@@ -108,7 +108,7 @@ template <typename bfield_t> struct EigenStepper {
     double tolerance = s_onSurfaceTolerance;
 
     /// The geometry context
-    const GeometryContext& geoContext;
+    const GeometryContext &geoContext;
 
     /// @brief Storage of magnetic field and the sub steps during a RKN4 step
     struct {
@@ -156,12 +156,16 @@ template <typename bfield_t> struct EigenStepper {
   /// Global particle position accessor
   ///
   /// @param state [in] The stepping state (thread-local cache)
-  ACTS_DEVICE_FUNC Vector3D position(const State &state) const { return state.pos; }
+  ACTS_DEVICE_FUNC Vector3D position(const State &state) const {
+    return state.pos;
+  }
 
   /// Momentum direction accessor
   ///
   /// @param state [in] The stepping state (thread-local cache)
-  ACTS_DEVICE_FUNC Vector3D direction(const State &state) const { return state.dir; }
+  ACTS_DEVICE_FUNC Vector3D direction(const State &state) const {
+    return state.dir;
+  }
 
   /// Actual momentum accessor
   ///
@@ -186,8 +190,9 @@ template <typename bfield_t> struct EigenStepper {
   /// @param state [in,out] The stepping state (thread-local cache)
   /// @param surface [in] The surface provided
   /// @param bcheck [in] The boundary check for this status update
-  ACTS_DEVICE_FUNC Intersection::Status updateSurfaceStatus(State &state, const Surface &surface,
-                                           const BoundaryCheck &bcheck) const {
+  ACTS_DEVICE_FUNC Intersection::Status
+  updateSurfaceStatus(State &state, const Surface &surface,
+                      const BoundaryCheck &bcheck) const {
     return detail::updateSingleSurfaceStatus<EigenStepper>(*this, state,
                                                            surface, bcheck);
   }
@@ -203,8 +208,9 @@ template <typename bfield_t> struct EigenStepper {
   /// @param oIntersection [in] The ObjectIntersection to layer, boundary, etc
   /// @param release [in] boolean to trigger step size release
   template <typename object_intersection_t>
-  ACTS_DEVICE_FUNC void updateStepSize(State &state, const object_intersection_t &oIntersection,
-                      bool release = true) const {
+  ACTS_DEVICE_FUNC void
+  updateStepSize(State &state, const object_intersection_t &oIntersection,
+                 bool release = true) const {
     detail::updateSingleStepSize<EigenStepper>(state, oIntersection, release);
   }
 
@@ -213,8 +219,9 @@ template <typename bfield_t> struct EigenStepper {
   /// @param state [in,out] The stepping state (thread-local cache)
   /// @param stepSize [in] The step size value
   /// @param stype [in] The step size type to be set
-  ACTS_DEVICE_FUNC void setStepSize(State &state, double stepSize,
-                   ConstrainedStep::Type stype = ConstrainedStep::actor) const {
+  ACTS_DEVICE_FUNC void
+  setStepSize(State &state, double stepSize,
+              ConstrainedStep::Type stype = ConstrainedStep::actor) const {
     state.previousStepSize = state.stepSize;
     state.stepSize.update(stepSize, stype, true);
   }
@@ -248,7 +255,8 @@ template <typename bfield_t> struct EigenStepper {
   ///   - the parameters at the surface
   ///   - the stepwise jacobian towards it (from last bound)
   ///   - and the path length (from start - for ordering)
-  ACTS_DEVICE_FUNC BoundState boundState(State &state, const Surface &surface) const;
+  ACTS_DEVICE_FUNC BoundState boundState(State &state,
+                                         const Surface &surface) const;
 
   /// Create and return a curvilinear state at the current position
   ///
@@ -268,7 +276,7 @@ template <typename bfield_t> struct EigenStepper {
   /// @param [in,out] state State object that will be updated
   /// @param [in] pars Parameters that will be written into @p state
   ACTS_DEVICE_FUNC void update(State &state, const FreeVector &parameters,
-              const Covariance &covariance) const;
+                               const Covariance &covariance) const;
 
   /// Method to update momentum, direction and p
   ///
@@ -277,7 +285,8 @@ template <typename bfield_t> struct EigenStepper {
   /// @param [in] udirection the updated direction
   /// @param [in] up the updated momentum value
   ACTS_DEVICE_FUNC void update(State &state, const Vector3D &uposition,
-              const Vector3D &udirection, double up, double time) const;
+                               const Vector3D &udirection, double up,
+                               double time) const;
 
   /// Method for on-demand transport of the covariance
   /// to a new curvilinear frame at current  position,
@@ -297,7 +306,8 @@ template <typename bfield_t> struct EigenStepper {
   /// @param [in,out] state State of the stepper
   /// @param [in] surface is the surface to which the covariance is forwarded to
   /// @note no check is done if the position is actually on the surface
-  ACTS_DEVICE_FUNC void covarianceTransport(State &state, const Surface &surface) const;
+  ACTS_DEVICE_FUNC void covarianceTransport(State &state,
+                                            const Surface &surface) const;
 
 private:
   /// Magnetic field inside of the detector

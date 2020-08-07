@@ -203,7 +203,9 @@ public:
   }
 
   /// @brief access method to the reference surface
-  ACTS_DEVICE_FUNC const Surface &referenceSurface() const final { return *m_pSurface; }
+  ACTS_DEVICE_FUNC const Surface &referenceSurface() const final {
+    return *m_pSurface;
+  }
 
   /// @brief access to the measurement frame, i.e. the rotation matrix with
   /// respect to the global coordinate system, in which the local error
@@ -216,7 +218,8 @@ public:
   /// surface frame, for measurements with respect to a line this has to be
   /// constructed by the point of clostest approach to the line, for
   /// cylindrical surfaces this is (by convention) the tangential plane.
-  ACTS_DEVICE_FUNC RotationMatrix3D referenceFrame(const GeometryContext &gctx) const {
+  ACTS_DEVICE_FUNC RotationMatrix3D
+  referenceFrame(const GeometryContext &gctx) const {
     return std::move(
         m_pSurface->referenceFrame(gctx, this->position(), this->momentum()));
   }

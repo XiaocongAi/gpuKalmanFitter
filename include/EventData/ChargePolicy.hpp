@@ -49,7 +49,9 @@ public:
   /// @brief inequality operator
   ///
   /// @return @c true if rhs has a different charge, otherwise @c false
-  ACTS_DEVICE_FUNC bool operator!=(const ChargedPolicy &rhs) const { return !(*this == rhs); }
+  ACTS_DEVICE_FUNC bool operator!=(const ChargedPolicy &rhs) const {
+    return !(*this == rhs);
+  }
 
   /// @brief retrieve stored value of the electric charge
   ///

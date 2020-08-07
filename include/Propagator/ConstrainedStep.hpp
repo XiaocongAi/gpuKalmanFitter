@@ -28,34 +28,34 @@ struct ConstrainedStep {
   enum Type : int { accuracy = 0, actor = 1, aborter = 2, user = 3 };
 
   /// the step size tuple
-  //std::array<double, 4> values = {
+  // std::array<double, 4> values = {
   double values[4] = {
       std::numeric_limits<double>::max(), std::numeric_limits<double>::max(),
-       std::numeric_limits<double>::max(), std::numeric_limits<double>::max()};
+      std::numeric_limits<double>::max(), std::numeric_limits<double>::max()};
 
   /// The Navigation direction
   NavigationDirection direction = forward;
 
   ACTS_DEVICE_FUNC double max() const {
     double max = std::numeric_limits<double>::min();
-    for(const auto& value: values){
-      if(value> max) {
-        max = value; 
-      } 
+    for (const auto &value : values) {
+      if (value > max) {
+        max = value;
+      }
     }
-    return max; 
+    return max;
   }
 
   ACTS_DEVICE_FUNC double min() const {
     double min = std::numeric_limits<double>::max();
-    for(const auto& value: values){
-      if(value< min) {
-        min = value; 
-      } 
+    for (const auto &value : values) {
+      if (value < min) {
+        min = value;
+      }
     }
-    return min;                                        
+    return min;
   }
-  
+
   /// Update the step size of a certain type
   ///
   /// Only navigation and target abortion step size
@@ -63,7 +63,8 @@ struct ConstrainedStep {
   ///
   /// @param value is the new value to be updated
   /// @param type is the constraint type
-  ACTS_DEVICE_FUNC void update(const double &value, Type type, bool releaseStep = false) {
+  ACTS_DEVICE_FUNC void update(const double &value, Type type,
+                               bool releaseStep = false) {
     if (releaseStep) {
       release(type);
     }
@@ -78,14 +79,14 @@ struct ConstrainedStep {
   ///
   /// @param type is the constraint type to be released
   ACTS_DEVICE_FUNC void release(Type type) {
-    double mvalue = (direction == forward)
-                        ? max() : min();
+    double mvalue = (direction == forward) ? max() : min();
     values[type] = mvalue;
   }
 
   /// constructor from double
   /// @paramn value is the user given initial value
-  ACTS_DEVICE_FUNC ConstrainedStep(double value) : direction(value > 0. ? forward : backward) {
+  ACTS_DEVICE_FUNC ConstrainedStep(double value)
+      : direction(value > 0. ? forward : backward) {
     values[accuracy] *= direction;
     values[actor] *= direction;
     values[aborter] *= direction;
@@ -109,7 +110,7 @@ struct ConstrainedStep {
   /// depending on the direction
   ACTS_DEVICE_FUNC operator double() const {
     if (direction == forward) {
-      return min(); 
+      return min();
     }
     return max();
   }
@@ -121,20 +122,20 @@ struct ConstrainedStep {
 
   /// Access to currently leading min type
   ///
-//  ACTS_DEVICE_FUNC Type currentType() const {
-//    if (direction == forward) {
-//      return Type(std::min_element(values.begin(), values.end()) -
-//                  values.begin());
-//    }
-//    return Type(std::max_element(values.begin(), values.end()) -
-//                values.begin());
-//  }
+  //  ACTS_DEVICE_FUNC Type currentType() const {
+  //    if (direction == forward) {
+  //      return Type(std::min_element(values.begin(), values.end()) -
+  //                  values.begin());
+  //    }
+  //    return Type(std::max_element(values.begin(), values.end()) -
+  //                values.begin());
+  //  }
 
   /// return the split value as string for debugging
   std::string toString() const;
 };
 
-//inline std::string ConstrainedStep::toString() const {
+// inline std::string ConstrainedStep::toString() const {
 //  std::stringstream dstream;
 //
 //  // Helper method to avoid unreadable screen output

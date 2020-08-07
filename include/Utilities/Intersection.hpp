@@ -40,14 +40,17 @@ struct Intersection {
   /// @param sinter is the position of the intersection
   /// @param slength is the path length to the intersection
   /// @param svalid is a boolean indicating if intersection is valid
-  ACTS_DEVICE_FUNC Intersection(const Vector3D &sinter, double slength, Status sstatus)
+  ACTS_DEVICE_FUNC Intersection(const Vector3D &sinter, double slength,
+                                Status sstatus)
       : position(sinter), pathLength(slength), status(sstatus) {}
 
   /// Default constructor
   Intersection() = default;
 
   /// Bool() operator for validity checking
-  ACTS_DEVICE_FUNC explicit operator bool() const { return (status != Status::missed); }
+  ACTS_DEVICE_FUNC explicit operator bool() const {
+    return (status != Status::missed);
+  }
 
   /// Smaller operator for sorting,
   /// - it respects the validity of the intersection
@@ -104,7 +107,8 @@ public:
   /// @param sRepresentation is the object represenatation
   template <typename T = representation_t,
             std::enable_if_t<std::is_same<T, object_t>::value, int> = 0>
-  ACTS_DEVICE_FUNC ObjectIntersection(const Intersection &sInter, const object_t *sObject)
+  ACTS_DEVICE_FUNC ObjectIntersection(const Intersection &sInter,
+                                      const object_t *sObject)
       : intersection(sInter), object(sObject), representation(sObject) {}
 
   /// Object intersection
@@ -112,8 +116,9 @@ public:
   /// @param sInter is the intersection
   /// @param sObject is the object to be instersected
   /// @param sRepresentation is the object represenatation
-  ACTS_DEVICE_FUNC ObjectIntersection(const Intersection &sInter, const object_t *sObject,
-                     const representation_t *sRepresentation)
+  ACTS_DEVICE_FUNC ObjectIntersection(const Intersection &sInter,
+                                      const object_t *sObject,
+                                      const representation_t *sRepresentation)
       : intersection(sInter), object(sObject), representation(sRepresentation) {
   }
 
@@ -152,7 +157,8 @@ struct SameSurfaceIntersection {
   /// @param i1 First intersection to test
   /// @param i2 Second intersection to test
   template <typename intersection_t>
-  ACTS_DEVICE_FUNC bool operator()(const intersection_t &i1, const intersection_t &i2) const {
+  ACTS_DEVICE_FUNC bool operator()(const intersection_t &i1,
+                                   const intersection_t &i2) const {
     return (i1.object == i2.object);
   }
 };

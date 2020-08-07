@@ -44,16 +44,17 @@ template <typename T, T first, T... others>
 struct initialize_parset<T, first, others...> {
   template <typename ParSetType, typename first_value_type,
             typename... other_value_types>
-  ACTS_DEVICE_FUNC static void init(ParSetType &parSet, const first_value_type &v1,
-                   const other_value_types &... values) {
+  ACTS_DEVICE_FUNC static void init(ParSetType &parSet,
+                                    const first_value_type &v1,
+                                    const other_value_types &... values) {
     parSet.template setParameter<first>(v1);
     initialize_parset<T, others...>::init(parSet, values...);
   }
 
   template <typename ParSetType>
-  ACTS_DEVICE_FUNC static void init(ParSetType &parSet,
-                   const typename ParSetType::ParameterVector &values,
-                   const unsigned int &pos = 0) {
+  ACTS_DEVICE_FUNC static void
+  init(ParSetType &parSet, const typename ParSetType::ParameterVector &values,
+       const unsigned int &pos = 0) {
     parSet.template setParameter<first>(values(pos));
     initialize_parset<T, others...>::init(parSet, values, pos + 1);
   }
@@ -61,14 +62,15 @@ struct initialize_parset<T, first, others...> {
 
 template <typename T, T last> struct initialize_parset<T, last> {
   template <typename ParSet_tType, typename last_value_type>
-  ACTS_DEVICE_FUNC static void init(ParSet_tType &ParSet_t, const last_value_type &v1) {
+  ACTS_DEVICE_FUNC static void init(ParSet_tType &ParSet_t,
+                                    const last_value_type &v1) {
     ParSet_t.template setParameter<last>(v1);
   }
 
   template <typename ParSetType>
-  ACTS_DEVICE_FUNC static void init(ParSetType &parSet,
-                   const typename ParSetType::ParameterVector &values,
-                   const unsigned int &pos = 0) {
+  ACTS_DEVICE_FUNC static void
+  init(ParSetType &parSet, const typename ParSetType::ParameterVector &values,
+       const unsigned int &pos = 0) {
     parSet.template setParameter<last>(values(pos));
   }
 };

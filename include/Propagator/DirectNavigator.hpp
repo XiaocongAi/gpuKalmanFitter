@@ -31,9 +31,9 @@ namespace Acts {
 class DirectNavigator {
 public:
   /// The sequentially crossed surfaces
-  //using SurfaceSequence = std::vector<const Surface *>;
-  //using SurfaceIter = std::vector<const Surface *>::iterator;
-  using SurfacePtr = const Surface*; 
+  // using SurfaceSequence = std::vector<const Surface *>;
+  // using SurfaceIter = std::vector<const Surface *>::iterator;
+  using SurfacePtr = const Surface *;
   using SurfaceIter = unsigned int;
 
   /// Defaulted Constructed
@@ -66,13 +66,15 @@ public:
     /// @param state the entire propagator state
     /// @param r the result of this Actor
     template <typename propagator_state_t, typename stepper_t>
-    ACTS_DEVICE_FUNC void operator()(propagator_state_t &state, const stepper_t & /*unused*/,
-                    result_type &r) const {
+    ACTS_DEVICE_FUNC void operator()(propagator_state_t &state,
+                                     const stepper_t & /*unused*/,
+                                     result_type &r) const {
       // Only act once
       if (not r.initialized) {
         // Initialize the surface sequence
-        memcpy ( state.navigation.surfaceSequence, surfaceSequence, sizeof(SurfacePtr)*s_SurfacesSize );	
-	// todo: below could be removed
+        memcpy(state.navigation.surfaceSequence, surfaceSequence,
+               sizeof(SurfacePtr) * s_SurfacesSize);
+        // todo: below could be removed
         state.navigation.nextSurfaceIter = 0;
         r.initialized = true;
       }
@@ -81,7 +83,7 @@ public:
     /// Actor operator call - resultless, unused
     template <typename propagator_state_t, typename stepper_t>
     ACTS_DEVICE_FUNC void operator()(propagator_state_t & /*unused*/,
-                    const stepper_t & /*unused*/) const {}
+                                     const stepper_t & /*unused*/) const {}
   };
 
   /// Nested State struct
@@ -92,7 +94,7 @@ public:
   struct State {
     /// Externally provided surfaces - expected to be ordered
     /// along the path
-    //SurfaceSequence surfaceSequence = nullptr;
+    // SurfaceSequence surfaceSequence = nullptr;
     SurfacePtr surfaceSequence[s_SurfacesSize] = {};
 
     /// Iterator the the next surface
@@ -125,24 +127,24 @@ public:
   /// @param [in,out] state is the mutable propagator state object
   /// @param [in] stepper Stepper in use
   template <typename propagator_state_t, typename stepper_t>
-  ACTS_DEVICE_FUNC void status(propagator_state_t &state, const stepper_t &stepper) const {
+  ACTS_DEVICE_FUNC void status(propagator_state_t &state,
+                               const stepper_t &stepper) const {
 
     // Navigator status always resets the current surface
     state.navigation.currentSurface = nullptr;
     // Check if we are on surface
-    if (state.navigation.nextSurfaceIter !=
-        s_SurfacesSize) {
-      auto surfacePtr = state.navigation.surfaceSequence[state.navigation.nextSurfaceIter];
+    if (state.navigation.nextSurfaceIter != s_SurfacesSize) {
+      auto surfacePtr =
+          state.navigation.surfaceSequence[state.navigation.nextSurfaceIter];
       // Establish the surface status
-      auto surfaceStatus = stepper.updateSurfaceStatus(
-          state.stepping, *surfacePtr, false);
+      auto surfaceStatus =
+          stepper.updateSurfaceStatus(state.stepping, *surfacePtr, false);
       if (surfaceStatus == Intersection::Status::onSurface) {
         // Set the current surface
         state.navigation.currentSurface = surfacePtr;
         // Move the sequence to the next surface
         ++state.navigation.nextSurfaceIter;
-        if (state.navigation.nextSurfaceIter !=
-            s_SurfacesSize) {
+        if (state.navigation.nextSurfaceIter != s_SurfacesSize) {
           stepper.releaseStepSize(state.stepping);
         }
       }
@@ -157,15 +159,17 @@ public:
   /// @param [in,out] state is the mutable propagator state object
   /// @param [in] stepper Stepper in use
   template <typename propagator_state_t, typename stepper_t>
-  ACTS_DEVICE_FUNC void target(propagator_state_t &state, const stepper_t &stepper) const {
+  ACTS_DEVICE_FUNC void target(propagator_state_t &state,
+                               const stepper_t &stepper) const {
 
     // Navigator target always resets the current surface
     state.navigation.currentSurface = nullptr;
-    if (state.navigation.nextSurfaceIter !=
-        s_SurfacesSize) {
-      auto surfacePtr = state.navigation.surfaceSequence[state.navigation.nextSurfaceIter];
+    if (state.navigation.nextSurfaceIter != s_SurfacesSize) {
+      auto surfacePtr =
+          state.navigation.surfaceSequence[state.navigation.nextSurfaceIter];
       // Establish & update the surface status
-      auto surfaceStatus = stepper.updateSurfaceStatus(state.stepping, *surfacePtr, false);
+      auto surfaceStatus =
+          stepper.updateSurfaceStatus(state.stepping, *surfacePtr, false);
       if (surfaceStatus == Intersection::Status::unreachable) {
         // Move the sequence to the next surface
         ++state.navigation.nextSurfaceIter;

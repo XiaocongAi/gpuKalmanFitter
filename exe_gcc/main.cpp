@@ -64,8 +64,7 @@ struct VoidAborter {
 using Stepper = EigenStepper<ConstantBField>;
 // using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
 using PropagatorType = Propagator<Stepper>;
-using PropResultType =
-    PropagatorResult<typename VoidActor::result_type>;
+using PropResultType = PropagatorResult<typename VoidActor::result_type>;
 using PropOptionsType = PropagatorOptions<VoidActor, VoidAborter>;
 
 int main(int argc, char *argv[]) {

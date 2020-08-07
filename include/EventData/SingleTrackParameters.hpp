@@ -99,7 +99,9 @@ public:
   ///
   /// @return ParameterSet object holding parameter values and their covariance
   /// matrix
-  ACTS_DEVICE_FUNC const FullParameterSet &getParameterSet() const { return m_oParameters; }
+  ACTS_DEVICE_FUNC const FullParameterSet &getParameterSet() const {
+    return m_oParameters;
+  }
 
   /// @brief access associated surface defining the coordinate system for track
   ///        parameters and their covariance
@@ -133,8 +135,7 @@ public:
   /// @return value of the requested track parameter
   ///
   /// @sa ParameterSet::get
-  template <BoundParametersIndices par> 
-  ACTS_DEVICE_FUNC Scalar get() const {
+  template <BoundParametersIndices par> ACTS_DEVICE_FUNC Scalar get() const {
     return getParameterSet().template getParameter<par>();
   }
 
@@ -166,8 +167,9 @@ protected:
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, ChargedPolicy>::value, int> = 0>
   ACTS_DEVICE_FUNC SingleTrackParameters(const CovarianceMatrix &cov,
-                        const ParametersVector &parValues,
-                        const Vector3D &position, const Vector3D &momentum)
+                                         const ParametersVector &parValues,
+                                         const Vector3D &position,
+                                         const Vector3D &momentum)
       : m_oChargePolicy(
             detail::coordinate_transformation::parameters2charge(parValues)),
         m_oParameters(std::move(cov), parValues), m_vPosition(position),
@@ -182,8 +184,9 @@ protected:
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, NeutralPolicy>::value, int> = 0>
   ACTS_DEVICE_FUNC SingleTrackParameters(const CovarianceMatrix &cov,
-                        const ParametersVector &parValues,
-                        const Vector3D &position, const Vector3D &momentum)
+                                         const ParametersVector &parValues,
+                                         const Vector3D &position,
+                                         const Vector3D &momentum)
       : m_oChargePolicy(), m_oParameters(std::move(cov), parValues),
         m_vPosition(position), m_vMomentum(momentum) {}
 
@@ -197,8 +200,8 @@ protected:
   /// @brief copy assignment operator
   ///
   /// @param rhs object to be copied
-  SingleTrackParameters<ChargePolicy> &
-  ACTS_DEVICE_FUNC operator=(const SingleTrackParameters<ChargePolicy> &rhs) {
+  SingleTrackParameters<ChargePolicy> &ACTS_DEVICE_FUNC
+  operator=(const SingleTrackParameters<ChargePolicy> &rhs) {
     // check for self-assignment
     if (this != &rhs) {
       m_oChargePolicy = rhs.m_oChargePolicy;
@@ -213,8 +216,8 @@ protected:
   /// @brief move assignment operator
   ///
   /// @param rhs object to be movied into `*this`
-  SingleTrackParameters<ChargePolicy> &
-  ACTS_DEVICE_FUNC operator=(SingleTrackParameters<ChargePolicy> &&rhs) {
+  SingleTrackParameters<ChargePolicy> &ACTS_DEVICE_FUNC
+  operator=(SingleTrackParameters<ChargePolicy> &&rhs) {
     // check for self-assignment
     if (this != &rhs) {
       m_oChargePolicy = std::move(rhs.m_oChargePolicy);
@@ -235,8 +238,9 @@ protected:
   /// @note This function is triggered when called with an argument of a type
   ///       different from Acts::local_parameter
   template <typename T>
-  ACTS_DEVICE_FUNC void updateGlobalCoordinates(const GeometryContext & /*gctx*/,
-                               const T & /*unused*/) {
+  ACTS_DEVICE_FUNC void
+  updateGlobalCoordinates(const GeometryContext & /*gctx*/,
+                          const T & /*unused*/) {
     m_vMomentum = detail::coordinate_transformation::parameters2globalMomentum(
         getParameterSet().getParameters());
   }
@@ -245,8 +249,9 @@ protected:
   ///
   /// @note This function is triggered when called with an argument of a type
   /// Acts::local_parameter
-  ACTS_DEVICE_FUNC void updateGlobalCoordinates(const GeometryContext &gctx,
-                               const local_parameter & /*unused*/) {
+  ACTS_DEVICE_FUNC void
+  updateGlobalCoordinates(const GeometryContext &gctx,
+                          const local_parameter & /*unused*/) {
     m_vPosition = detail::coordinate_transformation::parameters2globalPosition(
         gctx, getParameterSet().getParameters(), this->referenceSurface());
   }

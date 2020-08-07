@@ -148,7 +148,8 @@ public:
    * @param cov unique pointer to covariance matrix (nullptr is accepted)
    * @param values vector with parameter values
    */
-  ACTS_DEVICE_FUNC ParameterSet(const CovarianceMatrix &cov, const ParameterVector &values)
+  ACTS_DEVICE_FUNC ParameterSet(const CovarianceMatrix &cov,
+                                const ParameterVector &values)
       : m_vValues(values.size()), m_optCovariance(cov) {
     detail::initialize_parset<parameter_indices_t, params...>::init(*this,
                                                                     values);
@@ -218,7 +219,8 @@ public:
    *
    * @return position of parameter in variadic template parameter set @c params
    */
-  template <parameter_indices_t parameter> static ACTS_DEVICE_FUNC constexpr size_t getIndex() {
+  template <parameter_indices_t parameter>
+  static ACTS_DEVICE_FUNC constexpr size_t getIndex() {
     return detail::get_position<parameter_indices_t, parameter,
                                 params...>::value;
   }
@@ -234,7 +236,8 @@ public:
    * @return parameter identifier at position @c index in variadic template
    *         parameter set @c params
    */
-  template <size_t index> static ACTS_DEVICE_FUNC constexpr parameter_indices_t getParID() {
+  template <size_t index>
+  static ACTS_DEVICE_FUNC constexpr parameter_indices_t getParID() {
     return detail::at_index<parameter_indices_t, index, params...>::value;
   }
 
@@ -247,7 +250,7 @@ public:
    *
    * @return value of the stored parameter
    */
-  template <parameter_indices_t parameter> 
+  template <parameter_indices_t parameter>
   ACTS_DEVICE_FUNC ParValue_t getParameter() const {
     return m_vValues(getIndex<parameter>());
   }
@@ -269,10 +272,11 @@ public:
    *
    * @return previously stored value of this parameter
    */
-  template <parameter_indices_t parameter> 
+  template <parameter_indices_t parameter>
   ACTS_DEVICE_FUNC void setParameter(ParValue_t value) {
-	 auto v = ParameterTypeFor<parameter_indices_t, parameter>::type::getValue(value); 
-	  m_vValues(getIndex<parameter>()) =
+    auto v =
+        ParameterTypeFor<parameter_indices_t, parameter>::type::getValue(value);
+    m_vValues(getIndex<parameter>()) =
         ParameterTypeFor<parameter_indices_t, parameter>::type::getValue(v);
   }
 
@@ -314,7 +318,9 @@ public:
    *
    * @return raw pointer to covariance matrix (can be a nullptr)
    */
-  ACTS_DEVICE_FUNC const CovarianceMatrix *getCovariance() const { return &m_optCovariance; }
+  ACTS_DEVICE_FUNC const CovarianceMatrix *getCovariance() const {
+    return &m_optCovariance;
+  }
 
   /**
    * @brief access uncertainty for individual parameter
@@ -340,7 +346,9 @@ public:
    *
    * @param cov unique pointer to new covariance matrix (nullptr is accepted)
    */
-  ACTS_DEVICE_FUNC void setCovariance(const CovarianceMatrix &cov) { m_optCovariance = cov; }
+  ACTS_DEVICE_FUNC void setCovariance(const CovarianceMatrix &cov) {
+    m_optCovariance = cov;
+  }
 
   /**
    * @brief equality operator

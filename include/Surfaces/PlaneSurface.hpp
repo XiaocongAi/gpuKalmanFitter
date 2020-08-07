@@ -78,7 +78,7 @@ public:
   ///
   /// return a Vector3D by value
   ACTS_DEVICE_FUNC const Vector3D normal(const GeometryContext &gctx,
-                        const Vector2D &lposition) const final;
+                                         const Vector2D &lposition) const final;
 
   /// Normal vector return without argument
   using Surface::normal;
@@ -90,8 +90,8 @@ public:
   /// @param bValue is the binning type to be used
   ///
   /// @return position that can beused for this binning
-  ACTS_DEVICE_FUNC const Vector3D binningPosition(const GeometryContext &gctx,
-                                 BinningValue bValue) const final;
+  ACTS_DEVICE_FUNC const Vector3D
+  binningPosition(const GeometryContext &gctx, BinningValue bValue) const final;
 
   /// Return the surface type
   ACTS_DEVICE_FUNC SurfaceType type() const override;
@@ -108,9 +108,10 @@ public:
   /// @param momentum global 3D momentum representation (optionally ignored)
   /// @param position global 3D position to be filled (given by reference for
   /// method symmetry)
-  ACTS_DEVICE_FUNC void localToGlobal(const GeometryContext &gctx, const Vector2D &lposition,
-                     const Vector3D &momentum,
-                     Vector3D &position) const override;
+  ACTS_DEVICE_FUNC void localToGlobal(const GeometryContext &gctx,
+                                      const Vector2D &lposition,
+                                      const Vector3D &momentum,
+                                      Vector3D &position) const override;
 
   /// Global to local transformation
   /// For planar surfaces the momentum is ignroed in the global to local
@@ -125,9 +126,10 @@ public:
   ///
   /// @return boolean indication if operation was successful (fail means global
   /// position was not on surface)
-  ACTS_DEVICE_FUNC bool globalToLocal(const GeometryContext &gctx, const Vector3D &position,
-                     const Vector3D &momentum,
-                     Vector2D &lposition) const override;
+  ACTS_DEVICE_FUNC bool globalToLocal(const GeometryContext &gctx,
+                                      const Vector3D &position,
+                                      const Vector3D &momentum,
+                                      Vector2D &lposition) const override;
 
   /// Method that calculates the correction due to incident angle
   ///
@@ -137,8 +139,9 @@ public:
   /// @note this is the final implementation of the pathCorrection function
   ///
   /// @return a double representing the scaling factor
-  ACTS_DEVICE_FUNC double pathCorrection(const GeometryContext &gctx, const Vector3D &position,
-                        const Vector3D &direction) const final;
+  ACTS_DEVICE_FUNC double pathCorrection(const GeometryContext &gctx,
+                                         const Vector3D &position,
+                                         const Vector3D &direction) const final;
 
   /// @brief Straight line intersection schema
   ///
