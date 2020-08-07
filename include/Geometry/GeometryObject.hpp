@@ -50,7 +50,7 @@ public:
 
   /// Return the value
   /// @return the geometry id by reference
-  const GeometryID &geoID() const;
+  ACTS_DEVICE_FUNC const GeometryID &geoID() const;
 
   /// Force a binning position method
   ///
@@ -58,7 +58,7 @@ public:
   /// @param bValue is the value in which you want to bin
   ///
   /// @return vector 3D used for the binning schema
-  virtual const Vector3D binningPosition(const GeometryContext &gctx,
+  ACTS_DEVICE_FUNC virtual const Vector3D binningPosition(const GeometryContext &gctx,
                                          BinningValue bValue) const = 0;
 
   /// Implement the binningValue
@@ -67,13 +67,13 @@ public:
   /// @param bValue is the dobule in which you want to bin
   ///
   /// @return float to be used for the binning schema
-  virtual double binningPositionValue(const GeometryContext &gctx,
+  ACTS_DEVICE_FUNC virtual double binningPositionValue(const GeometryContext &gctx,
                                       BinningValue bValue) const;
 
   /// Set the value
   ///
   /// @param geoID the geometry identifier to be assigned
-  void assignGeoID(const GeometryID &geoID);
+  ACTS_DEVICE_FUNC void assignGeoID(const GeometryID &geoID);
 
 protected:
   GeometryID m_geoID;

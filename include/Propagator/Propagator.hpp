@@ -30,11 +30,14 @@ namespace Acts {
 /// @tparam parameters_t Type of final track parameters
 /// @tparam result_t  Result for additional propagation
 ///                      quantity
-template <typename parameters_t, typename result_t> struct PropagatorResult {
+template <typename result_t> struct PropagatorResult {
   PropagatorResult() = default;
 
   // The single action result
-  result_t result;
+  result_t actorResult;
+
+  // The direct navigator initializer result
+  DirectNavigator::Initializer::result_type  initializerResult;
 
   // std::unique_ptr<const parameters_t> endParameters = nullptr;
 
@@ -49,7 +52,8 @@ template <typename parameters_t, typename result_t> struct PropagatorResult {
 
 /// @brief Options for propagate() call
 ///
-template <typename action_t, typename aborter_t> struct PropagatorOptions {
+template <typename action_t, typename aborter_t> 
+struct PropagatorOptions {
   using action_type = action_t;
 
   /// Delete default constructor
@@ -59,8 +63,8 @@ template <typename action_t, typename aborter_t> struct PropagatorOptions {
   PropagatorOptions(const PropagatorOptions<action_t, aborter_t> &po) = default;
 
   /// PropagatorOptions with context
-  PropagatorOptions(std::reference_wrapper<const GeometryContext> gctx,
-                    std::reference_wrapper<const MagneticFieldContext> mctx)
+  ACTS_DEVICE_FUNC PropagatorOptions(const GeometryContext& gctx,
+                    const MagneticFieldContext& mctx)
       : geoContext(gctx), magFieldContext(mctx) {}
 
   /// Propagation direction
@@ -100,11 +104,14 @@ template <typename action_t, typename aborter_t> struct PropagatorOptions {
   /// The single aborter
   aborter_t aborter;
 
+  /// The navigator initializer
+  DirectNavigator::Initializer initializer;
+
   /// The context object for the geometry
-  std::reference_wrapper<const GeometryContext> geoContext;
+  const GeometryContext& geoContext;
 
   /// The context object for the magnetic field
-  std::reference_wrapper<const MagneticFieldContext> magFieldContext;
+  const MagneticFieldContext& magFieldContext;
 };
 
 /// @brief Propagator for particles (optionally in a magnetic field)
@@ -167,8 +174,7 @@ public:
   template <typename parameters_t, typename propagator_options_t,
             typename path_aborter_t = PathLimitReached>
   ACTS_DEVICE_FUNC
-      PropagatorResult<CurvilinearParameters,
-                       typename propagator_options_t::action_type::result_type>
+      PropagatorResult<typename propagator_options_t::action_type::result_type>
       propagate(const parameters_t &start,
                 const propagator_options_t &options) const;
 

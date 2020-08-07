@@ -57,12 +57,12 @@ public:
   /// Return the bounds type - for persistency optimization
   ///
   /// @return is a BoundsType enum
-  virtual BoundsType type() const = 0;
+  ACTS_DEVICE_FUNC virtual BoundsType type() const = 0;
 
   /// Access method for bound variable store
   ///
   /// @return of the stored values for the boundary object
-  virtual std::vector<TDD_real_t> valueStore() const = 0;
+  ACTS_DEVICE_FUNC virtual std::vector<TDD_real_t> valueStore() const = 0;
 
   /// Inside check for the bounds object driven by the boundary check directive
   /// Each Bounds has a method inside, which checks if a LocalPosition is inside
@@ -71,14 +71,14 @@ public:
   /// @param lposition Local position (assumed to be in right surface frame)
   /// @param bcheck boundary check directive
   /// @return boolean indicator for the success of this operation
-  virtual bool inside(const Vector2D &lposition,
+  ACTS_DEVICE_FUNC virtual bool inside(const Vector2D &lposition,
                       const BoundaryCheck &bcheck) const = 0;
 
   /// Minimal distance to boundary ( > 0 if outside and <=0 if inside)
   ///
   /// @param lposition is the local position to check for the distance
   /// @return is a signed distance parameter
-  virtual double distanceToBoundary(const Vector2D &lposition) const = 0;
+  ACTS_DEVICE_FUNC virtual double distanceToBoundary(const Vector2D &lposition) const = 0;
 };
 
 inline bool operator==(const SurfaceBounds &lhs, const SurfaceBounds &rhs) {

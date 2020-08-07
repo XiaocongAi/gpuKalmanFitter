@@ -126,7 +126,7 @@ public:
    * @param values values for the remaining stored parameters
    */
   template <typename... Tail>
-  ParameterSet(
+  ACTS_DEVICE_FUNC ParameterSet(
       const CovarianceMatrix &cov,
       std::enable_if_t<sizeof...(Tail) + 1 == kNumberOfParameters, ParValue_t>
           head,
@@ -148,8 +148,8 @@ public:
    * @param cov unique pointer to covariance matrix (nullptr is accepted)
    * @param values vector with parameter values
    */
-  ParameterSet(const CovarianceMatrix &cov, const ParameterVector &values)
-      : m_vValues(kNumberOfParameters), m_optCovariance(cov) {
+  ACTS_DEVICE_FUNC ParameterSet(const CovarianceMatrix &cov, const ParameterVector &values)
+      : m_vValues(values.size()), m_optCovariance(cov) {
     detail::initialize_parset<parameter_indices_t, params...>::init(*this,
                                                                     values);
   }
@@ -160,7 +160,7 @@ public:
    * @param copy object whose content is copied into the new @c ParameterSet
    * object
    */
-  ParameterSet(const Self &copy)
+  ACTS_DEVICE_FUNC ParameterSet(const Self &copy)
       : m_vValues(copy.m_vValues), m_optCovariance(copy.m_optCovariance) {}
 
   /**
@@ -169,7 +169,7 @@ public:
    * @param copy object whose content is moved into the new @c ParameterSet
    * object
    */
-  ParameterSet(Self &&copy)
+  ACTS_DEVICE_FUNC ParameterSet(Self &&copy)
       : m_vValues(std::move(copy.m_vValues)),
         m_optCovariance(std::move(copy.m_optCovariance)) {}
 
@@ -183,7 +183,7 @@ public:
    *
    * @param rhs object whose content is assigned to this @c ParameterSet object
    */
-  Self &operator=(const Self &rhs) {
+  ACTS_DEVICE_FUNC Self &operator=(const Self &rhs) {
     m_vValues = rhs.m_vValues;
     m_optCovariance = rhs.m_optCovariance;
     return *this;
@@ -194,7 +194,7 @@ public:
    *
    * @param rhs object whose content is moved into this @c ParameterSet object
    */
-  Self &operator=(Self &&rhs) {
+  ACTS_DEVICE_FUNC Self &operator=(Self &&rhs) {
     m_vValues = std::move(rhs.m_vValues);
     m_optCovariance = std::move(rhs.m_optCovariance);
     return *this;
@@ -218,7 +218,7 @@ public:
    *
    * @return position of parameter in variadic template parameter set @c params
    */
-  template <parameter_indices_t parameter> static constexpr size_t getIndex() {
+  template <parameter_indices_t parameter> static ACTS_DEVICE_FUNC constexpr size_t getIndex() {
     return detail::get_position<parameter_indices_t, parameter,
                                 params...>::value;
   }
@@ -234,7 +234,7 @@ public:
    * @return parameter identifier at position @c index in variadic template
    *         parameter set @c params
    */
-  template <size_t index> static constexpr parameter_indices_t getParID() {
+  template <size_t index> static ACTS_DEVICE_FUNC constexpr parameter_indices_t getParID() {
     return detail::at_index<parameter_indices_t, index, params...>::value;
   }
 
@@ -247,7 +247,8 @@ public:
    *
    * @return value of the stored parameter
    */
-  template <parameter_indices_t parameter> ParValue_t getParameter() const {
+  template <parameter_indices_t parameter> 
+  ACTS_DEVICE_FUNC ParValue_t getParameter() const {
     return m_vValues(getIndex<parameter>());
   }
 
@@ -256,7 +257,7 @@ public:
    *
    * @return column vector with @c #kNumberOfParameters rows
    */
-  ParameterVector getParameters() const { return m_vValues; }
+  ACTS_DEVICE_FUNC ParameterVector getParameters() const { return m_vValues; }
 
   /**
    * @brief sets value for given parameter
@@ -268,9 +269,11 @@ public:
    *
    * @return previously stored value of this parameter
    */
-  template <parameter_indices_t parameter> void setParameter(ParValue_t value) {
-    m_vValues(getIndex<parameter>()) =
-        ParameterTypeFor<parameter_indices_t, parameter>::type::getValue(value);
+  template <parameter_indices_t parameter> 
+  ACTS_DEVICE_FUNC void setParameter(ParValue_t value) {
+	 auto v = ParameterTypeFor<parameter_indices_t, parameter>::type::getValue(value); 
+	  m_vValues(getIndex<parameter>()) =
+        ParameterTypeFor<parameter_indices_t, parameter>::type::getValue(v);
   }
 
   /**
@@ -282,7 +285,7 @@ public:
    *
    * @param values vector of length #kNumberOfParameters
    */
-  void setParameters(const ParameterVector &values) {
+  ACTS_DEVICE_FUNC void setParameters(const ParameterVector &values) {
     detail::initialize_parset<parameter_indices_t, params...>::init(*this,
                                                                     values);
   }
@@ -311,7 +314,7 @@ public:
    *
    * @return raw pointer to covariance matrix (can be a nullptr)
    */
-  const CovarianceMatrix *getCovariance() const { return &m_optCovariance; }
+  ACTS_DEVICE_FUNC const CovarianceMatrix *getCovariance() const { return &m_optCovariance; }
 
   /**
    * @brief access uncertainty for individual parameter
@@ -337,7 +340,7 @@ public:
    *
    * @param cov unique pointer to new covariance matrix (nullptr is accepted)
    */
-  void setCovariance(const CovarianceMatrix &cov) { m_optCovariance = cov; }
+  ACTS_DEVICE_FUNC void setCovariance(const CovarianceMatrix &cov) { m_optCovariance = cov; }
 
   /**
    * @brief equality operator

@@ -42,7 +42,7 @@ struct coordinate_transformation {
   /// @param s the surface for the local to global transform
   ///
   /// @return position in the global frame
-  static Vector3D parameters2globalPosition(const GeometryContext &gctx,
+  ACTS_DEVICE_FUNC static Vector3D parameters2globalPosition(const GeometryContext &gctx,
                                             const ParVector_t &pars,
                                             const Surface &s) {
     Vector3D globalPosition;
@@ -60,7 +60,7 @@ struct coordinate_transformation {
   /// @param pars the parameter vector
   ///
   /// @return momentum in the global frame
-  static Vector3D parameters2globalMomentum(const ParVector_t &pars) {
+  ACTS_DEVICE_FUNC static Vector3D parameters2globalMomentum(const ParVector_t &pars) {
     Vector3D momentum;
     double p = std::abs(1. / pars(Acts::eQOP));
     double phi = pars(Acts::ePHI);
@@ -82,7 +82,7 @@ struct coordinate_transformation {
   /// @param charge of the particle/track
   ///
   /// @return curvilinear parameter representation
-  static ParVector_t global2curvilinear(const Vector3D & /*pos*/,
+  ACTS_DEVICE_FUNC static ParVector_t global2curvilinear(const Vector3D & /*pos*/,
                                         const Vector3D &mom, double charge,
                                         double time) {
     using VectorHelpers::phi;
@@ -108,7 +108,7 @@ struct coordinate_transformation {
   /// @param s the surface for the global to local transform
   ///
   /// @return the track parameterisation
-  static ParVector_t global2parameters(const GeometryContext &gctx,
+  ACTS_DEVICE_FUNC static ParVector_t global2parameters(const GeometryContext &gctx,
                                        const Vector3D &pos, const Vector3D &mom,
                                        double charge, double time,
                                        const Surface &s) {
@@ -125,7 +125,7 @@ struct coordinate_transformation {
   /// @brief static calculate the charge from the track parameterisation
   ///
   /// @return the charge as a double
-  static double parameters2charge(const ParVector_t &pars) {
+  ACTS_DEVICE_FUNC static double parameters2charge(const ParVector_t &pars) {
     return (pars(Acts::eQOP) > 0) ? 1. : -1.;
   }
 
@@ -136,7 +136,7 @@ struct coordinate_transformation {
   /// @param [in] surface Surface related to @p parameters
   ///
   /// @return FreeVector representation of @p parameters
-  static FreeVector
+  ACTS_DEVICE_FUNC static FreeVector
   boundParameters2freeParameters(const GeometryContext &gtcx,
                                  const BoundVector &parameters,
                                  const Surface &surface) {

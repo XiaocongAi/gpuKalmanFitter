@@ -21,7 +21,7 @@ using CurvilinearState = std::tuple<CurvilinearParameters, Jacobian, double>;
 /// @param [in] direction Normalised direction vector
 ///
 /// @return Projection Jacobian
-FreeToBoundMatrix freeToCurvilinearJacobian(const Vector3D &direction) {
+ACTS_DEVICE_FUNC FreeToBoundMatrix freeToCurvilinearJacobian(const Vector3D &direction) {
   // Optimized trigonometry on the propagation direction
   const double x = direction(0); // == cos(phi) * sin(theta)
   const double y = direction(1); // == sin(phi) * sin(theta)
@@ -81,7 +81,7 @@ FreeToBoundMatrix freeToCurvilinearJacobian(const Vector3D &direction) {
 ///
 /// @return The projection jacobian from global end parameters to its local
 /// equivalentconst
-FreeToBoundMatrix surfaceDerivative(const GeometryContext &geoContext,
+ACTS_DEVICE_FUNC FreeToBoundMatrix surfaceDerivative(const GeometryContext &geoContext,
                                     const FreeVector &parameters,
                                     BoundToFreeMatrix &jacobianLocalToGlobal,
                                     const FreeVector &derivatives,
@@ -118,7 +118,7 @@ FreeToBoundMatrix surfaceDerivative(const GeometryContext &geoContext,
 ///
 /// @return The projection jacobian from global end parameters to its local
 /// equivalent
-const FreeToBoundMatrix
+ACTS_DEVICE_FUNC const FreeToBoundMatrix
 surfaceDerivative(const Vector3D &direction,
                   BoundToFreeMatrix &jacobianLocalToGlobal,
                   const FreeVector &derivatives) {
@@ -144,7 +144,7 @@ surfaceDerivative(const Vector3D &direction,
 /// parametrisation to free parameters
 /// @param [in] parameters Free, nominal parametrisation
 /// @param [in] surface The surface the represents the local parametrisation
-void reinitializeJacobians(const GeometryContext &geoContext,
+ACTS_DEVICE_FUNC void reinitializeJacobians(const GeometryContext &geoContext,
                            FreeMatrix &transportJacobian,
                            FreeVector &derivatives,
                            BoundToFreeMatrix &jacobianLocalToGlobal,
@@ -179,7 +179,7 @@ void reinitializeJacobians(const GeometryContext &geoContext,
 /// @param [in, out] jacobianLocalToGlobal Projection jacobian of the last bound
 /// parametrisation to free parameters
 /// @param [in] direction Normalised direction vector
-void reinitializeJacobians(FreeMatrix &transportJacobian,
+ACTS_DEVICE_FUNC void reinitializeJacobians(FreeMatrix &transportJacobian,
                            FreeVector &derivatives,
                            BoundToFreeMatrix &jacobianLocalToGlobal,
                            const Vector3D &direction) {
@@ -216,7 +216,7 @@ void reinitializeJacobians(FreeMatrix &transportJacobian,
 
 namespace detail {
 
-BoundState boundState(const GeometryContext &geoContext,
+ACTS_DEVICE_FUNC BoundState boundState(const GeometryContext &geoContext,
                       Covariance &covarianceMatrix, Jacobian &jacobian,
                       FreeMatrix &transportJacobian, FreeVector &derivatives,
                       BoundToFreeMatrix &jacobianLocalToGlobal,
@@ -242,7 +242,7 @@ BoundState boundState(const GeometryContext &geoContext,
   return std::make_tuple(std::move(boundParameters), jacobian, accumulatedPath);
 }
 
-CurvilinearState curvilinearState(Covariance &covarianceMatrix,
+ACTS_DEVICE_FUNC CurvilinearState curvilinearState(Covariance &covarianceMatrix,
                                   Jacobian &jacobian,
                                   FreeMatrix &transportJacobian,
                                   FreeVector &derivatives,
@@ -270,7 +270,7 @@ CurvilinearState curvilinearState(Covariance &covarianceMatrix,
                          accumulatedPath);
 }
 
-void covarianceTransport(Covariance &covarianceMatrix, Jacobian &jacobian,
+ACTS_DEVICE_FUNC void covarianceTransport(Covariance &covarianceMatrix, Jacobian &jacobian,
                          FreeMatrix &transportJacobian, FreeVector &derivatives,
                          BoundToFreeMatrix &jacobianLocalToGlobal,
                          const Vector3D &direction) {
@@ -291,7 +291,7 @@ void covarianceTransport(Covariance &covarianceMatrix, Jacobian &jacobian,
   jacobian = jacFull;
 }
 
-void covarianceTransport(const GeometryContext &geoContext,
+ACTS_DEVICE_FUNC void covarianceTransport(const GeometryContext &geoContext,
                          Covariance &covarianceMatrix, Jacobian &jacobian,
                          FreeMatrix &transportJacobian, FreeVector &derivatives,
                          BoundToFreeMatrix &jacobianLocalToGlobal,

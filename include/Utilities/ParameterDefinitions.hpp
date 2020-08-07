@@ -8,6 +8,16 @@
 
 #pragma once
 
+// All functions callable from CUDA code must be qualified with __device__
+#ifdef __CUDACC__
+#define ACTS_DEVICE_FUNC __host__ __device__
+// We need cuda_runtime.h to ensure that that EIGEN_USING_STD_MATH macro
+// works properly on the device side
+#include <cuda_runtime.h>
+#else
+#define ACTS_DEVICE_FUNC
+#endif
+
 #include "Utilities/Definitions.hpp"
 #include "Utilities/ParameterTypes.hpp"
 

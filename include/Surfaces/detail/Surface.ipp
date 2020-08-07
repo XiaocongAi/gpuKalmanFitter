@@ -14,7 +14,7 @@ inline const Vector3D Surface::center(const GeometryContext &gctx) const {
 
 inline const Acts::Vector3D Surface::normal(const GeometryContext &gctx,
                                             const Vector3D & /*unused*/) const {
-  return normal(gctx, s_origin2D);
+  return normal(gctx, Vector2D(0,0));
 }
 
 inline const Transform3D &
@@ -34,7 +34,7 @@ Surface::referenceFrame(const GeometryContext &gctx,
   return transform(gctx).matrix().block<3, 3>(0, 0);
 }
 
-inline void Surface::initJacobianToGlobal(const GeometryContext &gctx,
+inline ACTS_DEVICE_FUNC void Surface::initJacobianToGlobal(const GeometryContext &gctx,
                                           BoundToFreeMatrix &jacobian,
                                           const Vector3D &position,
                                           const Vector3D &direction,
@@ -107,7 +107,8 @@ inline const BoundRowVector Surface::derivativeFactors(
     const BoundToFreeMatrix &jacobian) const {
   // Create the normal and scale it with the projection onto the direction
   ActsRowVectorD<3> norm_vec = rft.template block<1, 3>(2, 0);
-  norm_vec /= (norm_vec * direction);
+  const double dotProduct  = norm_vec[0]*direction[0] + norm_vec[1]*direction[1] + norm_vec[2]*direction[2];
+  norm_vec /= dotProduct;
   // calculate the s factors
   return (norm_vec * jacobian.topLeftCorner<3, eBoundParametersSize>());
 }

@@ -57,7 +57,7 @@ struct VoidActor {
   using result_type = this_result;
 
   template <typename propagator_state_t, typename stepper_t>
-  void operator()(propagator_state_t &state, const stepper_t &stepper,
+  __host__ __device__ void operator()(propagator_state_t &state, const stepper_t &stepper,
                   result_type &result) const {
     return;
   }
@@ -66,7 +66,7 @@ struct VoidActor {
 // Test aborter
 struct VoidAborter {
   template <typename propagator_state_t, typename stepper_t, typename result_t>
-  bool operator()(propagator_state_t &state, const stepper_t &stepper,
+  __host__ __device__ bool operator()(propagator_state_t &state, const stepper_t &stepper,
                   result_t &result) const {
     return false;
   }
@@ -76,7 +76,7 @@ struct VoidAborter {
 using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
 using PropagatorType = Propagator<Stepper>;
 using PropResultType =
-    PropagatorResult<CurvilinearParameters, typename VoidActor::result_type>;
+    PropagatorResult<typename VoidActor::result_type>;
 using PropOptionsType = PropagatorOptions<VoidActor, VoidAborter>;
 
 // Device code

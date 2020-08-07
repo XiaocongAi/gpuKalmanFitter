@@ -8,6 +8,16 @@
 
 #pragma once
 
+// All functions callable from CUDA code must be qualified with __device__
+#ifdef __CUDACC__
+#define ACTS_DEVICE_FUNC __host__ __device__
+// We need cuda_runtime.h to ensure that that EIGEN_USING_STD_MATH macro
+// works properly on the device side
+#include <cuda_runtime.h>
+#else
+#define ACTS_DEVICE_FUNC
+#endif
+
 #include "EventData/ChargePolicy.hpp"
 #include "EventData/ParameterSet.hpp"
 #include "EventData/detail/coordinate_transformations.hpp"
@@ -53,17 +63,17 @@ public:
   /// @brief access position in global coordinate system
   ///
   /// @return 3D vector with global position
-  Vector3D position() const { return m_vPosition; }
+  ACTS_DEVICE_FUNC Vector3D position() const { return m_vPosition; }
 
   /// @brief access momentum in global coordinate system
   /// /// @return 3D vector with global momentum
-  Vector3D momentum() const { return m_vMomentum; }
+  ACTS_DEVICE_FUNC Vector3D momentum() const { return m_vMomentum; }
 
   /// @brief equality operator
   ///
   /// @return @c true of both objects have the same charge policy, parameter
   /// values, position and momentum, otherwise @c false
-  bool operator==(const SingleTrackParameters &rhs) const {
+  ACTS_DEVICE_FUNC bool operator==(const SingleTrackParameters &rhs) const {
     auto casted = dynamic_cast<decltype(this)>(&rhs);
     if (!casted) {
       return false;
@@ -78,24 +88,24 @@ public:
   /// @brief retrieve electric charge
   ///
   /// @return value of electric charge
-  Scalar charge() const { return m_oChargePolicy.getCharge(); }
+  ACTS_DEVICE_FUNC Scalar charge() const { return m_oChargePolicy.getCharge(); }
 
   /// @brief retrieve time
   ///
   /// @return value of time
-  Scalar time() const { return get<eBoundTime>(); }
+  ACTS_DEVICE_FUNC Scalar time() const { return get<eBoundTime>(); }
 
   /// @brief access to the internally stored ParameterSet
   ///
   /// @return ParameterSet object holding parameter values and their covariance
   /// matrix
-  const FullParameterSet &getParameterSet() const { return m_oParameters; }
+  ACTS_DEVICE_FUNC const FullParameterSet &getParameterSet() const { return m_oParameters; }
 
   /// @brief access associated surface defining the coordinate system for track
   ///        parameters and their covariance
   ///
   /// @return associated surface
-  virtual const Surface &referenceSurface() const = 0;
+  ACTS_DEVICE_FUNC virtual const Surface &referenceSurface() const = 0;
 
   /// @brief access covariance matrix of track parameters
   ///
@@ -103,7 +113,7 @@ public:
   /// this call.
   ///
   /// @sa ParameterSet::getCovariance
-  const CovarianceMatrix *covariance() const {
+  ACTS_DEVICE_FUNC const CovarianceMatrix *covariance() const {
     return getParameterSet().getCovariance();
   }
 
@@ -112,7 +122,7 @@ public:
   /// @return Eigen vector of dimension Acts::eBoundParametersSize with values
   /// of the track parameters
   ///         (in the order as defined by the ParID_t enumeration)
-  ParametersVector parameters() const {
+  ACTS_DEVICE_FUNC ParametersVector parameters() const {
     return getParameterSet().getParameters();
   }
 
@@ -123,7 +133,8 @@ public:
   /// @return value of the requested track parameter
   ///
   /// @sa ParameterSet::get
-  template <BoundParametersIndices par> Scalar get() const {
+  template <BoundParametersIndices par> 
+  ACTS_DEVICE_FUNC Scalar get() const {
     return getParameterSet().template getParameter<par>();
   }
 
@@ -132,17 +143,18 @@ public:
   /// @tparam par identifier of track parameter which is to be retrieved
   ///
   /// @return value of the requested track parameter uncertainty
-  template <BoundParametersIndices par> Scalar uncertainty() const {
+  template <BoundParametersIndices par>
+  ACTS_DEVICE_FUNC Scalar uncertainty() const {
     return getParameterSet().template getUncertainty<par>();
   }
 
   /// @brief convenience method to retrieve transverse momentum
-  Scalar pT() const { return VectorHelpers::perp(momentum()); }
+  ACTS_DEVICE_FUNC Scalar pT() const { return VectorHelpers::perp(momentum()); }
 
   /// @brief convenience method to retrieve pseudorapidity
-  Scalar eta() const { return VectorHelpers::eta(momentum()); }
+  ACTS_DEVICE_FUNC Scalar eta() const { return VectorHelpers::eta(momentum()); }
 
-  FullParameterSet &getParameterSet() { return m_oParameters; }
+  ACTS_DEVICE_FUNC FullParameterSet &getParameterSet() { return m_oParameters; }
 
 protected:
   /// @brief standard constructor for track parameters of charged particles
@@ -153,7 +165,7 @@ protected:
   /// @param momentum 3D vector with global momentum
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, ChargedPolicy>::value, int> = 0>
-  SingleTrackParameters(const CovarianceMatrix &cov,
+  ACTS_DEVICE_FUNC SingleTrackParameters(const CovarianceMatrix &cov,
                         const ParametersVector &parValues,
                         const Vector3D &position, const Vector3D &momentum)
       : m_oChargePolicy(
@@ -169,7 +181,7 @@ protected:
   /// @param momentum 3D vector with global momentum
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, NeutralPolicy>::value, int> = 0>
-  SingleTrackParameters(const CovarianceMatrix &cov,
+  ACTS_DEVICE_FUNC SingleTrackParameters(const CovarianceMatrix &cov,
                         const ParametersVector &parValues,
                         const Vector3D &position, const Vector3D &momentum)
       : m_oChargePolicy(), m_oParameters(std::move(cov), parValues),
@@ -186,7 +198,7 @@ protected:
   ///
   /// @param rhs object to be copied
   SingleTrackParameters<ChargePolicy> &
-  operator=(const SingleTrackParameters<ChargePolicy> &rhs) {
+  ACTS_DEVICE_FUNC operator=(const SingleTrackParameters<ChargePolicy> &rhs) {
     // check for self-assignment
     if (this != &rhs) {
       m_oChargePolicy = rhs.m_oChargePolicy;
@@ -202,7 +214,7 @@ protected:
   ///
   /// @param rhs object to be movied into `*this`
   SingleTrackParameters<ChargePolicy> &
-  operator=(SingleTrackParameters<ChargePolicy> &&rhs) {
+  ACTS_DEVICE_FUNC operator=(SingleTrackParameters<ChargePolicy> &&rhs) {
     // check for self-assignment
     if (this != &rhs) {
       m_oChargePolicy = std::move(rhs.m_oChargePolicy);
@@ -223,7 +235,7 @@ protected:
   /// @note This function is triggered when called with an argument of a type
   ///       different from Acts::local_parameter
   template <typename T>
-  void updateGlobalCoordinates(const GeometryContext & /*gctx*/,
+  ACTS_DEVICE_FUNC void updateGlobalCoordinates(const GeometryContext & /*gctx*/,
                                const T & /*unused*/) {
     m_vMomentum = detail::coordinate_transformation::parameters2globalMomentum(
         getParameterSet().getParameters());
@@ -233,7 +245,7 @@ protected:
   ///
   /// @note This function is triggered when called with an argument of a type
   /// Acts::local_parameter
-  void updateGlobalCoordinates(const GeometryContext &gctx,
+  ACTS_DEVICE_FUNC void updateGlobalCoordinates(const GeometryContext &gctx,
                                const local_parameter & /*unused*/) {
     m_vPosition = detail::coordinate_transformation::parameters2globalPosition(
         gctx, getParameterSet().getParameters(), this->referenceSurface());

@@ -198,4 +198,6 @@ enum CoordinateIndices : unsigned int {
   eZ = ePos2,
 };
 
+static constexpr unsigned int s_SurfacesSize = 15;
+
 } // namespace Acts

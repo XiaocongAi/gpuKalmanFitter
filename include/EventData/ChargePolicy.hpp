@@ -7,6 +7,17 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #pragma once
+
+// All functions callable from CUDA code must be qualified with __device__
+#ifdef __CUDACC__
+#define ACTS_DEVICE_FUNC __host__ __device__
+// We need cuda_runtime.h to ensure that that EIGEN_USING_STD_MATH macro
+// works properly on the device side
+#include <cuda_runtime.h>
+#else
+#define ACTS_DEVICE_FUNC
+#endif
+
 namespace Acts {
 
 /// @class ChargedPolicy
@@ -26,32 +37,32 @@ public:
   /// @brief constructor with given charge
   ///
   /// @param charge electric charge of particle/track (parameters)
-  ChargedPolicy(double charge) : m_dCharge(charge) {}
+  ACTS_DEVICE_FUNC ChargedPolicy(double charge) : m_dCharge(charge) {}
 
   /// @brief equality operator
   ///
   /// @return @c true if rhs has the same charge, otherwise @c false
-  bool operator==(const ChargedPolicy &rhs) const {
+  ACTS_DEVICE_FUNC bool operator==(const ChargedPolicy &rhs) const {
     return m_dCharge == rhs.m_dCharge;
   }
 
   /// @brief inequality operator
   ///
   /// @return @c true if rhs has a different charge, otherwise @c false
-  bool operator!=(const ChargedPolicy &rhs) const { return !(*this == rhs); }
+  ACTS_DEVICE_FUNC bool operator!=(const ChargedPolicy &rhs) const { return !(*this == rhs); }
 
   /// @brief retrieve stored value of the electric charge
   ///
   /// @return value for charge
-  double getCharge() const { return m_dCharge; }
+  ACTS_DEVICE_FUNC double getCharge() const { return m_dCharge; }
 
   /// @brief sets charge
   ///
   /// @param charge new value for the electric charge
-  void setCharge(double charge) { m_dCharge = charge; }
+  ACTS_DEVICE_FUNC void setCharge(double charge) { m_dCharge = charge; }
 
   /// @brief flip sign of electric charge
-  void flipSign() { m_dCharge *= -1.; }
+  ACTS_DEVICE_FUNC void flipSign() { m_dCharge *= -1.; }
 
 private:
   double m_dCharge; ///< value of electric charge

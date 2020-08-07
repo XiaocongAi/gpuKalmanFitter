@@ -37,17 +37,17 @@ public:
   ///
   /// @param halex halflength in X
   /// @param haley halflength in Y
-  RectangleBounds(double halex, double haley);
+  ACTS_DEVICE_FUNC RectangleBounds(double halex, double haley);
 
   /// Constructor with explicit min and max vertex
   ///
   /// @param vmin Minimum vertex
   /// @param vmax Maximum vertex
-  RectangleBounds(const Vector2D &vmin, const Vector2D &vmax);
+  ACTS_DEVICE_FUNC RectangleBounds(const Vector2D &vmin, const Vector2D &vmax);
 
   ~RectangleBounds() override = default;
 
-  BoundsType type() const final;
+  ACTS_DEVICE_FUNC BoundsType type() const final;
 
   std::vector<TDD_real_t> valueStore() const final;
 
@@ -58,34 +58,34 @@ public:
   /// @param lposition Local position (assumed to be in right surface frame)
   /// @param bcheck boundary check directive
   /// @return boolean indicator for the success of this operation
-  bool inside(const Vector2D &lposition,
+  ACTS_DEVICE_FUNC bool inside(const Vector2D &lposition,
               const BoundaryCheck &bcheck) const final;
 
   /// Minimal distance to boundary ( > 0 if outside and <=0 if inside)
   ///
   /// @param lposition is the local position to check for the distance
   /// @return is a signed distance parameter
-  double distanceToBoundary(const Vector2D &lposition) const final;
+  ACTS_DEVICE_FUNC double distanceToBoundary(const Vector2D &lposition) const final;
 
   /// Return the vertices - or, the points of the extremas
   std::vector<Vector2D> vertices() const;
 
   // Bounding box representation
-  const RectangleBounds &boundingBox() const;
+  ACTS_DEVICE_FUNC const RectangleBounds &boundingBox() const;
 
   /// Return method for the half length in X
-  double halflengthX() const;
+  ACTS_DEVICE_FUNC double halflengthX() const;
 
   /// Return method for the half length in Y
-  double halflengthY() const;
+  ACTS_DEVICE_FUNC double halflengthY() const;
 
   /// Get the min vertex defining the bounds
   /// @return The min vertex
-  const Vector2D &min() const;
+  ACTS_DEVICE_FUNC const Vector2D &min() const;
 
   /// Get the max vertex defining the bounds
   /// @return The max vertex
-  const Vector2D &max() const;
+  ACTS_DEVICE_FUNC const Vector2D &max() const;
 
 private:
   Vector2D m_min;

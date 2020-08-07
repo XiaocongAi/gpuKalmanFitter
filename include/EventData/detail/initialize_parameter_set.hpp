@@ -7,6 +7,17 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #pragma once
+
+// All functions callable from CUDA code must be qualified with __device__
+#ifdef __CUDACC__
+#define ACTS_DEVICE_FUNC __host__ __device__
+// We need cuda_runtime.h to ensure that that EIGEN_USING_STD_MATH macro
+// works properly on the device side
+#include <cuda_runtime.h>
+#else
+#define ACTS_DEVICE_FUNC
+#endif
+
 namespace Acts {
 /// @cond detail
 namespace detail {
@@ -33,14 +44,14 @@ template <typename T, T first, T... others>
 struct initialize_parset<T, first, others...> {
   template <typename ParSetType, typename first_value_type,
             typename... other_value_types>
-  static void init(ParSetType &parSet, const first_value_type &v1,
+  ACTS_DEVICE_FUNC static void init(ParSetType &parSet, const first_value_type &v1,
                    const other_value_types &... values) {
     parSet.template setParameter<first>(v1);
     initialize_parset<T, others...>::init(parSet, values...);
   }
 
   template <typename ParSetType>
-  static void init(ParSetType &parSet,
+  ACTS_DEVICE_FUNC static void init(ParSetType &parSet,
                    const typename ParSetType::ParameterVector &values,
                    const unsigned int &pos = 0) {
     parSet.template setParameter<first>(values(pos));
@@ -50,12 +61,12 @@ struct initialize_parset<T, first, others...> {
 
 template <typename T, T last> struct initialize_parset<T, last> {
   template <typename ParSet_tType, typename last_value_type>
-  static void init(ParSet_tType &ParSet_t, const last_value_type &v1) {
+  ACTS_DEVICE_FUNC static void init(ParSet_tType &ParSet_t, const last_value_type &v1) {
     ParSet_t.template setParameter<last>(v1);
   }
 
   template <typename ParSetType>
-  static void init(ParSetType &parSet,
+  ACTS_DEVICE_FUNC static void init(ParSetType &parSet,
                    const typename ParSetType::ParameterVector &values,
                    const unsigned int &pos = 0) {
     parSet.template setParameter<last>(values(pos));

@@ -15,7 +15,7 @@
 #include "Geometry/GeometryContext.hpp"
 #include "Geometry/GeometryStatics.hpp"
 #include <limits>
-//#include "Surfaces/RectangleBounds.hpp"
+
 #include "Surfaces/PlanarBounds.hpp"
 #include "Surfaces/Surface.hpp"
 #include "Surfaces/detail/PlanarHelper.hpp"
@@ -77,7 +77,7 @@ public:
   /// @param lposition is the local position is ignored
   ///
   /// return a Vector3D by value
-  const Vector3D normal(const GeometryContext &gctx,
+  ACTS_DEVICE_FUNC const Vector3D normal(const GeometryContext &gctx,
                         const Vector2D &lposition) const final;
 
   /// Normal vector return without argument
@@ -90,14 +90,14 @@ public:
   /// @param bValue is the binning type to be used
   ///
   /// @return position that can beused for this binning
-  const Vector3D binningPosition(const GeometryContext &gctx,
+  ACTS_DEVICE_FUNC const Vector3D binningPosition(const GeometryContext &gctx,
                                  BinningValue bValue) const final;
 
   /// Return the surface type
-  SurfaceType type() const override;
+  ACTS_DEVICE_FUNC SurfaceType type() const override;
 
   /// Return method for bounds object of this surfrace
-  const SurfaceBounds &bounds() const override;
+  ACTS_DEVICE_FUNC const SurfaceBounds &bounds() const override;
 
   /// Local to global transformation
   /// For planar surfaces the momentum is ignroed in the local to global
@@ -108,7 +108,7 @@ public:
   /// @param momentum global 3D momentum representation (optionally ignored)
   /// @param position global 3D position to be filled (given by reference for
   /// method symmetry)
-  void localToGlobal(const GeometryContext &gctx, const Vector2D &lposition,
+  ACTS_DEVICE_FUNC void localToGlobal(const GeometryContext &gctx, const Vector2D &lposition,
                      const Vector3D &momentum,
                      Vector3D &position) const override;
 
@@ -125,7 +125,7 @@ public:
   ///
   /// @return boolean indication if operation was successful (fail means global
   /// position was not on surface)
-  bool globalToLocal(const GeometryContext &gctx, const Vector3D &position,
+  ACTS_DEVICE_FUNC bool globalToLocal(const GeometryContext &gctx, const Vector3D &position,
                      const Vector3D &momentum,
                      Vector2D &lposition) const override;
 
@@ -137,7 +137,7 @@ public:
   /// @note this is the final implementation of the pathCorrection function
   ///
   /// @return a double representing the scaling factor
-  double pathCorrection(const GeometryContext &gctx, const Vector3D &position,
+  ACTS_DEVICE_FUNC double pathCorrection(const GeometryContext &gctx, const Vector3D &position,
                         const Vector3D &direction) const final;
 
   /// @brief Straight line intersection schema
@@ -166,17 +166,17 @@ public:
   /// - perpendicular to the normal of the plane
   ///
   /// @return the Intersection object
-  Intersection
+  ACTS_DEVICE_FUNC Intersection
   intersectionEstimate(const GeometryContext &gctx, const Vector3D &position,
                        const Vector3D &direction,
                        const BoundaryCheck &bcheck = false) const final;
 
   /// Return properly formatted class name for screen output
-  std::string name() const override;
+  ACTS_DEVICE_FUNC std::string name() const override;
 
 protected:
   /// the bounds of this surface
-  const PlanarBounds *m_bounds;
+  const PlanarBounds *m_bounds = nullptr;
 };
 
 #include "Surfaces/detail/PlaneSurface.ipp"

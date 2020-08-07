@@ -39,7 +39,7 @@ namespace Acts {
 class BoundaryCheck {
 public:
   /// Construct either hard cut in both dimensions or no cut at all.
-  BoundaryCheck(bool check);
+  ACTS_DEVICE_FUNC BoundaryCheck(bool check);
 
   /// Construct a tolerance based check.
   ///
@@ -47,7 +47,7 @@ public:
   /// @param checkLocal1 Boolean directive to check coordinate 1
   /// @param tolerance0 Tolerance along coordinate 0
   /// @param tolerance1 Tolerance along coordinate 1
-  BoundaryCheck(bool checkLocal0, bool checkLocal1, double tolerance0 = 0,
+  ACTS_DEVICE_FUNC BoundaryCheck(bool checkLocal0, bool checkLocal1, double tolerance0 = 0,
                 double tolerance1 = 0);
 
   /// Construct a chi2-based check.
@@ -56,13 +56,11 @@ public:
   /// @param sigmaMax  Significance for the compatibility test
   BoundaryCheck(const ActsSymMatrixD<2> &localCovariance, double sigmaMax = 1);
 
-  operator bool() const { return (m_type != Type::eNone); }
-  bool operator!() const { return !bool(*this); }
+  ACTS_DEVICE_FUNC operator bool() const { return (m_type != Type::eNone); }
+  ACTS_DEVICE_FUNC bool operator!() const { return !bool(*this); }
 
   /// Check if the point is inside a polygon.
-  ///
-  /// @param point    Test point
-  /// @param vertices Forward iterable container of convex polygon vertices.
+  /// /// @param point    Test point /// @param vertices Forward iterable container of convex polygon vertices.
   ///                 Calling `std::begin`/ `std::end` on the container must
   ///                 return an iterator where `*it` must be convertible to
   ///                 an `Acts::Vector2D`.
@@ -70,7 +68,7 @@ public:
   /// The check takes into account whether tolerances or covariances are defined
   /// for the boundary check.
   template <typename Vector2DContainer>
-  bool isInside(const Vector2D &point, const Vector2DContainer &vertices) const;
+  ACTS_DEVICE_FUNC bool isInside(const Vector2D &point, const Vector2DContainer &vertices) const;
 
   /// Check if the point is inside a box aligned with the local axes.
   ///
@@ -82,7 +80,7 @@ public:
   ///
   /// The check takes into account whether tolerances or covariances are defined
   /// for the boundary check.
-  bool isInside(const Vector2D &point, const Vector2D &lowerLeft,
+  ACTS_DEVICE_FUNC bool isInside(const Vector2D &point, const Vector2D &lowerLeft,
                 const Vector2D &upperRight) const;
 
   /// Calculate the signed, weighted, closest distance to a polygonal boundary.
@@ -97,7 +95,7 @@ public:
   /// If a covariance is defined, the distance is the corresponding Mahalanobis
   /// distance. Otherwise, it is the Eucleadian distance.
   template <typename Vector2DContainer>
-  double distance(const Vector2D &point,
+  ACTS_DEVICE_FUNC double distance(const Vector2D &point,
                   const Vector2DContainer &vertices) const;
 
   /// Calculate the signed, weighted, closest distance to an aligned box.
@@ -111,7 +109,7 @@ public:
   ///
   /// If a covariance is defined, the distance is the corresponding Mahalanobis
   /// distance. Otherwise, it is the Eucleadian distance.
-  double distance(const Vector2D &point, const Vector2D &lowerLeft,
+  ACTS_DEVICE_FUNC double distance(const Vector2D &point, const Vector2D &lowerLeft,
                   const Vector2D &upperRight) const;
 
   enum class Type {
@@ -121,10 +119,10 @@ public:
   };
 
   /// Broadcast the type
-  Type type() const;
+  ACTS_DEVICE_FUNC Type type() const;
 
   // Broadcast the tolerance
-  const Vector2D &tolerance() const;
+  ACTS_DEVICE_FUNC const Vector2D &tolerance() const;
 
   // Return the covariance matrix
   ActsSymMatrixD<2> covariance() const;
@@ -138,27 +136,27 @@ private:
 
   /// Check if the point is inside the polygon w/o any tolerances.
   template <typename Vector2DContainer>
-  bool isInsidePolygon(const Vector2D &point,
+  ACTS_DEVICE_FUNC bool isInsidePolygon(const Vector2D &point,
                        const Vector2DContainer &vertices) const;
 
   /// Check if the point is inside the aligned box
-  bool isInsideRectangle(const Vector2D &point, const Vector2D &lowerLeft,
+  ACTS_DEVICE_FUNC bool isInsideRectangle(const Vector2D &point, const Vector2D &lowerLeft,
                          const Vector2D &upperRight) const;
 
   /// Check if the distance vector is within the absolute or relative limits.
-  bool isTolerated(const Vector2D &delta) const;
+  ACTS_DEVICE_FUNC bool isTolerated(const Vector2D &delta) const;
 
   /// Compute vector norm based on the covariance.
-  double squaredNorm(const Vector2D &x) const;
+  ACTS_DEVICE_FUNC double squaredNorm(const Vector2D &x) const;
 
   /// Calculate the closest point on the polygon.
   template <typename Vector2DContainer>
-  Vector2D
+  ACTS_DEVICE_FUNC Vector2D
   computeClosestPointOnPolygon(const Vector2D &point,
                                const Vector2DContainer &vertices) const;
 
   /// Calculate the closest point on the box
-  Vector2D
+  ACTS_DEVICE_FUNC Vector2D
   computeEuclideanClosestPointOnRectangle(const Vector2D &point,
                                           const Vector2D &lowerLeft,
                                           const Vector2D &upperRight) const;
@@ -219,7 +217,7 @@ Acts::BoundaryCheck::transformed(const ActsMatrixD<2, 2> &jacobian) const {
     bc.m_tolerance = (jacobian * m_tolerance).cwiseAbs();
   } else /* Type::eChi2 */ {
     bc.m_weight =
-        (jacobian * m_weight.inverse() * jacobian.transpose()).inverse();
+        (jacobian * covariance() * jacobian.transpose()).inverse();
   }
   return bc;
 }

@@ -40,8 +40,8 @@ namespace VectorHelpers {
 /// in case of dynamic size, will abort execution if that is not the case.
 /// @return The value of the angle in the transverse plane.
 template <typename Derived>
-double phi(const Eigen::MatrixBase<Derived> &v) noexcept {
-  constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
+ACTS_DEVICE_FUNC double phi(const Eigen::MatrixBase<Derived> &v) noexcept {
+  //constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
   // if constexpr (rows != -1) {
   //  // static size, do compile time check
   //  static_assert(rows >= 2,
@@ -65,8 +65,8 @@ double phi(const Eigen::MatrixBase<Derived> &v) noexcept {
 /// in case of dynamic size, will abort execution if that is not the case.
 /// @return The transverse radius value.
 template <typename Derived>
-double perp(const Eigen::MatrixBase<Derived> &v) noexcept {
-  constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
+ACTS_DEVICE_FUNC double perp(const Eigen::MatrixBase<Derived> &v) noexcept {
+  //constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
   //  if constexpr (rows != -1) {
   //    // static size, do compile time check
   //    static_assert(rows >= 2,
@@ -89,8 +89,8 @@ double perp(const Eigen::MatrixBase<Derived> &v) noexcept {
 /// in case of dynamic size, will abort execution if that is not the case.
 /// @return The theta value
 template <typename Derived>
-double theta(const Eigen::MatrixBase<Derived> &v) noexcept {
-  constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
+ACTS_DEVICE_FUNC double theta(const Eigen::MatrixBase<Derived> &v) noexcept {
+  //constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
   // if constexpr (rows != -1) {
   //  // static size, do compile time check
   //  static_assert(rows >= 3, "Theta function not valid for non-3D vectors.");
@@ -112,8 +112,8 @@ double theta(const Eigen::MatrixBase<Derived> &v) noexcept {
 /// in case of dynamic size, will abort execution if that is not the case.
 /// @return The pseudorapidity value
 template <typename Derived>
-double eta(const Eigen::MatrixBase<Derived> &v) noexcept {
-  constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
+ACTS_DEVICE_FUNC double eta(const Eigen::MatrixBase<Derived> &v) noexcept {
+  //constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
   //  if constexpr (rows != -1) {
   //    // static size, do compile time check
   //    static_assert(rows >= 3, "Eta function not valid for non-3D vectors.");
@@ -164,7 +164,7 @@ inline double cast(const Vector3D &position, BinningValue bval) {
 /// @param [in] m Matrix that will be used for cross products
 /// @param [in] v Vector for cross products
 /// @return Constructed matrix
-inline ActsMatrixD<3, 3> cross(const ActsMatrixD<3, 3> &m, const Vector3D &v) {
+ACTS_DEVICE_FUNC inline ActsMatrixD<3, 3> cross(const ActsMatrixD<3, 3> &m, const Vector3D &v) {
   ActsMatrixD<3, 3> r;
   r.col(0) = m.col(0).cross(v);
   r.col(1) = m.col(1).cross(v);
@@ -174,10 +174,10 @@ inline ActsMatrixD<3, 3> cross(const ActsMatrixD<3, 3> &m, const Vector3D &v) {
 }
 
 /// Access the three-position components in a four-position vector.
-inline auto position(const Vector4D &pos4) { return pos4.segment<3>(ePos0); }
+ACTS_DEVICE_FUNC inline auto position(const Vector4D &pos4) { return pos4.segment<3>(ePos0); }
 
 /// Access the three-position components in a free parameters vector.
-inline auto position(const FreeVector &params) {
+ACTS_DEVICE_FUNC inline auto position(const FreeVector &params) {
   return params.segment<3>(eFreePos0);
 }
 
@@ -185,7 +185,7 @@ inline auto position(const FreeVector &params) {
 
 namespace detail {
 
-inline double roundWithPrecision(double val, int precision) {
+ACTS_DEVICE_FUNC inline double roundWithPrecision(double val, int precision) {
   if (val < 0 && std::abs(val) * std::pow(10, precision) < 1.) {
     return -val;
   }

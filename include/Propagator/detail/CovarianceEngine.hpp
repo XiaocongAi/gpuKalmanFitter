@@ -49,7 +49,7 @@ namespace detail {
 ///   - the stepwise jacobian towards it (from last bound)
 ///   - and the path length (from start - for ordering)
 std::tuple<BoundParameters, BoundMatrix, double>
-boundState(const GeometryContext &geoContext, BoundSymMatrix &covarianceMatrix,
+ACTS_DEVICE_FUNC boundState(const GeometryContext &geoContext, BoundSymMatrix &covarianceMatrix,
            BoundMatrix &jacobian, FreeMatrix &transportJacobian,
            FreeVector &derivatives, BoundToFreeMatrix &jacobianLocalToGlobal,
            const FreeVector &parameters, bool covTransport,
@@ -76,7 +76,7 @@ boundState(const GeometryContext &geoContext, BoundSymMatrix &covarianceMatrix,
 ///   - the stepweise jacobian towards it (from last bound)
 ///   - and the path length (from start - for ordering)
 std::tuple<CurvilinearParameters, BoundMatrix, double>
-curvilinearState(BoundSymMatrix &covarianceMatrix, BoundMatrix &jacobian,
+ACTS_DEVICE_FUNC curvilinearState(BoundSymMatrix &covarianceMatrix, BoundMatrix &jacobian,
                  FreeMatrix &transportJacobian, FreeVector &derivatives,
                  BoundToFreeMatrix &jacobianLocalToGlobal,
                  const FreeVector &parameters, bool covTransport,
@@ -97,7 +97,7 @@ curvilinearState(BoundSymMatrix &covarianceMatrix, BoundMatrix &jacobian,
 /// @param [in] surface is the surface to which the covariance is
 ///        forwarded to
 /// @note No check is done if the position is actually on the surface
-void covarianceTransport(const GeometryContext &geoContext,
+ACTS_DEVICE_FUNC void covarianceTransport(const GeometryContext &geoContext,
                          BoundSymMatrix &covarianceMatrix,
                          BoundMatrix &jacobian, FreeMatrix &transportJacobian,
                          FreeVector &derivatives,
@@ -115,7 +115,7 @@ void covarianceTransport(const GeometryContext &geoContext,
 /// @param [in, out] jacobianLocalToGlobal Projection jacobian of the last bound
 /// parametrisation to free parameters
 /// @param [in] direction Normalised direction vector
-void covarianceTransport(BoundSymMatrix &covarianceMatrix,
+ACTS_DEVICE_FUNC void covarianceTransport(BoundSymMatrix &covarianceMatrix,
                          BoundMatrix &jacobian, FreeMatrix &transportJacobian,
                          FreeVector &derivatives,
                          BoundToFreeMatrix &jacobianLocalToGlobal,

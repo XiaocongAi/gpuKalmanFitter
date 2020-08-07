@@ -4,13 +4,11 @@ template <typename S, typename N>
 template <typename parameters_t, typename propagator_options_t,
           typename path_aborter_t>
 ACTS_DEVICE_FUNC
-    PropagatorResult<CurvilinearParameters,
-                     typename propagator_options_t::action_type::result_type>
+    PropagatorResult<typename propagator_options_t::action_type::result_type>
     Acts::Propagator<S, N>::propagate(
         const parameters_t &start, const propagator_options_t &options) const {
   using ResultType =
-      PropagatorResult<CurvilinearParameters,
-                       typename propagator_options_t::action_type::result_type>;
+      PropagatorResult<typename propagator_options_t::action_type::result_type>;
   ResultType result;
 
   using StateType = State<propagator_options_t>;
@@ -22,7 +20,8 @@ ACTS_DEVICE_FUNC
   // Navigator initialize state call
   m_navigator.status(state, m_stepper);
   // Pre-Stepping call to the action list
-  state.options.action(state, m_stepper, result.result);
+  state.options.initializer(state, m_stepper, result.initializerResult);
+  state.options.action(state, m_stepper, result.actorResult);
   // assume negative outcome, only set to true later if we actually have
   // a positive outcome.
   // This is needed for correct error logging
@@ -47,7 +46,7 @@ ACTS_DEVICE_FUNC
       // Post-stepping:
       // navigator status call - action list - aborter list - target call
       m_navigator.status(state, m_stepper);
-      state.options.action(state, m_stepper, result.result);
+      state.options.action(state, m_stepper, result.actorResult);
       if (state.options.aborter(result, state, m_stepper) or
           pathAborter(state, m_stepper)) {
         terminatedNormally = true;
@@ -64,7 +63,7 @@ ACTS_DEVICE_FUNC
   }
 
   // Post-stepping call to the action list
-  state.options.action(state, m_stepper, result.result);
+  state.options.action(state, m_stepper, result.actorResult);
 
   /// Convert into return type and fill the result object
   auto curvState = m_stepper.curvilinearState(state.stepping);

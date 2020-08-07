@@ -65,7 +65,7 @@ using Stepper = EigenStepper<ConstantBField>;
 // using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
 using PropagatorType = Propagator<Stepper>;
 using PropResultType =
-    PropagatorResult<CurvilinearParameters, typename VoidActor::result_type>;
+    PropagatorResult<typename VoidActor::result_type>;
 using PropOptionsType = PropagatorOptions<VoidActor, VoidAborter>;
 
 int main(int argc, char *argv[]) {
