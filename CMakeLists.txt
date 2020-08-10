@@ -1,37 +1,33 @@
-cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.17 FATAL_ERROR)
 project(Actscore VERSION 1.0.0 LANGUAGES CXX CUDA)
+
+set(Eigen3_DIR "/usr/local/share/eigen3/cmake" CACHE STRING "Location of Eigen3 CMake configuration file -- usually INSTALL_PREFIX/share/eigen3/cmake")
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX ${PROJECT_SOURCE_DIR}/INSTALL CACHE PATH "Default prefix of install directories" FORCE)
 endif()
 
-set(CMAKE_CXX_STANDARD 17)
+find_package(OpenMP REQUIRED)
+find_package(Eigen3 REQUIRED)
 
-include(CheckLanguage)
-check_language(CUDA)
+#set(CMAKE_CXX_STANDARD 17)
 
-if(NOT DEFINED CMAKE_CUDA_STANDARD)
-    set(CMAKE_CUDA_STANDARD 17)
-    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-endif()
+#if(NOT DEFINED CMAKE_CUDA_STANDARD)
+#    set(CMAKE_CUDA_STANDARD 17)
+#    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+#endif()
 
 aux_source_directory(src/MagneticField LIB_SRC_BField)
 aux_source_directory(src/Plugins LIB_SRC_Plugins)
-
-find_package(CUDA)
-include_directories(${CUDA_TOOLKIT_INCLUDE})
-find_package(OpenMP)
-
-# import Eigen
-include(cmake/FindEigen.cmake)
 
 # make sure libActscore.so is available at runtime
 set(CMAKE_INSTALL_RPATH "$ORIGIN/../bin")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
 
 add_library(Actscore SHARED ${LIB_SRC_MAT} ${LIB_SRC_SUR} ${LIB_SRC_BField} ${LIB_SRC_Plugins})
+target_compile_features(Actscore PUBLIC cxx_std_17)
+target_link_libraries(Actscore PUBLIC OpenMP::OpenMP_CXX Eigen3::Eigen)
 
-target_link_libraries(Actscore PUBLIC OpenMP::OpenMP_CXX)
 target_include_directories(Actscore
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
