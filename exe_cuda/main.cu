@@ -81,7 +81,7 @@ int main(int argc, char *argv[]) {
   bool output = false;
   std::string device;
   std::string bFieldFileName;
-  double pT;
+  double p;
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
     if ((arg == "-h") or (arg == "--help")) {
@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
       if ((arg == "-t") or (arg == "--tracks")) {
         nTracks = atoi(argv[++i]);
       } else if ((arg == "-p") or (arg == "--pt")) {
-        pT = atof(argv[++i]);
+        p = atof(argv[++i]);
       } else if ((arg == "-o") or (arg == "--output")) {
         output = (atoi(argv[++i]) == 1);
       } else if ((arg == "-d") or (arg == "--device")) {
@@ -132,15 +132,12 @@ int main(int argc, char *argv[]) {
   for (int i = 0; i < nTracks; i++) {
     Vector3D rPos(0.1 * gauss(generator), 0.1 * gauss(generator),
                   0); // Units: mm
-    double phi = unif(generator);
-    Vector3D rMom(pT * cos(phi), pT * sin(phi),
-                  pT); // Units: GeV
+    double phi =  unif(generator);
+    double theta = M_PI/2 + gauss(generator)*0.01;
+    Vector3D rMom(p*sin(theta)*cos(phi), p*sin(theta)*sin(phi), p*cos(theta)); // Units: GeV
     double q = 1;
     TrackParameters rStart(rPos, rMom, q);
     pars[i] = rStart;
-    // std::cout << " rPos = (" << pars[i].position().x() << ", "
-    //           << pars[i].position().y() << ", " << pars[i].position().z()
-    //           << ") " << std::endl;
   }
 
   // Propagation result
