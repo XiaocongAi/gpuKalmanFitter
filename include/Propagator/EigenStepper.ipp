@@ -9,7 +9,7 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
   // The following functor evaluates k_i of RKN4
   auto evaluatek = [&](const Vector3D &bField, const int i = 0,
                        const double h = 0.,
-                       const Vector3D &kprev = Vector3D()) -> Vector3D {
+                       const Vector3D &kprev = Vector3D(0,0,0)) -> Vector3D {
     Vector3D knew;
     auto qop = state.stepping.q / state.stepping.p;
     // First step does not rely on previous data
@@ -105,18 +105,18 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
   // Runge-Kutta integrator state
   auto &sd = state.stepping.stepData;
   // Default constructor will result in wrong value on GPU
-  sd.k1 = Vector3D(0., 0., 0.);
   double error_estimate = 0.;
   double h2, half_h;
 
   // First Runge-Kutta point (at current position)
   sd.B_first = getField(state.stepping, state.stepping.pos);
-
+  sd.k1 = evaluatek(sd.B_first,0);
+  
   // The following functor starts to perform a Runge-Kutta step of a certain
   // size, going up to the point where it can return an estimate of the local
   // integration error. The results are stated in the local variables above,
   // allowing integration to continue once the error is deemed satisfactory
-  const auto tryRungeKuttaStep = [&](const double h) -> bool {
+  const auto tryRungeKuttaStep = [&](const ConstrainedStep& h ) -> bool {
     // State the square and half of the step size
     h2 = h * h;
     half_h = h * 0.5;
@@ -126,7 +126,8 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
         state.stepping.pos + half_h * state.stepping.dir + h2 * 0.125 * sd.k1;
     sd.B_middle = getField(state.stepping, pos1);
     sd.k2 = evaluatek(sd.B_middle, 1, half_h, sd.k1);
-    // Third Runge-Kutta point
+    
+   // Third Runge-Kutta point
     sd.k3 = evaluatek(sd.B_middle, 2, half_h, sd.k2);
 
     // Last Runge-Kutta point
@@ -138,7 +139,8 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
     // Compute and check the local integration error estimate
     // @Todo
     error_estimate = std::max(
-        h2 * (sd.k1 - sd.k2 - sd.k3 + sd.k4).template lpNorm<1>(), 1e-20);
+        h2 * (sd.k1 - sd.k2 - sd.k3 + sd.k4).template lpNorm<1>()
+              , 1e-20);
     return (error_estimate <= state.options.tolerance);
   };
 
@@ -152,9 +154,9 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
                                           std::abs(2. * error_estimate)),
                                          0.25)),
                  4.);
-    if (stepSizeScaling == 1.) {
-      break;
-    }
+    //if (stepSizeScaling == 1.) {
+    // break;
+    //}
     state.stepping.stepSize = state.stepping.stepSize * stepSizeScaling;
 
     // Todo: adapted error handling on GPU?
@@ -177,7 +179,7 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
 
   // use the adjusted step size
   const double h = state.stepping.stepSize;
-
+  
   // When doing error propagation, update the associated Jacobian matrix
   if (state.stepping.covTransport) {
     // The step transport matrix in global coordinates
