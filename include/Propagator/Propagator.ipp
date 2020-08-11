@@ -17,10 +17,10 @@ ACTS_DEVICE_FUNC
   path_aborter_t pathAborter;
   pathAborter.internalLimit = options.pathLimit;
 
+  state.options.initializer(state, m_stepper, result.initializerResult);
   // Navigator initialize state call
   m_navigator.status(state, m_stepper);
   // Pre-Stepping call to the action list
-  state.options.initializer(state, m_stepper, result.initializerResult);
   state.options.action(state, m_stepper, result.actorResult);
   // assume negative outcome, only set to true later if we actually have
   // a positive outcome.
@@ -66,14 +66,14 @@ ACTS_DEVICE_FUNC
   state.options.action(state, m_stepper, result.actorResult);
 
   /// Convert into return type and fill the result object
-  auto curvState = m_stepper.curvilinearState(state.stepping);
+//  auto curvState = m_stepper.curvilinearState(state.stepping);
   // Fill the end parameters
   // result.endParameters = std::make_unique<const
   // CurvilinearParameters>(std::get<CurvilinearParameters>(curvState));
   // Only fill the transport jacobian when covariance transport was done
-  if (state.stepping.covTransport) {
-    result.transportJacobian = std::get<Jacobian>(curvState);
-  }
+//  if (state.stepping.covTransport) {
+//    result.transportJacobian = std::get<Jacobian>(curvState);
+//  }
 
   return result;
 }

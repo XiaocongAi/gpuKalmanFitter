@@ -1,11 +1,12 @@
-#include "EventData/TrackParameters.hpp"
 #include "Geometry/GeometryContext.hpp"
 #include "MagneticField/MagneticFieldContext.hpp"
 #include "Plugins/BFieldOptions.hpp"
 #include "Plugins/BFieldUtils.hpp"
 #include "Propagator/EigenStepper.hpp"
+#include "EventData/TrackParameters.hpp"
 #include "Propagator/Propagator.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
+#include "Utilities/Units.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -45,7 +46,7 @@ using namespace Acts;
 // Struct for B field
 struct ConstantBField {
   ACTS_DEVICE_FUNC static Vector3D getField(const Vector3D & /*field*/) {
-    return Vector3D(0., 0., 2.);
+    return Vector3D(0., 0., 2.*Acts::units::_T);
   }
 };
 
@@ -72,7 +73,7 @@ struct VoidAborter {
   }
 };
 
-// using Stepper = EigenStepper<ConstantBField>;
+//using Stepper = EigenStepper<ConstantBField>;
 using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
 using PropagatorType = Propagator<Stepper>;
 using PropResultType =
@@ -82,17 +83,26 @@ using PropOptionsType = PropagatorOptions<VoidActor, VoidAborter>;
 // Device code
 __global__ void propKernel(PropagatorType *propagator,
                            CurvilinearParameters *tpars,
-                           PropOptionsType *propOptions,
+                           //PropOptionsType *propOptions,
+                           PropOptionsType propOptions,
                            PropResultType *propResult, Vector3D *gridValPtr,
+			   Acts::PlaneSurface *surfaces,
                            int N) {
   // Awkwardly make the grid values pointer to point to memeory on device
   // explicitly
   propagator->refStepper().refField().refMapper().refGrid().refValues() =
       gridValPtr;
 
+  // set the surfaces in propagation options
+  const Acts::Surface* surfacePtrs[s_surfacesSize];
+  for(unsigned int i = 0; i< s_surfacesSize; i++){
+    surfacePtrs[i] =&surfaces[i];
+  }
+  memcpy(propOptions.initializer.surfaceSequence, surfacePtrs, sizeof(const Surface*)*s_surfacesSize);
+ 
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if (i < N) {
-    propResult[i] = propagator->propagate(tpars[i], *propOptions);
+    propResult[i] = propagator->propagate(tpars[i], propOptions);
   }
 }
 
@@ -105,7 +115,7 @@ int main(int argc, char *argv[]) {
   bool output = false;
   std::string device;
   std::string bFieldFileName;
-  double pT;
+  double p;
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
     if ((arg == "-h") or (arg == "--help")) {
@@ -115,7 +125,7 @@ int main(int argc, char *argv[]) {
       if ((arg == "-t") or (arg == "--tracks")) {
         nTracks = atoi(argv[++i]);
       } else if ((arg == "-p") or (arg == "--pt")) {
-        pT = atof(argv[++i]);
+        p = atof(argv[++i])*Acts::units::_GeV;
       } else if ((arg == "-o") or (arg == "--output")) {
         output = (atoi(argv[++i]) == 1);
       } else if ((arg == "-d") or (arg == "--device")) {
@@ -129,13 +139,33 @@ int main(int argc, char *argv[]) {
     }
   }
 
+   // Create the geometry
+  // Set translation vectors
+  std::vector<Acts::Vector3D> translations;
+  for(unsigned int isur = 0; isur< s_surfacesSize; isur++){
+    translations.push_back({(isur * 30. + 19)*Acts::units::_mm, 0., 0.});
+  }
+
+  std::vector<Acts::PlaneSurface> surfaces;
+  surfaces.reserve(s_surfacesSize); 
+  for(unsigned int isur = 0; isur< s_surfacesSize; isur++){
+    surfaces.push_back(Acts::PlaneSurface(translations[isur], Acts::Vector3D(1,0,0)));
+  }
+  std::vector<const Acts::Surface*> surfacePtrs;
+  surfacePtrs.reserve(s_surfacesSize); 
+  for(unsigned int isur = 0; isur< s_surfacesSize; isur++){
+    surfacePtrs.push_back(&surfaces[isur]);
+  }
+
+  std::cout<<"Creating "<<surfaces.size()<<" boundless plane surfaces"<<std::endl;
+
   std::cout << "----- Propgation test of " << nTracks << " tracks on " << device
             << ". Writing results to obj file? " << output << " ----- "
             << std::endl;
 
   // Create a test context
-  GeometryContext gctx = GeometryContext();
-  MagneticFieldContext mctx = MagneticFieldContext();
+  GeometryContext gctx;
+  MagneticFieldContext mctx;
 
   InterpolatedBFieldMap3D bField = Options::readBField(bFieldFileName);
   std::cout
@@ -144,16 +174,15 @@ int main(int argc, char *argv[]) {
 
   // Construct a stepper with the bField
   Stepper stepper(bField);
-  // Construct a propagator
   PropagatorType propagator(stepper);
-  // Construct the propagation options object
   PropOptionsType propOptions(gctx, mctx);
-  propOptions.maxSteps = 1000;
+  propOptions.maxSteps = 10;
+  auto surfacesSize = sizeof(const Surface*)*s_surfacesSize;
+  memcpy(propOptions.initializer.surfaceSequence, surfacePtrs.data(), surfacesSize);
 
   // Construct random starting track parameters
   std::default_random_engine generator(42);
   std::normal_distribution<double> gauss(0., 1.);
-  std::uniform_real_distribution<double> unif(-1.0 * M_PI, M_PI);
   std::vector<CurvilinearParameters> startPars;
   startPars.reserve(nTracks);
   for (int i = 0; i < nTracks; i++) {
@@ -164,11 +193,10 @@ int main(int argc, char *argv[]) {
 
     double q = 1;
     double time = 0;
-    Vector3D pos(0, 0.1 * gauss(generator),
-                 0.1 * gauss(generator)); // Units: mm
-    // double phi = randPhi(generator);
-    // double theta = randTheta(generator);
-    Vector3D mom(1, 0, 0); // Units: GeV
+     double phi = gauss(generator)*0.01;
+    double theta = M_PI/2 + gauss(generator)*0.01;
+    Vector3D pos(-0, 0.1 * gauss(generator), 0.1 * gauss(generator)); // Units: mm
+    Vector3D mom(p*sin(theta)*cos(phi), p*sin(theta)*sin(phi), p*cos(theta)); // Units: GeV 
 
     startPars.emplace_back(cov, pos, mom, q, time);
   }
@@ -197,18 +225,20 @@ int main(int argc, char *argv[]) {
     CurvilinearParameters *d_pars;
     PropResultType *d_ress;
     GridValueType *d_gridValPtr;
+    Acts::PlaneSurface * d_surfaces; 
 
     GPUERRCHK(cudaMalloc(&d_propagator, sizeof(PropagatorType)));
-    GPUERRCHK(cudaMalloc(&d_opt, sizeof(PropOptionsType)));
+//    GPUERRCHK(cudaMalloc(&d_opt, sizeof(PropOptionsType)));
     GPUERRCHK(cudaMalloc(&d_pars, nTracks * sizeof(CurvilinearParameters)));
     GPUERRCHK(cudaMalloc(&d_ress, nTracks * sizeof(PropResultType)));
     GPUERRCHK(cudaMalloc(&d_gridValPtr, gridSize * sizeof(GridValueType)));
+    GPUERRCHK(cudaMalloc(&d_surfaces, surfacesSize));
 
     // Copy from host to device
     GPUERRCHK(cudaMemcpy(d_propagator, &propagator, sizeof(propagator),
                          cudaMemcpyHostToDevice));
-    GPUERRCHK(cudaMemcpy(d_opt, &propOptions, sizeof(PropOptionsType),
-                         cudaMemcpyHostToDevice));
+//    GPUERRCHK(cudaMemcpy(d_opt, &propOptions, sizeof(PropOptionsType),
+//                         cudaMemcpyHostToDevice));
     GPUERRCHK(cudaMemcpy(d_pars, startPars.data(),
                          nTracks * sizeof(CurvilinearParameters),
                          cudaMemcpyHostToDevice));
@@ -217,12 +247,15 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaMemcpy(d_gridValPtr, gridValPtr,
                          gridSize * sizeof(GridValueType),
                          cudaMemcpyHostToDevice));
+    GPUERRCHK(cudaMemcpy(d_surfaces, surfaces.data(), surfacesSize,
+                         cudaMemcpyHostToDevice));
 
     // Run on device
     int threadsPerBlock = 256;
     int blocksPerGrid = (nTracks + threadsPerBlock - 1) / threadsPerBlock;
     propKernel<<<blocksPerGrid, threadsPerBlock>>>(
-        d_propagator, d_pars, d_opt, d_ress, d_gridValPtr, nTracks);
+        //d_propagator, d_pars, d_opt, d_ress, d_gridValPtr, nTracks);
+        d_propagator, d_pars, propOptions, d_ress, d_gridValPtr, d_surfaces, nTracks);
 
     GPUERRCHK(cudaPeekAtLastError());
     GPUERRCHK(cudaDeviceSynchronize());
@@ -233,10 +266,11 @@ int main(int argc, char *argv[]) {
 
     // Free the memory on device
     GPUERRCHK(cudaFree(d_propagator));
-    GPUERRCHK(cudaFree(d_opt));
+//    GPUERRCHK(cudaFree(d_opt));
     GPUERRCHK(cudaFree(d_pars));
     GPUERRCHK(cudaFree(d_ress));
     GPUERRCHK(cudaFree(d_gridValPtr));
+    GPUERRCHK(cudaFree(d_surfaces));
   } else {
 // Run on host
 #pragma omp parallel for

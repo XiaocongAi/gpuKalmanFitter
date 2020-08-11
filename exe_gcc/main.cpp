@@ -6,6 +6,7 @@
 #include "Propagator/EigenStepper.hpp"
 #include "Propagator/Propagator.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
+#include "Utilities/Units.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -33,7 +34,7 @@ using namespace Acts;
 // Struct for B field
 struct ConstantBField {
   ACTS_DEVICE_FUNC static Vector3D getField(const Vector3D & /*field*/) {
-    return Vector3D(0., 0., 2.);
+    return Vector3D(0., 0., 2.0*Acts::units::_T);
   }
 };
 
@@ -47,6 +48,10 @@ struct VoidActor {
   template <typename propagator_state_t, typename stepper_t>
   void operator()(propagator_state_t &state, const stepper_t &stepper,
                   result_type &result) const {
+    if(state.navigation.currentSurface!=nullptr) {
+	    std::cout<<"On surface: "<<state.navigation.nextSurfaceIter<<std::endl;
+     std::cout<<" state.stepping.pos = \n "<< state.stepping.pos << "state.stepping.dir = \n"<< state.stepping.dir<<std::endl; 
+    } 
     return;
   }
 };
@@ -57,12 +62,12 @@ struct VoidAborter {
   template <typename propagator_state_t, typename stepper_t, typename result_t>
   bool operator()(propagator_state_t &state, const stepper_t &stepper,
                   result_t &result) const {
-    return false;
+	  return false;
   }
 };
 
-using Stepper = EigenStepper<ConstantBField>;
-// using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
+//using Stepper = EigenStepper<ConstantBField>;
+using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
 using PropagatorType = Propagator<Stepper>;
 using PropResultType = PropagatorResult<typename VoidActor::result_type>;
 using PropOptionsType = PropagatorOptions<VoidActor, VoidAborter>;
@@ -76,7 +81,7 @@ int main(int argc, char *argv[]) {
   bool output = false;
   std::string device;
   std::string bFieldFileName;
-  double pT;
+  double p;
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
     if ((arg == "-h") or (arg == "--help")) {
@@ -86,7 +91,7 @@ int main(int argc, char *argv[]) {
       if ((arg == "-t") or (arg == "--tracks")) {
         nTracks = atoi(argv[++i]);
       } else if ((arg == "-p") or (arg == "--pt")) {
-        pT = atof(argv[++i]);
+        p = atof(argv[++i])*Acts::units::_GeV;
       } else if ((arg == "-o") or (arg == "--output")) {
         output = (atoi(argv[++i]) == 1);
       } else if ((arg == "-d") or (arg == "--device")) {
@@ -104,31 +109,54 @@ int main(int argc, char *argv[]) {
             << ". Writing results to obj file? " << output << " ----- "
             << std::endl;
 
-  // Create a test context
-  GeometryContext gctx = GeometryContext();
-  MagneticFieldContext mctx = MagneticFieldContext();
+  // Create the geometry
+  // Set translation vectors
+  std::vector<Acts::Vector3D> translations;
+  for(unsigned int isur = 0; isur< s_surfacesSize; isur++){
+    translations.push_back({(isur * 30. + 19)*Acts::units::_mm, 0., 0.});
+  }
 
-  // InterpolatedBFieldMap3D bField = Options::readBField(bFieldFileName);
-  // std::cout
-  //    << "Reading BField and creating a 3D InterpolatedBFieldMap instance
-  //    done"
-  //    << std::endl;
+  // Create plane surfaces without boundaries
+  //std::vector<std::shared_ptr<const Acts::PlaneSurface>> surfaces;
+  //std::vector<const Acts::Surface*> surfacePtrs;
+  //for(unsigned int isur = 0; isur< s_surfacesSize; isur++){
+  // surfaces.push_back(std::make_shared<Acts::PlaneSurface>(translations[isur], Acts::Vector3D(1,0,0)));
+  //  surfacePtrs.push_back(surfaces[isur].get());
+  //}
+
+  std::vector<Acts::PlaneSurface> surfaces;
+  std::vector<const Acts::Surface*> surfacePtrs;
+  for(unsigned int isur = 0; isur< s_surfacesSize; isur++){
+    surfaces.push_back(Acts::PlaneSurface(translations[isur], Acts::Vector3D(1,0,0)));
+  }
+  for(unsigned int isur = 0; isur< s_surfacesSize; isur++){
+    surfacePtrs.push_back(&surfaces[isur]);
+  }
+
+  std::cout<<"Creating "<<surfaces.size()<<" boundless plane surfaces"<<std::endl;
+
+  // Create a test context
+  GeometryContext gctx;
+  MagneticFieldContext mctx;
+
+   InterpolatedBFieldMap3D bField = Options::readBField(bFieldFileName);
+   std::cout
+      << "Reading BField and creating a 3D InterpolatedBFieldMap instance done"
+      << std::endl;
 
   // Construct a stepper with the bField
-  // Stepper stepper(bField);
-  Stepper stepper;
-  // Construct a propagator
+  Stepper stepper(bField);
+  //Stepper stepper;
   PropagatorType propagator(stepper);
-  // Construct the propagation options object
   PropOptionsType propOptions(gctx, mctx);
   propOptions.maxSteps = 10;
+  memcpy(propOptions.initializer.surfaceSequence, surfacePtrs.data(), sizeof(const Surface*)*Acts::s_surfacesSize);
+
 
   // Construct random starting track parameters
   std::default_random_engine generator(42);
   std::normal_distribution<double> gauss(0., 1.);
-  std::uniform_real_distribution<double> randPhi(-1.0 * M_PI, M_PI);
-  std::uniform_real_distribution<double> randTheta(0, M_PI);
-  // CurvilinearParameters startPars[nTracks];
+  std::uniform_real_distribution<double> unif(-1.0 * M_PI, M_PI);
   std::vector<CurvilinearParameters> startPars;
 
   for (int i = 0; i < nTracks; i++) {
@@ -139,18 +167,12 @@ int main(int argc, char *argv[]) {
 
     double q = 1;
     double time = 0;
-    Vector3D pos(0, 0.1 * gauss(generator),
-                 0.1 * gauss(generator)); // Units: mm
-    double phi = randPhi(generator);
-    double theta = randTheta(generator);
-    Vector3D mom(1, 0, 0); // Units: GeV
-    // CurvilinearParameters rStart(cov, pos, mom, q, time);
-    // startPars[i] = rStart;
+    double phi = gauss(generator)*0.01;
+    double theta = M_PI/2 + gauss(generator)*0.01;
+    Vector3D pos(-0, 0.1 * gauss(generator), 0.1 * gauss(generator)); // Units: mm
+    Vector3D mom(p*sin(theta)*cos(phi), p*sin(theta)*sin(phi), p*cos(theta)); // Units: GeV 
 
     startPars.emplace_back(cov, pos, mom, q, time);
-    // std::cout << " rPos = (" << pars[i].position().x() << ", "
-    //           << pars[i].position().y() << ", " << pars[i].position().z()
-    //           << ") " << std::endl;
   }
 
   // Propagation result
@@ -189,7 +211,7 @@ int main(int argc, char *argv[]) {
       // for (unsigned int iv = 2; iv <= res.steps(); ++iv) {
       //  obj_track << "l " << iv - 1 << " " << iv << std::endl;
       //}
-
+      
       obj_track.close();
     }
   }

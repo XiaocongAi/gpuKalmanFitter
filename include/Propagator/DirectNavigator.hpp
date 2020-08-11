@@ -48,7 +48,7 @@ public:
   /// surface sequence
   struct Initializer {
     /// The Surface sequence
-    SurfacePtr surfaceSequence[s_SurfacesSize] = {};
+    SurfacePtr surfaceSequence[s_surfacesSize] = {};
 
     /// Actor result / state
     struct this_result {
@@ -73,7 +73,7 @@ public:
       if (not r.initialized) {
         // Initialize the surface sequence
         memcpy(state.navigation.surfaceSequence, surfaceSequence,
-               sizeof(SurfacePtr) * s_SurfacesSize);
+               sizeof(SurfacePtr) * s_surfacesSize);
         // todo: below could be removed
         state.navigation.nextSurfaceIter = 0;
         r.initialized = true;
@@ -95,7 +95,7 @@ public:
     /// Externally provided surfaces - expected to be ordered
     /// along the path
     // SurfaceSequence surfaceSequence = nullptr;
-    SurfacePtr surfaceSequence[s_SurfacesSize] = {};
+    SurfacePtr surfaceSequence[s_surfacesSize] = {};
 
     /// Iterator the the next surface
     SurfaceIter nextSurfaceIter = 0;
@@ -133,7 +133,7 @@ public:
     // Navigator status always resets the current surface
     state.navigation.currentSurface = nullptr;
     // Check if we are on surface
-    if (state.navigation.nextSurfaceIter != s_SurfacesSize) {
+    if (state.navigation.nextSurfaceIter != s_surfacesSize) {
       auto surfacePtr =
           state.navigation.surfaceSequence[state.navigation.nextSurfaceIter];
       // Establish the surface status
@@ -144,7 +144,7 @@ public:
         state.navigation.currentSurface = surfacePtr;
         // Move the sequence to the next surface
         ++state.navigation.nextSurfaceIter;
-        if (state.navigation.nextSurfaceIter != s_SurfacesSize) {
+        if (state.navigation.nextSurfaceIter != s_surfacesSize) {
           stepper.releaseStepSize(state.stepping);
         }
       }
@@ -164,7 +164,7 @@ public:
 
     // Navigator target always resets the current surface
     state.navigation.currentSurface = nullptr;
-    if (state.navigation.nextSurfaceIter != s_SurfacesSize) {
+    if (state.navigation.nextSurfaceIter != s_surfacesSize) {
       auto surfacePtr =
           state.navigation.surfaceSequence[state.navigation.nextSurfaceIter];
       // Establish & update the surface status

@@ -233,6 +233,13 @@ template <typename bfield_t> struct EigenStepper {
     state.stepSize.release(ConstrainedStep::actor);
   }
 
+  /// Output the Step Size - single component
+  ///
+  /// @param state [in,out] The stepping state (thread-local cache)
+  std::string outputStepSize(const State& state) const {
+    return state.stepSize.toString();
+  }
+
   /// Overstep limit
   ///
   /// @param state [in] The stepping state (thread-local cache)
