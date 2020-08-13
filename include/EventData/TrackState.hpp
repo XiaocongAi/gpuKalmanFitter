@@ -45,7 +45,9 @@ template <typename source_link_t, typename parameters_t> class TrackState {
 public:
   using SourceLink = source_link_t;
   using Parameters = parameters_t;
-  using Jacobian = typename Parameters::CovMatrix_t;
+  using Jacobian = typename Parameters::CovarianceMatrix;
+
+  TrackState() = delete;
 
   /// Constructor from (uncalibrated) measurement
   ///
@@ -141,13 +143,13 @@ public:
   /// It is enough to to run the track smoothing
   struct {
     /// The predicted state
-    std::optional<Parameters> predicted{std::nullopt};
+    Parameters predicted;
     /// The filtered state
-    std::optional<Parameters> filtered{std::nullopt};
+    Parameters filtered;
     /// The smoothed state
-    std::optional<Parameters> smoothed{std::nullopt};
+    Parameters smoothed;
     /// The transport jacobian matrix
-    std::optional<Jacobian> jacobian{std::nullopt};
+    Jacobian jacobian;
     /// The path length along the track - will help sorting
     double pathLength = 0.;
     /// chisquare
@@ -159,9 +161,7 @@ public:
   /// (in case the latter is different)
   struct {
     /// The optional (uncalibrated) measurement
-    std::optional<SourceLink> uncalibrated{std::nullopt};
-    /// The optional calibrabed measurement
-    /// std::optional<FittableMeasurement<SourceLink>> calibrated{std::nullopt};
+    SourceLink uncalibrated;
   } measurement;
 
 private:

@@ -31,6 +31,17 @@ public:
   using ParametersVector = BoundVector;
   using CovarianceMatrix = BoundSymMatrix;
 
+  /// @brief Construct without parameters (to be used in TrackState)
+  /// @To to removed
+  template <typename T = ChargePolicy,
+            std::enable_if_t<std::is_same<T, ChargedPolicy>::value, int> = 0>
+  SingleBoundTrackParameters()
+      : SingleTrackParameters<ChargePolicy>(
+            CovarianceMatrix::Zero(), ParametersVector::Zero(),
+            Vector3D(0,0,0), 
+            Vector3D(0,0,0)){
+  }
+
   /// @brief Constructor of track parameters bound to a surface
   /// This is the constructor from global parameters, enabled only
   /// for charged representations.

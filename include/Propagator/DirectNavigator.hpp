@@ -33,7 +33,6 @@ public:
   /// The sequentially crossed surfaces
   // using SurfaceSequence = std::vector<const Surface *>;
   // using SurfaceIter = std::vector<const Surface *>::iterator;
-  using SurfacePtr = const Surface *;
   using SurfaceIter = unsigned int;
 
   /// Defaulted Constructed
@@ -48,7 +47,10 @@ public:
   /// surface sequence
   struct Initializer {
     /// The Surface sequence
-    SurfacePtr surfaceSequence[s_surfacesSize] = {};
+    const Surface* surfaceSequence = nullptr;
+
+    /// The surface sequence size
+    size_t surfaceSequenceSize = 0;
 
     /// Actor result / state
     struct this_result {
@@ -72,10 +74,8 @@ public:
       // Only act once
       if (not r.initialized) {
         // Initialize the surface sequence
-        memcpy(state.navigation.surfaceSequence, surfaceSequence,
-               sizeof(SurfacePtr) * s_surfacesSize);
-        // todo: below could be removed
-        state.navigation.nextSurfaceIter = 0;
+	state.navigation.surfaceSequence = surfaceSequence;
+	state.navigation.surfaceSequenceSize = surfaceSequenceSize;
         r.initialized = true;
       }
     }
@@ -94,8 +94,10 @@ public:
   struct State {
     /// Externally provided surfaces - expected to be ordered
     /// along the path
-    // SurfaceSequence surfaceSequence = nullptr;
-    SurfacePtr surfaceSequence[s_surfacesSize] = {};
+    const Surface* surfaceSequence = nullptr;
+
+    /// The surface sequence size
+    size_t surfaceSequenceSize = 0;
 
     /// Iterator the the next surface
     SurfaceIter nextSurfaceIter = 0;
@@ -133,22 +135,26 @@ public:
     // Navigator status always resets the current surface
     state.navigation.currentSurface = nullptr;
     // Check if we are on surface
-    if (state.navigation.nextSurfaceIter != s_surfacesSize) {
-      auto surfacePtr =
-          state.navigation.surfaceSequence[state.navigation.nextSurfaceIter];
-      // Establish the surface status
-      auto surfaceStatus =
-          stepper.updateSurfaceStatus(state.stepping, *surfacePtr, false);
-      if (surfaceStatus == Intersection::Status::onSurface) {
-        // Set the current surface
-        state.navigation.currentSurface = surfacePtr;
-        // Move the sequence to the next surface
-        ++state.navigation.nextSurfaceIter;
-        if (state.navigation.nextSurfaceIter != s_surfacesSize) {
-          stepper.releaseStepSize(state.stepping);
+    if (state.navigation.nextSurfaceIter != state.navigation.surfaceSequenceSize) {
+      const PlaneSurface* pSurfacePtr = dynamic_cast<const PlaneSurface*>(state.navigation.surfaceSequence); 
+      if(pSurfacePtr != nullptr){
+        const PlaneSurface* surfacePtr = pSurfacePtr + state.navigation.nextSurfaceIter;
+        // Establish the surface status
+        auto surfaceStatus =
+            stepper.updateSurfaceStatus(state.stepping, *surfacePtr, false);
+        if (surfaceStatus == Intersection::Status::onSurface) {
+          // Set the current surface
+          state.navigation.currentSurface = surfacePtr;
+          // Move the sequence to the next surface
+          ++state.navigation.nextSurfaceIter;
+          //@Todo: I guess this could be removed as it's already done in the updateSurfaceStatus
+          if (state.navigation.nextSurfaceIter != state.navigation.surfaceSequenceSize) {
+            stepper.releaseStepSize(state.stepping);
+          }
         }
-      }
+      } 
     }
+    //printf("end of status\n");
   }
 
   /// @brief Navigator target call
@@ -164,15 +170,17 @@ public:
 
     // Navigator target always resets the current surface
     state.navigation.currentSurface = nullptr;
-    if (state.navigation.nextSurfaceIter != s_surfacesSize) {
-      auto surfacePtr =
-          state.navigation.surfaceSequence[state.navigation.nextSurfaceIter];
-      // Establish & update the surface status
-      auto surfaceStatus =
-          stepper.updateSurfaceStatus(state.stepping, *surfacePtr, false);
-      if (surfaceStatus == Intersection::Status::unreachable) {
-        // Move the sequence to the next surface
-        ++state.navigation.nextSurfaceIter;
+    if (state.navigation.nextSurfaceIter != state.navigation.surfaceSequenceSize) {
+      const PlaneSurface* pSurfacePtr = dynamic_cast<const PlaneSurface*>(state.navigation.surfaceSequence); 
+      if(pSurfacePtr != nullptr){
+        const PlaneSurface* surfacePtr = pSurfacePtr + state.navigation.nextSurfaceIter;
+        // Establish & update the surface status
+        auto surfaceStatus =
+            stepper.updateSurfaceStatus(state.stepping, *surfacePtr, false);
+        if (surfaceStatus == Intersection::Status::unreachable) {
+          // Move the sequence to the next surface
+          ++state.navigation.nextSurfaceIter;
+        }
       }
     } else {
       // Set the navigation break
@@ -182,6 +190,7 @@ public:
         state.navigation.targetReached = true;
       }
     }
+    //printf("end of target\n");
   }
 };
 

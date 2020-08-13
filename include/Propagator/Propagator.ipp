@@ -28,7 +28,7 @@ ACTS_DEVICE_FUNC
   bool terminatedNormally = false;
 
   // Pre-Stepping: abort condition check
-  if (!state.options.aborter(result, state, m_stepper) and
+  if (!state.options.aborter(state, m_stepper, result.actorResult) and
       !pathAborter(state, m_stepper)) {
     // Pre-Stepping: target setting
     m_navigator.target(state, m_stepper);
@@ -47,7 +47,8 @@ ACTS_DEVICE_FUNC
       // navigator status call - action list - aborter list - target call
       m_navigator.status(state, m_stepper);
       state.options.action(state, m_stepper, result.actorResult);
-      if (state.options.aborter(result, state, m_stepper) or
+
+      if (state.options.aborter(state, m_stepper, result.actorResult) or
           pathAborter(state, m_stepper)) {
         terminatedNormally = true;
         break;
