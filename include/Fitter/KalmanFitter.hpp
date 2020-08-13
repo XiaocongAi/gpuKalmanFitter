@@ -204,7 +204,7 @@ class KalmanFitter {
     template <typename propagator_state_t, typename stepper_t>
     void operator()(propagator_state_t& state, const stepper_t& stepper,
                     result_type& result) const {
-      printf("KalmanFitter step\n");
+      //printf("KalmanFitter step\n");
 
       // Update:
       // - Waiting for a current surface
@@ -224,7 +224,7 @@ class KalmanFitter {
         if (result.measurementStates == inputMeasurements.size() or
             (result.measurementStates > 0 and
              state.navigation.navigationBreak)) {
-               printf("Finishing forward filtering");
+               //printf("Finishing forward filtering");
 	       result.finished = true;
 	  //if (not result.smoothed) {
           //  printf("Finalize/run smoothing\n");
@@ -240,7 +240,7 @@ class KalmanFitter {
       // - Progress to target/reference surface and built the final track
       // parameters
       if (result.smoothed){
-        printf("Completing");
+        //printf("Completing");
         // Remember the track fitting is done
         result.finished = true;
       }
@@ -264,7 +264,7 @@ class KalmanFitter {
       auto sourcelink_it = std::find_if(inputMeasurements.begin(), inputMeasurements.end(), sFinder);  
       if (sourcelink_it != inputMeasurements.end()) {
         // Screen output message
-        printf("Measurement surface detected");
+        //printf("Measurement surface detected");
 
 	// create track state on the vector from sourcelink
         result.fittedStates.push_back(TrackStateType(*sourcelink_it));
@@ -359,7 +359,6 @@ class KalmanFitter {
     bool operator()(propagator_state_t& /*state*/, const stepper_t& /*stepper*/,
                     const result_t& result) const {
       if (!result.result or result.finished) {
-         printf("abort here\n"); 
 	 return true;
       }
       return false;
@@ -394,7 +393,7 @@ class KalmanFitter {
 
     // To be able to find measurements later, we put them into a map
     // We need to copy input SourceLinks anyways, so the map can own them.
-    printf("Preparing %lu input measurements\n", sourcelinks.size());
+    //printf("Preparing %lu input measurements\n", sourcelinks.size());
 
     // Create the ActionList and AbortList
     using source_link_t = typename source_link_collection_t::value_type;

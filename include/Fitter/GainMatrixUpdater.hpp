@@ -34,7 +34,7 @@ class GainMatrixUpdater {
   template <typename track_state_t>
   bool operator()(
       const GeometryContext& gctx, track_state_t& trackState) const {
-    printf("Invoked GainMatrixUpdater\n");
+    //printf("Invoked GainMatrixUpdater\n");
     using parameters_t = typename track_state_t::Parameters;
     using source_link_t = typename track_state_t::SourceLink;
     
