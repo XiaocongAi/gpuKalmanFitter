@@ -178,6 +178,11 @@ int main(int argc, char *argv[]) {
     surfaces.push_back(Acts::PlaneSurface(translations[isur], Acts::Vector3D(1,0,0)));
   }
 
+  const Acts::Surface* surfacePtrs[nSurfaces];
+  for(unsigned int isur = 0; isur< nSurfaces; isur++){
+    surfacePtrs[isur] = &surfaces[isur];
+  }
+ 
   std::cout<<"Creating "<<surfaces.size()<<" boundless plane surfaces"<<std::endl;
 
   // Test the pointers to surfaces
@@ -186,6 +191,8 @@ int main(int argc, char *argv[]) {
     //std::cout<<"surface " << isur <<  " has center at: \n" <<(*surfacePtr).center(gctx)<<std::endl; 
     surfacePtr++;
   }
+
+
 
 //   InterpolatedBFieldMap3D bField = Options::readBField(bFieldFileName);
 //   std::cout
@@ -198,7 +205,7 @@ int main(int argc, char *argv[]) {
   PropagatorType propagator(stepper);
   PropOptionsType propOptions(gctx, mctx);
   propOptions.maxSteps = 100;
-  propOptions.initializer.surfaceSequence = surfaces.data();
+  propOptions.initializer.surfaceSequence = surfacePtrs;
   propOptions.initializer.surfaceSequenceSize = nSurfaces;
 
   // Construct random starting track parameters
@@ -270,7 +277,7 @@ int main(int argc, char *argv[]) {
 //       sourcelinks.push_back(sl); 
 //    }
    
-    auto fitRes = kFitter.fit(ress[it].actorResult.sourcelinks, rStart, kfOptions, surfaces.data(), nSurfaces);
+    auto fitRes = kFitter.fit(ress[it].actorResult.sourcelinks, rStart, kfOptions, surfacePtrs, nSurfaces);
     if(not fitRes.result) {
        std::cout<<"fit failure for track "<<it << std::endl;
     }

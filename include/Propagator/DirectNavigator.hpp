@@ -47,7 +47,7 @@ public:
   /// surface sequence
   struct Initializer {
     /// The Surface sequence
-    const Surface* surfaceSequence = nullptr;
+    const Surface** surfaceSequence = nullptr;
 
     /// The surface sequence size
     size_t surfaceSequenceSize = 0;
@@ -94,7 +94,7 @@ public:
   struct State {
     /// Externally provided surfaces - expected to be ordered
     /// along the path
-    const Surface* surfaceSequence = nullptr;
+    const Surface** surfaceSequence = nullptr;
 
     /// The surface sequence size
     size_t surfaceSequenceSize = 0;
@@ -136,9 +136,7 @@ public:
     state.navigation.currentSurface = nullptr;
     // Check if we are on surface
     if (state.navigation.nextSurfaceIter != state.navigation.surfaceSequenceSize) {
-      const PlaneSurface* pSurfacePtr = dynamic_cast<const PlaneSurface*>(state.navigation.surfaceSequence); 
-      if(pSurfacePtr != nullptr){
-        const PlaneSurface* surfacePtr = pSurfacePtr + state.navigation.nextSurfaceIter;
+        auto surfacePtr = state.navigation.surfaceSequence[state.navigation.nextSurfaceIter];
         // Establish the surface status
         auto surfaceStatus =
             stepper.updateSurfaceStatus(state.stepping, *surfacePtr, false);
@@ -153,7 +151,6 @@ public:
           }
         }
       } 
-    }
     //printf("end of status\n");
   }
 
@@ -171,9 +168,7 @@ public:
     // Navigator target always resets the current surface
     state.navigation.currentSurface = nullptr;
     if (state.navigation.nextSurfaceIter != state.navigation.surfaceSequenceSize) {
-      const PlaneSurface* pSurfacePtr = dynamic_cast<const PlaneSurface*>(state.navigation.surfaceSequence); 
-      if(pSurfacePtr != nullptr){
-        const PlaneSurface* surfacePtr = pSurfacePtr + state.navigation.nextSurfaceIter;
+        auto surfacePtr = state.navigation.surfaceSequence[state.navigation.nextSurfaceIter];
         // Establish & update the surface status
         auto surfaceStatus =
             stepper.updateSurfaceStatus(state.stepping, *surfacePtr, false);
@@ -181,7 +176,6 @@ public:
           // Move the sequence to the next surface
           ++state.navigation.nextSurfaceIter;
         }
-      }
     } else {
       // Set the navigation break
       state.navigation.navigationBreak = true;

@@ -36,8 +36,6 @@ static void show_usage(std::string name) {
             << "\t-p,--pt \tSpecify the pt of particle\n"
             << "\t-o,--output \tIndicator for writing propagation results\n"
             << "\t-d,--device \tSpecify the device: 'gpu' or 'cpu'\n"
-            << "\t-b,--bf-map \tSpecify the path of *.txt for interpolated "
-               "BField map\n"
             << std::endl;
 }
 
@@ -73,8 +71,8 @@ struct VoidAborter {
   }
 };
 
-//using Stepper = EigenStepper<ConstantBField>;
-using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
+using Stepper = EigenStepper<ConstantBField>;
+//using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
 using PropagatorType = Propagator<Stepper>;
 using PropResultType =
     PropagatorResult<typename VoidActor::result_type>;
@@ -85,21 +83,8 @@ __global__ void propKernel(PropagatorType *propagator,
                            CurvilinearParameters *tpars,
                            //PropOptionsType *propOptions,
                            PropOptionsType propOptions,
-                           PropResultType *propResult, Vector3D *gridValPtr,
-			   Acts::PlaneSurface *surfaces,
+                           PropResultType *propResult, 
                            int N) {
-  // Awkwardly make the grid values pointer to point to memeory on device
-  // explicitly
-  propagator->refStepper().refField().refMapper().refGrid().refValues() =
-      gridValPtr;
-
-  // set the surfaces in propagation options
-  const Acts::Surface* surfacePtrs[s_surfacesSize];
-  for(unsigned int i = 0; i< s_surfacesSize; i++){
-    surfacePtrs[i] =&surfaces[i];
-  }
-  memcpy(propOptions.initializer.surfaceSequence, surfacePtrs, sizeof(const Surface*)*s_surfacesSize);
- 
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if (i < N) {
     propResult[i] = propagator->propagate(tpars[i], propOptions);
@@ -130,8 +115,6 @@ int main(int argc, char *argv[]) {
         output = (atoi(argv[++i]) == 1);
       } else if ((arg == "-d") or (arg == "--device")) {
         device = argv[++i];
-      } else if ((arg == "-b") or (arg == "--bf-map")) {
-        bFieldFileName = argv[++i];
       } else {
         std::cerr << "Unknown argument." << std::endl;
         return 1;
@@ -140,24 +123,25 @@ int main(int argc, char *argv[]) {
   }
 
    // Create the geometry
+  size_t nSurfaces = 15; 
   // Set translation vectors
   std::vector<Acts::Vector3D> translations;
-  for(unsigned int isur = 0; isur< s_surfacesSize; isur++){
+  for(unsigned int isur = 0; isur< nSurfaces; isur++){
     translations.push_back({(isur * 30. + 19)*Acts::units::_mm, 0., 0.});
   }
 
-  std::vector<Acts::PlaneSurface> surfaces;
-  surfaces.reserve(s_surfacesSize); 
-  for(unsigned int isur = 0; isur< s_surfacesSize; isur++){
-    surfaces.push_back(Acts::PlaneSurface(translations[isur], Acts::Vector3D(1,0,0)));
-  }
-  std::vector<const Acts::Surface*> surfacePtrs;
-  surfacePtrs.reserve(s_surfacesSize); 
-  for(unsigned int isur = 0; isur< s_surfacesSize; isur++){
-    surfacePtrs.push_back(&surfaces[isur]);
+  Acts::PlaneSurface* surfaces;
+  GPUERRCHK(cudaMallocManaged(&surfaces, sizeof(Acts::PlaneSurface)*nSurfaces));
+  for(unsigned int isur = 0; isur< nSurfaces; isur++){
+    surfaces[isur] = Acts::PlaneSurface(translations[isur], Acts::Vector3D(1,0,0));
   }
 
-  std::cout<<"Creating "<<surfaces.size()<<" boundless plane surfaces"<<std::endl;
+  const Acts::Surface* surfacePtrs[nSurfaces];
+  for(unsigned int isur = 0; isur< nSurfaces; isur++){
+    surfacePtrs[isur] = &surfaces[isur];
+  }
+
+  std::cout<<"Creating "<<nSurfaces<<" boundless plane surfaces"<<std::endl;
 
   std::cout << "----- Propgation test of " << nTracks << " tracks on " << device
             << ". Writing results to obj file? " << output << " ----- "
@@ -167,18 +151,18 @@ int main(int argc, char *argv[]) {
   GeometryContext gctx;
   MagneticFieldContext mctx;
 
-  InterpolatedBFieldMap3D bField = Options::readBField(bFieldFileName);
-  std::cout
-      << "Reading BField and creating a 3D InterpolatedBFieldMap instance done"
-      << std::endl;
+  //InterpolatedBFieldMap3D bField = Options::readBField(bFieldFileName);
+  //std::cout
+  //    << "Reading BField and creating a 3D InterpolatedBFieldMap instance done"
+  //    << std::endl;
 
   // Construct a stepper with the bField
-  Stepper stepper(bField);
+  Stepper stepper;
   PropagatorType propagator(stepper);
   PropOptionsType propOptions(gctx, mctx);
   propOptions.maxSteps = 10;
-  auto surfacesSize = sizeof(const Surface*)*s_surfacesSize;
-  memcpy(propOptions.initializer.surfaceSequence, surfacePtrs.data(), surfacesSize);
+  propOptions.initializer.surfaceSequence = surfacePtrs;
+  propOptions.initializer.surfaceSequenceSize = nSurfaces;
 
   // Construct random starting track parameters
   std::default_random_engine generator(42);
@@ -210,29 +194,16 @@ int main(int argc, char *argv[]) {
   // Running directly on host or offloading to GPU
   bool useGPU = (device == "gpu" ? true : false);
   if (useGPU) {
-    // We have to use a really nasty deep reference when dynamic allocation is
-    // used for the grid values which cannot be automatically done on GPU?
-    auto &grid = propagator.refStepper().refField().refMapper().refGrid();
-    // Get the grid size and values (pointer)
-    size_t gridSize = grid.size();
-    using GridType = std::remove_reference<decltype(grid)>::type;
-    using GridValueType = typename GridType::value_type;
-    GridValueType *gridValPtr = grid.refValues();
-
     // Allocate memory on device
     PropagatorType *d_propagator;
-    PropOptionsType *d_opt;
+    //PropOptionsType *d_opt;
     CurvilinearParameters *d_pars;
     PropResultType *d_ress;
-    GridValueType *d_gridValPtr;
-    Acts::PlaneSurface * d_surfaces; 
 
     GPUERRCHK(cudaMalloc(&d_propagator, sizeof(PropagatorType)));
 //    GPUERRCHK(cudaMalloc(&d_opt, sizeof(PropOptionsType)));
     GPUERRCHK(cudaMalloc(&d_pars, nTracks * sizeof(CurvilinearParameters)));
     GPUERRCHK(cudaMalloc(&d_ress, nTracks * sizeof(PropResultType)));
-    GPUERRCHK(cudaMalloc(&d_gridValPtr, gridSize * sizeof(GridValueType)));
-    GPUERRCHK(cudaMalloc(&d_surfaces, surfacesSize));
 
     // Copy from host to device
     GPUERRCHK(cudaMemcpy(d_propagator, &propagator, sizeof(propagator),
@@ -244,18 +215,15 @@ int main(int argc, char *argv[]) {
                          cudaMemcpyHostToDevice));
     GPUERRCHK(cudaMemcpy(d_ress, ress.data(), nTracks * sizeof(PropResultType),
                          cudaMemcpyHostToDevice));
-    GPUERRCHK(cudaMemcpy(d_gridValPtr, gridValPtr,
-                         gridSize * sizeof(GridValueType),
-                         cudaMemcpyHostToDevice));
-    GPUERRCHK(cudaMemcpy(d_surfaces, surfaces.data(), surfacesSize,
+    GPUERRCHK(cudaMemcpy(d_ress, ress.data(), nTracks * sizeof(PropResultType),
                          cudaMemcpyHostToDevice));
 
     // Run on device
     int threadsPerBlock = 256;
     int blocksPerGrid = (nTracks + threadsPerBlock - 1) / threadsPerBlock;
     propKernel<<<blocksPerGrid, threadsPerBlock>>>(
-        //d_propagator, d_pars, d_opt, d_ress, d_gridValPtr, nTracks);
-        d_propagator, d_pars, propOptions, d_ress, d_gridValPtr, d_surfaces, nTracks);
+        //d_propagator, d_pars, d_opt, d_ress, nTracks);
+        d_propagator, d_pars, propOptions, d_ress, nTracks);
 
     GPUERRCHK(cudaPeekAtLastError());
     GPUERRCHK(cudaDeviceSynchronize());
@@ -269,8 +237,7 @@ int main(int argc, char *argv[]) {
 //    GPUERRCHK(cudaFree(d_opt));
     GPUERRCHK(cudaFree(d_pars));
     GPUERRCHK(cudaFree(d_ress));
-    GPUERRCHK(cudaFree(d_gridValPtr));
-    GPUERRCHK(cudaFree(d_surfaces));
+    GPUERRCHK(cudaFree(surfaces));
   } else {
 // Run on host
 #pragma omp parallel for

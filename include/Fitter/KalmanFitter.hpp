@@ -388,7 +388,7 @@ class KalmanFitter {
   auto fit(const source_link_collection_t& sourcelinks,
            const start_parameters_t& sParameters,
            const KalmanFitterOptions<outlier_finder_t>& kfOptions,
-	   const Surface* surfaceSequence = nullptr, size_t surfaceSequenceSize = 0) const
+	   const Surface** surfaceSequence = nullptr, size_t surfaceSequenceSize = 0) const
       -> KalmanFitterResult { 
 
     // To be able to find measurements later, we put them into a map
