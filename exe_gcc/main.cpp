@@ -114,8 +114,6 @@ struct VoidAborter {
 using Stepper = EigenStepper<ConstantBField>;
 // using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
 using PropagatorType = Propagator<Stepper>;
-// using PropResultType = PropagatorResult<typename
-// MeasurementCreator::result_type>;
 using PropResultType = PropagatorResult;
 using PropOptionsType = PropagatorOptions<MeasurementCreator, VoidAborter>;
 
@@ -162,6 +160,7 @@ int main(int argc, char *argv[]) {
 
   // Create the geometry
   size_t nSurfaces = 15;
+
   // Set translation vectors
   std::vector<Acts::Vector3D> translations;
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
@@ -292,13 +291,6 @@ int main(int argc, char *argv[]) {
 
     CurvilinearParameters rStart(cov, pos, mom, q, time);
 
-    // Need to transform the container
-    //    thrust::host_vector<PixelSourceLink> sourcelinks;
-    //    for(const auto& sl: ress[it].actorResult.sourcelinks){
-    //       sourcelinks.push_back(sl);
-    //    }
-
-    // Dynamically allocating memory for the fitted states here
     KalmanFitterResult kfResult;
     kfResult.fittedStates = CudaKernelContainer(fittedTracks[it], nSurfaces);
 

@@ -8,9 +8,6 @@
 
 #pragma once
 
-//#include "Geometry/TrackingGeometry.hpp"
-//#include "Geometry/TrackingVolume.hpp"
-#include "Propagator/Propagator.hpp"
 #include "Surfaces/Surface.hpp"
 #include "Utilities/Definitions.hpp"
 
@@ -108,12 +105,6 @@ public:
     const Surface *currentSurface = nullptr;
     /// Navigation state - external interface: the target surface
     const Surface *targetSurface = nullptr;
-    /// Navigation state: the start volume
-    // const TrackingVolume* startVolume = nullptr;
-    /// Navigation state: the current volume
-    // const TrackingVolume* currentVolume = nullptr;
-    /// Navigation state: the target volume
-    // const TrackingVolume* targetVolume = nullptr;
 
     /// Navigation state - external interface: target is reached
     bool targetReached = false;
@@ -155,7 +146,6 @@ public:
         }
       }
     }
-    // printf("end of status\n");
   }
 
   /// @brief Navigator target call
@@ -190,7 +180,6 @@ public:
         state.navigation.targetReached = true;
       }
     }
-    // printf("end of target\n");
   }
 };
 

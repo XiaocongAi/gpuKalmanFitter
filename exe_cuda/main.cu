@@ -139,6 +139,7 @@ __global__ void propKernel(KalmanFitterType *kFitter,
                            int nSurfaces, int N) {
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if (i < N) {
+    // Use the CudaKernelContainer for the source links and fitted tracks
     KalmanFitterResultType kfResult;
     kfResult.fittedStates =
         CudaKernelContainer<TSType>(fittedTracks + i * nSurfaces, nSurfaces);
@@ -179,8 +180,13 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  // Create a test context
+  GeometryContext gctx;
+  MagneticFieldContext mctx;
+
   // Create the geometry
   size_t nSurfaces = 15;
+
   // Set translation vectors
   std::vector<Acts::Vector3D> translations;
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
@@ -188,13 +194,20 @@ int main(int argc, char *argv[]) {
   }
 
   Acts::PlaneSurface *surfaces;
+  // Unifited memory allocation for geometry
   GPUERRCHK(
       cudaMallocManaged(&surfaces, sizeof(Acts::PlaneSurface) * nSurfaces));
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
     surfaces[isur] =
         Acts::PlaneSurface(translations[isur], Acts::Vector3D(1, 0, 0));
   }
+  std::cout << "Creating " << nSurfaces << " boundless plane surfaces"
+            << std::endl;
 
+  // Unified memory allocation for pointers to the surfaces
+  // It's more convenient to explicity to pass the surface ptrs to the
+  // propagator; Otherwide, dynamic cast is needed which is not possible on GPU
+  // kernel
   const Acts::Surface **surfacePtrs;
   GPUERRCHK(cudaMallocManaged(&surfacePtrs,
                               sizeof(const Acts::Surface *) * nSurfaces));
@@ -202,16 +215,9 @@ int main(int argc, char *argv[]) {
     surfacePtrs[isur] = &surfaces[isur];
   }
 
-  std::cout << "Creating " << nSurfaces << " boundless plane surfaces"
-            << std::endl;
-
   std::cout << "----- Propgation test of " << nTracks << " tracks on " << device
             << ". Writing results to obj file? " << output << " ----- "
             << std::endl;
-
-  // Create a test context
-  GeometryContext gctx;
-  MagneticFieldContext mctx;
 
   // InterpolatedBFieldMap3D bField = Options::readBField(bFieldFileName);
   // std::cout
@@ -253,26 +259,25 @@ int main(int argc, char *argv[]) {
   }
 
   // Propagation result
-  // Propagation result
   MeasurementCreator::result_type ress[nTracks];
 
-  // Creating the tracks
+  // Run propagation to create the measurements
   for (int it = 0; it < nTracks; it++) {
     propagator.propagate(startPars[it], propOptions, ress[it]);
   }
 
   // start to perform fit to the created tracks
-  // Contruct a KalmanFitter instance
+  // Unified memory allocation for KalmanFitter
   PropagatorType rPropagator(stepper);
   KalmanFitterType kFitter(rPropagator);
-  KalmanFitterOptions<VoidOutlierFinder> kfOptions(gctx, mctx);
-
   KalmanFitterType *kFitterPtr;
   GPUERRCHK(cudaMallocManaged(&kFitterPtr, sizeof(KalmanFitterType)));
   kFitterPtr = &kFitter;
 
-  auto start = std::chrono::high_resolution_clock::now();
+  // The KF options
+  KalmanFitterOptions<VoidOutlierFinder> kfOptions(gctx, mctx);
 
+  // Allocate memory for KF fitted tracks
   std::vector<TSType *> fittedTracks;
   for (int it = 0; it < nTracks; it++) {
     // Struct with deleted default constructor will have problem
@@ -284,6 +289,8 @@ int main(int argc, char *argv[]) {
     fittedTracks.push_back(states);
   }
 
+  auto start = std::chrono::high_resolution_clock::now();
+
   // Running directly on host or offloading to GPU
   bool useGPU = (device == "gpu" ? true : false);
   if (useGPU) {
@@ -291,7 +298,6 @@ int main(int argc, char *argv[]) {
     PixelSourceLink *d_sourcelinks;
     CurvilinearParameters *d_pars;
     TSType *d_fittedTracks;
-
     GPUERRCHK(cudaMalloc(&d_sourcelinks,
                          sizeof(PixelSourceLink) * nSurfaces * nTracks));
     GPUERRCHK(
@@ -312,7 +318,6 @@ int main(int argc, char *argv[]) {
     int threadsPerBlock = 256;
     int blocksPerGrid = (nTracks + threadsPerBlock - 1) / threadsPerBlock;
     propKernel<<<blocksPerGrid, threadsPerBlock>>>(
-        // d_propagator, d_pars, d_opt, d_ress, nTracks);
         kFitterPtr, d_sourcelinks, d_pars, kfOptions, d_fittedTracks,
         surfacePtrs, nSurfaces, nTracks);
 
@@ -332,14 +337,22 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaFree(surfaces));
     GPUERRCHK(cudaFree(surfacePtrs));
     GPUERRCHK(cudaFree(kFitterPtr));
+  } else {
+//// Run on host
+#pragma omp parallel for
+    for (int it = 0; it < nTracks; it++) {
+      // Dynamically allocating memory for the fitted states here
+      KalmanFitterResultType kfResult;
+      kfResult.fittedStates =
+          CudaKernelContainer<TSType>(fittedTracks[it], nSurfaces);
+
+      auto sourcelinkTrack = CudaKernelContainer<PixelSourceLink>(
+          ress[it].sourcelinks.data(), ress[it].sourcelinks.size());
+      // The fittedTracks will be changed here
+      kFitter.fit(sourcelinkTrack, startPars[it], kfOptions, kfResult,
+                  surfacePtrs, nSurfaces);
+    }
   }
-  //  else {
-  //// Run on host
-  //#pragma omp parallel for
-  //    for (int it = 0; it < nTracks; it++) {
-  //      ress[it] = propagator.propagate(startPars[it], propOptions);
-  //    }
-  //  }
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed_seconds = end - start;

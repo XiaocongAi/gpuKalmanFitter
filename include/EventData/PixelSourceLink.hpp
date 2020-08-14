@@ -9,6 +9,7 @@
 #pragma once
 
 #include "Geometry/GeometryContext.hpp"
+#include "Surfaces/Surface.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
 #include <stdexcept>
 #include <string>
