@@ -36,6 +36,9 @@ class PlaneSurface : public Surface {
   friend Surface;
 
 public:
+  //// Default Constructor
+  PlaneSurface() = default;
+
   /// Copy Constructor
   ///
   /// @param psf is the source surface for the copy

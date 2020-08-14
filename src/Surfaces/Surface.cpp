@@ -46,7 +46,8 @@ bool Acts::Surface::isOnSurface(const GeometryContext &gctx,
 
 Acts::Surface &Acts::Surface::operator=(const Surface &other) {
   if (&other != this) {
-    GeometryObject::operator=(other);
+    //@Todo: active this  
+    //GeometryObject::operator=(other);
     // detector element, identifier & layer association are unique
     m_transform = other.m_transform;
   }
