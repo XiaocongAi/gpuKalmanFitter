@@ -47,7 +47,7 @@ public:
   using Parameters = parameters_t;
   using Jacobian = typename Parameters::CovarianceMatrix;
 
-  //TrackState() = delete;
+  // TrackState() = delete;
   TrackState() = default;
 
   /// Constructor from (uncalibrated) measurement
@@ -55,7 +55,7 @@ public:
   /// @param m The measurement object
   ACTS_DEVICE_FUNC TrackState(SourceLink m) : m_surface(&m.referenceSurface()) {
     measurement.uncalibrated = std::move(m);
-    //m_typeFlags.set(MeasurementFlag);
+    // m_typeFlags.set(MeasurementFlag);
   }
 
   /// Constructor from parameters
@@ -110,10 +110,13 @@ public:
   }
 
   /// @brief return method for the surface
-  ACTS_DEVICE_FUNC const Surface &referenceSurface() const { return (*m_surface); }
+  ACTS_DEVICE_FUNC const Surface &referenceSurface() const {
+    return (*m_surface);
+  }
 
   /// @brief set the type flag
-  ACTS_DEVICE_FUNC void setType(const TrackStateFlag &flag, bool status = true) {
+  ACTS_DEVICE_FUNC void setType(const TrackStateFlag &flag,
+                                bool status = true) {
     m_typeFlags.set(flag, status);
   }
 

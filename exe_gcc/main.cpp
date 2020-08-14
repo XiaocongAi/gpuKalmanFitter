@@ -1,5 +1,7 @@
-#include "EventData/TrackParameters.hpp"
 #include "EventData/PixelSourceLink.hpp"
+#include "EventData/TrackParameters.hpp"
+#include "Fitter/GainMatrixUpdater.hpp"
+#include "Fitter/KalmanFitter.hpp"
 #include "Geometry/GeometryContext.hpp"
 #include "MagneticField/MagneticFieldContext.hpp"
 #include "Plugins/BFieldOptions.hpp"
@@ -8,8 +10,6 @@
 #include "Propagator/Propagator.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
 #include "Utilities/Units.hpp"
-#include "Fitter/KalmanFitter.hpp"
-#include "Fitter/GainMatrixUpdater.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -41,44 +41,45 @@ std::uniform_real_distribution<double> unif(-1.0 * M_PI, M_PI);
 // Struct for B field
 struct ConstantBField {
   ACTS_DEVICE_FUNC static Vector3D getField(const Vector3D & /*field*/) {
-    return Vector3D(0., 0., 2.0*Acts::units::_T);
+    return Vector3D(0., 0., 2.0 * Acts::units::_T);
   }
 };
 
-// Measurement creator 
+// Measurement creator
 struct MeasurementCreator {
-  double resX = 30*Acts::units::_um;
-  double resY = 30*Acts::units::_um;
-	
+  double resX = 30 * Acts::units::_um;
+  double resY = 30 * Acts::units::_um;
+
   struct this_result {
-   std::vector<PixelSourceLink> sourcelinks; 
+    std::vector<PixelSourceLink> sourcelinks;
   };
   using result_type = this_result;
 
   template <typename propagator_state_t, typename stepper_t>
   void operator()(propagator_state_t &state, const stepper_t &stepper,
                   result_type &result) const {
-    if(state.navigation.currentSurface!=nullptr) {
+    if (state.navigation.currentSurface != nullptr) {
 
-     // Apply global to local
-     Vector2D lPos;
-     state.navigation.currentSurface->globalToLocal(state.options.geoContext,
-                                 stepper.position(state.stepping),
-                                 stepper.direction(state.stepping), lPos);
-     // Perform the smearing to truth 
-     double dx = resX * gauss(generator);
-     double dy = resY * gauss(generator);
+      // Apply global to local
+      Vector2D lPos;
+      state.navigation.currentSurface->globalToLocal(
+          state.options.geoContext, stepper.position(state.stepping),
+          stepper.direction(state.stepping), lPos);
+      // Perform the smearing to truth
+      double dx = resX * gauss(generator);
+      double dy = resY * gauss(generator);
 
-     // The measurement values
-     Vector2D values;
-     values << lPos[0] + dx, lPos[1] + dy; 
+      // The measurement values
+      Vector2D values;
+      values << lPos[0] + dx, lPos[1] + dy;
 
-     // The measurement covariance 
-     SymMatrix2D cov;
-     cov << resX* resX, 0., 0., resY*resY;
-    
-     // Push back to the container
-     result.sourcelinks.emplace_back(values, cov, state.navigation.currentSurface); 
+      // The measurement covariance
+      SymMatrix2D cov;
+      cov << resX * resX, 0., 0., resY * resY;
+
+      // Push back to the container
+      result.sourcelinks.emplace_back(values, cov,
+                                      state.navigation.currentSurface);
     }
     return;
   }
@@ -86,15 +87,15 @@ struct MeasurementCreator {
 
 // Test actor
 struct VoidActor {
-  struct this_result {
-  };
+  struct this_result {};
   using result_type = this_result;
 
   template <typename propagator_state_t, typename stepper_t>
   void operator()(propagator_state_t &state, const stepper_t &stepper,
                   result_type &result) const {
-    if(state.navigation.currentSurface!=nullptr) {
-     std::cout<<"On surface: "<<state.navigation.nextSurfaceIter<<std::endl;
+    if (state.navigation.currentSurface != nullptr) {
+      std::cout << "On surface: " << state.navigation.nextSurfaceIter
+                << std::endl;
     }
     return;
   }
@@ -106,14 +107,15 @@ struct VoidAborter {
   template <typename propagator_state_t, typename stepper_t, typename result_t>
   bool operator()(propagator_state_t &state, const stepper_t &stepper,
                   result_t &result) const {
-	  return false;
+    return false;
   }
 };
 
 using Stepper = EigenStepper<ConstantBField>;
-//using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
+// using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
 using PropagatorType = Propagator<Stepper>;
-//using PropResultType = PropagatorResult<typename MeasurementCreator::result_type>;
+// using PropResultType = PropagatorResult<typename
+// MeasurementCreator::result_type>;
 using PropResultType = PropagatorResult;
 using PropOptionsType = PropagatorOptions<MeasurementCreator, VoidAborter>;
 
@@ -136,7 +138,7 @@ int main(int argc, char *argv[]) {
       if ((arg == "-t") or (arg == "--tracks")) {
         nTracks = atoi(argv[++i]);
       } else if ((arg == "-p") or (arg == "--pt")) {
-        p = atof(argv[++i])*Acts::units::_GeV;
+        p = atof(argv[++i]) * Acts::units::_GeV;
       } else if ((arg == "-o") or (arg == "--output")) {
         output = (atoi(argv[++i]) == 1);
       } else if ((arg == "-d") or (arg == "--device")) {
@@ -157,51 +159,54 @@ int main(int argc, char *argv[]) {
   // Create a test context
   GeometryContext gctx;
   MagneticFieldContext mctx;
-  
+
   // Create the geometry
   size_t nSurfaces = 15;
   // Set translation vectors
   std::vector<Acts::Vector3D> translations;
-  for(unsigned int isur = 0; isur< nSurfaces; isur++){
-    translations.push_back({(isur * 30. + 19)*Acts::units::_mm, 0., 0.});
+  for (unsigned int isur = 0; isur < nSurfaces; isur++) {
+    translations.push_back({(isur * 30. + 19) * Acts::units::_mm, 0., 0.});
   }
 
   // Create plane surfaces without boundaries
-  //std::vector<std::shared_ptr<const Acts::PlaneSurface>> surfaces;
-  //std::vector<const Acts::Surface*> surfacePtrs;
-  //for(unsigned int isur = 0; isur< s_surfacesSize; isur++){
-  // surfaces.push_back(std::make_shared<Acts::PlaneSurface>(translations[isur], Acts::Vector3D(1,0,0)));
+  // std::vector<std::shared_ptr<const Acts::PlaneSurface>> surfaces;
+  // std::vector<const Acts::Surface*> surfacePtrs;
+  // for(unsigned int isur = 0; isur< s_surfacesSize; isur++){
+  // surfaces.push_back(std::make_shared<Acts::PlaneSurface>(translations[isur],
+  // Acts::Vector3D(1,0,0)));
   //  surfacePtrs.push_back(surfaces[isur].get());
   //}
 
   std::vector<Acts::PlaneSurface> surfaces;
-  for(unsigned int isur = 0; isur< nSurfaces; isur++){
-    surfaces.push_back(Acts::PlaneSurface(translations[isur], Acts::Vector3D(1,0,0)));
+  for (unsigned int isur = 0; isur < nSurfaces; isur++) {
+    surfaces.push_back(
+        Acts::PlaneSurface(translations[isur], Acts::Vector3D(1, 0, 0)));
   }
 
-  const Acts::Surface* surfacePtrs[nSurfaces];
-  for(unsigned int isur = 0; isur< nSurfaces; isur++){
+  const Acts::Surface *surfacePtrs[nSurfaces];
+  for (unsigned int isur = 0; isur < nSurfaces; isur++) {
     surfacePtrs[isur] = &surfaces[isur];
   }
- 
-  std::cout<<"Creating "<<surfaces.size()<<" boundless plane surfaces"<<std::endl;
+
+  std::cout << "Creating " << surfaces.size() << " boundless plane surfaces"
+            << std::endl;
 
   // Test the pointers to surfaces
-  const PlaneSurface* surfacePtr = surfaces.data();
-  for(unsigned int isur = 0; isur < nSurfaces; isur++){
-    //std::cout<<"surface " << isur <<  " has center at: \n" <<(*surfacePtr).center(gctx)<<std::endl; 
+  const PlaneSurface *surfacePtr = surfaces.data();
+  for (unsigned int isur = 0; isur < nSurfaces; isur++) {
+    // std::cout<<"surface " << isur <<  " has center at: \n"
+    // <<(*surfacePtr).center(gctx)<<std::endl;
     surfacePtr++;
   }
 
-
-
-//   InterpolatedBFieldMap3D bField = Options::readBField(bFieldFileName);
-//   std::cout
-//      << "Reading BField and creating a 3D InterpolatedBFieldMap instance done"
-//      << std::endl;
+  //   InterpolatedBFieldMap3D bField = Options::readBField(bFieldFileName);
+  //   std::cout
+  //      << "Reading BField and creating a 3D InterpolatedBFieldMap instance
+  //      done"
+  //      << std::endl;
 
   // Construct a stepper with the bField
-  //Stepper stepper(bField);
+  // Stepper stepper(bField);
   Stepper stepper;
   PropagatorType propagator(stepper);
   PropOptionsType propOptions(gctx, mctx);
@@ -211,22 +216,25 @@ int main(int argc, char *argv[]) {
 
   // Construct random starting track parameters
   std::vector<CurvilinearParameters> startPars;
-  double resLoc1 = 0.1*Acts::units::_mm;
-  double resLoc2 = 0.1*Acts::units::_mm;
+  double resLoc1 = 0.1 * Acts::units::_mm;
+  double resLoc2 = 0.1 * Acts::units::_mm;
   double resPhi = 0.01;
   double resTheta = 0.01;
   for (int i = 0; i < nTracks; i++) {
     BoundSymMatrix cov = BoundSymMatrix::Zero();
-    cov << resLoc1*resLoc1, 0., 0., 0., 0., 0., 0., resLoc2*resLoc2, 0., 0., 0., 0., 0., 0., resPhi*resPhi,
-        0., 0., 0., 0., 0., 0., resTheta*resTheta, 0., 0., 0., 0., 0., 0., 0.0001, 0., 0.,
-        0., 0., 0., 0., 1.;
+    cov << resLoc1 * resLoc1, 0., 0., 0., 0., 0., 0., resLoc2 * resLoc2, 0., 0.,
+        0., 0., 0., 0., resPhi * resPhi, 0., 0., 0., 0., 0., 0.,
+        resTheta * resTheta, 0., 0., 0., 0., 0., 0., 0.0001, 0., 0., 0., 0., 0.,
+        0., 1.;
 
     double q = 1;
     double time = 0;
-    double phi = gauss(generator)*resPhi;
-    double theta = M_PI/2 + gauss(generator)*resTheta;
-    Vector3D pos(0, resLoc1 * gauss(generator), resLoc2 * gauss(generator)); // Units: mm
-    Vector3D mom(p*sin(theta)*cos(phi), p*sin(theta)*sin(phi), p*cos(theta)); // Units: GeV 
+    double phi = gauss(generator) * resPhi;
+    double theta = M_PI / 2 + gauss(generator) * resTheta;
+    Vector3D pos(0, resLoc1 * gauss(generator),
+                 resLoc2 * gauss(generator)); // Units: mm
+    Vector3D mom(p * sin(theta) * cos(phi), p * sin(theta) * sin(phi),
+                 p * cos(theta)); // Units: GeV
 
     startPars.emplace_back(cov, pos, mom, q, time);
   }
@@ -236,7 +244,7 @@ int main(int argc, char *argv[]) {
 
   auto start = std::chrono::high_resolution_clock::now();
 
-  // Creating the tracks 
+  // Creating the tracks
   for (int it = 0; it < nTracks; it++) {
     propagator.propagate(startPars[it], propOptions, ress[it]);
   }
@@ -249,9 +257,9 @@ int main(int argc, char *argv[]) {
   // start to perform fit to the created tracks
   using RecoStepper = EigenStepper<ConstantBField>;
   using RecoPropagator = Propagator<RecoStepper>;
-  using KalmanFitter =
-      KalmanFitter<RecoPropagator, GainMatrixUpdater>;
-  using KalmanFitterResult = KalmanFitterResult<PixelSourceLink, BoundParameters>;
+  using KalmanFitter = KalmanFitter<RecoPropagator, GainMatrixUpdater>;
+  using KalmanFitterResult =
+      KalmanFitterResult<PixelSourceLink, BoundParameters>;
   using TrackState = typename KalmanFitterResult::TrackStateType;
 
   // Contruct a KalmanFitter instance
@@ -259,51 +267,54 @@ int main(int argc, char *argv[]) {
   KalmanFitter kFitter(rPropagator);
   KalmanFitterOptions kfOptions(gctx, mctx);
 
-  std::vector<TrackState*> fittedTracks;
-  for(int it =0; it< nTracks; it++){
-    // Struct with deleted default constructor will have problem 
-   auto states = new TrackState[nSurfaces];
-   if(states == nullptr) {
-    std::cout<<"memory allocation failure"<<std::endl;
-    return 1; 
-   } 
-   fittedTracks.push_back(states); 
-  } 
+  std::vector<TrackState *> fittedTracks;
+  for (int it = 0; it < nTracks; it++) {
+    // Struct with deleted default constructor will have problem
+    auto states = new TrackState[nSurfaces];
+    if (states == nullptr) {
+      std::cout << "memory allocation failure" << std::endl;
+      return 1;
+    }
+    fittedTracks.push_back(states);
+  }
 
   for (int it = 0; it < nTracks; it++) {
     BoundSymMatrix cov = BoundSymMatrix::Zero();
-    cov << resLoc1*resLoc1, 0., 0., 0., 0., 0., 0., resLoc2*resLoc2, 0., 0., 0., 0., 0., 0., resPhi*resPhi,
-        0., 0., 0., 0., 0., 0., resTheta*resTheta, 0., 0., 0., 0., 0., 0., 0.0001, 0., 0.,
-        0., 0., 0., 0., 1.;
+    cov << resLoc1 * resLoc1, 0., 0., 0., 0., 0., 0., resLoc2 * resLoc2, 0., 0.,
+        0., 0., 0., 0., resPhi * resPhi, 0., 0., 0., 0., 0., 0.,
+        resTheta * resTheta, 0., 0., 0., 0., 0., 0., 0.0001, 0., 0., 0., 0., 0.,
+        0., 1.;
 
     double q = 1;
     double time = 0;
     Vector3D pos(0, 0, 0); // Units: mm
-    Vector3D mom(p, 0, 0); // Units: GeV 
+    Vector3D mom(p, 0, 0); // Units: GeV
 
     CurvilinearParameters rStart(cov, pos, mom, q, time);
-    
-    // Need to transform the container 
-//    thrust::host_vector<PixelSourceLink> sourcelinks;
-//    for(const auto& sl: ress[it].actorResult.sourcelinks){
-//       sourcelinks.push_back(sl); 
-//    }
-    
-    // Dynamically allocating memory for the fitted states here 
+
+    // Need to transform the container
+    //    thrust::host_vector<PixelSourceLink> sourcelinks;
+    //    for(const auto& sl: ress[it].actorResult.sourcelinks){
+    //       sourcelinks.push_back(sl);
+    //    }
+
+    // Dynamically allocating memory for the fitted states here
     KalmanFitterResult kfResult;
     kfResult.fittedStates = CudaKernelContainer(fittedTracks[it], nSurfaces);
 
-    auto sourcelinkTrack = CudaKernelContainer(ress[it].sourcelinks.data(), ress[it].sourcelinks.size());
+    auto sourcelinkTrack = CudaKernelContainer(ress[it].sourcelinks.data(),
+                                               ress[it].sourcelinks.size());
     // The fittedTracks will be changed here
-    auto fitStatus = kFitter.fit(sourcelinkTrack, rStart, kfOptions, kfResult, surfacePtrs, nSurfaces);
-    if(not fitStatus) {
-       std::cout<<"fit failure for track "<<it << std::endl;
+    auto fitStatus = kFitter.fit(sourcelinkTrack, rStart, kfOptions, kfResult,
+                                 surfacePtrs, nSurfaces);
+    if (not fitStatus) {
+      std::cout << "fit failure for track " << it << std::endl;
     }
   }
 
   auto end_fit = std::chrono::high_resolution_clock::now();
   elapsed_seconds = end_fit - end_propagate;
-  std::cout << "Time (sec) to run KalmanFitter for " <<  nTracks <<" : "
+  std::cout << "Time (sec) to run KalmanFitter for " << nTracks << " : "
             << elapsed_seconds.count() << std::endl;
 
   if (output) {
@@ -320,7 +331,7 @@ int main(int argc, char *argv[]) {
       obj_track.open(fileName.c_str());
 
        for (const auto& sl: tracks) {
-	const auto& pos = sl.globalPosition(gctx);
+        const auto& pos = sl.globalPosition(gctx);
         obj_track << "v " << pos.x() << " "
                  << pos.y() << " " <<
                  pos.z()
@@ -329,28 +340,27 @@ int main(int argc, char *argv[]) {
        for (unsigned int iv = 2; iv <= tracks.size(); ++iv) {
         obj_track << "l " << iv - 1 << " " << iv << std::endl;
       }
-      
+
       obj_track.close();
     }
     */
 
-    std::cout<<"writing propagation results"<<std::endl;
+    std::cout << "writing propagation results" << std::endl;
     // Write all of the created tracks to one obj file
     std::ofstream obj_track;
-    std::string fileName ="cpu_output/Tracks-propagation.obj";
+    std::string fileName = "cpu_output/Tracks-propagation.obj";
     obj_track.open(fileName.c_str());
 
     // Initialize the vertex counter
     unsigned int vCounter = 0;
-    for(int it = 0; it< nTracks; it++){
+    for (int it = 0; it < nTracks; it++) {
       auto tracks = ress[it].sourcelinks;
       ++vCounter;
-      for (const auto& sl: tracks) {
-	 const auto& pos = sl.globalPosition(gctx);
-	 obj_track << "v " << pos.x() << " "
-                 << pos.y() << " " <<
-                 pos.z() << "\n";
-	 std::cout<<"pos.x() "<<pos.x()<<std::endl;
+      for (const auto &sl : tracks) {
+        const auto &pos = sl.globalPosition(gctx);
+        obj_track << "v " << pos.x() << " " << pos.y() << " " << pos.z()
+                  << "\n";
+        std::cout << "pos.x() " << pos.x() << std::endl;
       }
       // Write out the line - only if we have at least two points created
       size_t vBreak = vCounter + tracks.size() - 1;
@@ -359,21 +369,20 @@ int main(int argc, char *argv[]) {
     }
     obj_track.close();
 
-    std::cout<<"writing KF results"<<std::endl;
+    std::cout << "writing KF results" << std::endl;
     // Write all of the created tracks to one obj file
     std::ofstream obj_ftrack;
-    std::string fileName_ ="cpu_output/Tracks-fitted.obj";
+    std::string fileName_ = "cpu_output/Tracks-fitted.obj";
     obj_ftrack.open(fileName_.c_str());
 
     // Initialize the vertex counter
     vCounter = 0;
-    for(int it = 0; it< nTracks; it++){
+    for (int it = 0; it < nTracks; it++) {
       ++vCounter;
-      for (int is = 0; is< nSurfaces; is++) {
-         const auto& pos = fittedTracks[it][is].parameter.filtered.position();
-         obj_ftrack << "v " << pos.x() << " "
-                 << pos.y() << " " <<
-                 pos.z() << "\n";
+      for (int is = 0; is < nSurfaces; is++) {
+        const auto &pos = fittedTracks[it][is].parameter.filtered.position();
+        obj_ftrack << "v " << pos.x() << " " << pos.y() << " " << pos.z()
+                   << "\n";
       }
       // Write out the line - only if we have at least two points created
       size_t vBreak = vCounter + nSurfaces - 1;
@@ -381,12 +390,11 @@ int main(int argc, char *argv[]) {
         obj_ftrack << "l " << vCounter << " " << vCounter + 1 << '\n';
     }
     obj_ftrack.close();
-
   }
 
-  for(int it =0; it< nTracks; it++){
-   delete[] fittedTracks[it];
-  } 
+  for (int it = 0; it < nTracks; it++) {
+    delete[] fittedTracks[it];
+  }
 
   std::cout << "------------------------  ending  -----------------------"
             << std::endl;

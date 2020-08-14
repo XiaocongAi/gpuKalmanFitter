@@ -1,15 +1,15 @@
+#include "EventData/PixelSourceLink.hpp"
+#include "EventData/TrackParameters.hpp"
+#include "Fitter/GainMatrixUpdater.hpp"
+#include "Fitter/KalmanFitter.hpp"
 #include "Geometry/GeometryContext.hpp"
 #include "MagneticField/MagneticFieldContext.hpp"
 #include "Plugins/BFieldOptions.hpp"
 #include "Plugins/BFieldUtils.hpp"
 #include "Propagator/EigenStepper.hpp"
-#include "EventData/TrackParameters.hpp"
-#include "EventData/PixelSourceLink.hpp"
 #include "Propagator/Propagator.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
 #include "Utilities/Units.hpp"
-#include "Fitter/KalmanFitter.hpp"
-#include "Fitter/GainMatrixUpdater.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -50,44 +50,45 @@ std::normal_distribution<double> gauss(0., 1.);
 // Struct for B field
 struct ConstantBField {
   ACTS_DEVICE_FUNC static Vector3D getField(const Vector3D & /*field*/) {
-    return Vector3D(0., 0., 2.*Acts::units::_T);
+    return Vector3D(0., 0., 2. * Acts::units::_T);
   }
 };
 
 // Measurement creator
 struct MeasurementCreator {
-  double resX = 30*Acts::units::_um;
-  double resY = 30*Acts::units::_um;
+  double resX = 30 * Acts::units::_um;
+  double resY = 30 * Acts::units::_um;
 
   struct this_result {
-   std::vector<PixelSourceLink> sourcelinks;
+    std::vector<PixelSourceLink> sourcelinks;
   };
   using result_type = this_result;
 
   template <typename propagator_state_t, typename stepper_t>
   void operator()(propagator_state_t &state, const stepper_t &stepper,
                   result_type &result) const {
-    if(state.navigation.currentSurface!=nullptr) {
+    if (state.navigation.currentSurface != nullptr) {
 
-     // Apply global to local
-     Vector2D lPos;
-     state.navigation.currentSurface->globalToLocal(state.options.geoContext,
-                                 stepper.position(state.stepping),
-                                 stepper.direction(state.stepping), lPos);
-     // Perform the smearing to truth
-     double dx = resX * gauss(generator);
-     double dy = resY * gauss(generator);
+      // Apply global to local
+      Vector2D lPos;
+      state.navigation.currentSurface->globalToLocal(
+          state.options.geoContext, stepper.position(state.stepping),
+          stepper.direction(state.stepping), lPos);
+      // Perform the smearing to truth
+      double dx = resX * gauss(generator);
+      double dy = resY * gauss(generator);
 
-     // The measurement values
-     Vector2D values;
-     values << lPos[0] + dx, lPos[1] + dy;
+      // The measurement values
+      Vector2D values;
+      values << lPos[0] + dx, lPos[1] + dy;
 
-     // The measurement covariance
-     SymMatrix2D cov;
-     cov << resX* resX, 0., 0., resY*resY;
+      // The measurement covariance
+      SymMatrix2D cov;
+      cov << resX * resX, 0., 0., resY * resY;
 
-     // Push back to the container
-     result.sourcelinks.emplace_back(values, cov, state.navigation.currentSurface);
+      // Push back to the container
+      result.sourcelinks.emplace_back(values, cov,
+                                      state.navigation.currentSurface);
     }
     return;
   }
@@ -101,8 +102,9 @@ struct VoidActor {
   using result_type = this_result;
 
   template <typename propagator_state_t, typename stepper_t>
-  __host__ __device__ void operator()(propagator_state_t &state, const stepper_t &stepper,
-                  result_type &result) const {
+  __host__ __device__ void operator()(propagator_state_t &state,
+                                      const stepper_t &stepper,
+                                      result_type &result) const {
     return;
   }
 };
@@ -110,37 +112,39 @@ struct VoidActor {
 // Test aborter
 struct VoidAborter {
   template <typename propagator_state_t, typename stepper_t, typename result_t>
-  __host__ __device__ bool operator()(propagator_state_t &state, const stepper_t &stepper,
-                  result_t &result) const {
+  __host__ __device__ bool operator()(propagator_state_t &state,
+                                      const stepper_t &stepper,
+                                      result_t &result) const {
     return false;
   }
 };
 
 using Stepper = EigenStepper<ConstantBField>;
-//using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
+// using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
 using PropagatorType = Propagator<Stepper>;
 using PropResultType = PropagatorResult;
 using PropOptionsType = PropagatorOptions<MeasurementCreator, VoidAborter>;
 
-using KalmanFitterType =
-    KalmanFitter<PropagatorType, GainMatrixUpdater>;
-using KalmanFitterResultType = KalmanFitterResult<PixelSourceLink, BoundParameters>;
+using KalmanFitterType = KalmanFitter<PropagatorType, GainMatrixUpdater>;
+using KalmanFitterResultType =
+    KalmanFitterResult<PixelSourceLink, BoundParameters>;
 using TSType = typename KalmanFitterResultType::TrackStateType;
 
 // Device code
 __global__ void propKernel(KalmanFitterType *kFitter,
-		           PixelSourceLink* sourcelinks,
+                           PixelSourceLink *sourcelinks,
                            CurvilinearParameters *tpars,
                            KalmanFitterOptions<VoidOutlierFinder> kfOptions,
-                           TSType *fittedTracks,
-			   const Surface** surfacePtrs, 
-			   int nSurfaces, 
-                           int N) {
+                           TSType *fittedTracks, const Surface **surfacePtrs,
+                           int nSurfaces, int N) {
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if (i < N) {
     KalmanFitterResultType kfResult;
-    kfResult.fittedStates = CudaKernelContainer<TSType>(fittedTracks+i*nSurfaces, nSurfaces);
-    kFitter->fit(CudaKernelContainer<PixelSourceLink>(sourcelinks+i*nSurfaces, nSurfaces), tpars[i], kfOptions, kfResult, surfacePtrs, nSurfaces);
+    kfResult.fittedStates =
+        CudaKernelContainer<TSType>(fittedTracks + i * nSurfaces, nSurfaces);
+    kFitter->fit(CudaKernelContainer<PixelSourceLink>(
+                     sourcelinks + i * nSurfaces, nSurfaces),
+                 tpars[i], kfOptions, kfResult, surfacePtrs, nSurfaces);
   }
 }
 
@@ -163,7 +167,7 @@ int main(int argc, char *argv[]) {
       if ((arg == "-t") or (arg == "--tracks")) {
         nTracks = atoi(argv[++i]);
       } else if ((arg == "-p") or (arg == "--pt")) {
-        p = atof(argv[++i])*Acts::units::_GeV;
+        p = atof(argv[++i]) * Acts::units::_GeV;
       } else if ((arg == "-o") or (arg == "--output")) {
         output = (atoi(argv[++i]) == 1);
       } else if ((arg == "-d") or (arg == "--device")) {
@@ -175,27 +179,31 @@ int main(int argc, char *argv[]) {
     }
   }
 
-   // Create the geometry
-  size_t nSurfaces = 15; 
+  // Create the geometry
+  size_t nSurfaces = 15;
   // Set translation vectors
   std::vector<Acts::Vector3D> translations;
-  for(unsigned int isur = 0; isur< nSurfaces; isur++){
-    translations.push_back({(isur * 30. + 19)*Acts::units::_mm, 0., 0.});
+  for (unsigned int isur = 0; isur < nSurfaces; isur++) {
+    translations.push_back({(isur * 30. + 19) * Acts::units::_mm, 0., 0.});
   }
 
-  Acts::PlaneSurface* surfaces;
-  GPUERRCHK(cudaMallocManaged(&surfaces, sizeof(Acts::PlaneSurface)*nSurfaces));
-  for(unsigned int isur = 0; isur< nSurfaces; isur++){
-    surfaces[isur] = Acts::PlaneSurface(translations[isur], Acts::Vector3D(1,0,0));
+  Acts::PlaneSurface *surfaces;
+  GPUERRCHK(
+      cudaMallocManaged(&surfaces, sizeof(Acts::PlaneSurface) * nSurfaces));
+  for (unsigned int isur = 0; isur < nSurfaces; isur++) {
+    surfaces[isur] =
+        Acts::PlaneSurface(translations[isur], Acts::Vector3D(1, 0, 0));
   }
 
-  const Acts::Surface** surfacePtrs;
-  GPUERRCHK(cudaMallocManaged(&surfacePtrs, sizeof(const Acts::Surface*)*nSurfaces));
-  for(unsigned int isur = 0; isur< nSurfaces; isur++){
+  const Acts::Surface **surfacePtrs;
+  GPUERRCHK(cudaMallocManaged(&surfacePtrs,
+                              sizeof(const Acts::Surface *) * nSurfaces));
+  for (unsigned int isur = 0; isur < nSurfaces; isur++) {
     surfacePtrs[isur] = &surfaces[isur];
   }
 
-  std::cout<<"Creating "<<nSurfaces<<" boundless plane surfaces"<<std::endl;
+  std::cout << "Creating " << nSurfaces << " boundless plane surfaces"
+            << std::endl;
 
   std::cout << "----- Propgation test of " << nTracks << " tracks on " << device
             << ". Writing results to obj file? " << output << " ----- "
@@ -205,9 +213,10 @@ int main(int argc, char *argv[]) {
   GeometryContext gctx;
   MagneticFieldContext mctx;
 
-  //InterpolatedBFieldMap3D bField = Options::readBField(bFieldFileName);
-  //std::cout
-  //    << "Reading BField and creating a 3D InterpolatedBFieldMap instance done"
+  // InterpolatedBFieldMap3D bField = Options::readBField(bFieldFileName);
+  // std::cout
+  //    << "Reading BField and creating a 3D InterpolatedBFieldMap instance
+  //    done"
   //    << std::endl;
 
   // Construct a stepper with the bField
@@ -220,22 +229,25 @@ int main(int argc, char *argv[]) {
 
   // Construct random starting track parameters
   std::vector<CurvilinearParameters> startPars;
-  double resLoc1 = 0.1*Acts::units::_mm;
-  double resLoc2 = 0.1*Acts::units::_mm;
+  double resLoc1 = 0.1 * Acts::units::_mm;
+  double resLoc2 = 0.1 * Acts::units::_mm;
   double resPhi = 0.01;
   double resTheta = 0.01;
   for (int i = 0; i < nTracks; i++) {
     BoundSymMatrix cov = BoundSymMatrix::Zero();
-    cov << resLoc1*resLoc1, 0., 0., 0., 0., 0., 0., resLoc2*resLoc2, 0., 0., 0., 0., 0., 0., resPhi*resPhi,
-        0., 0., 0., 0., 0., 0., resTheta*resTheta, 0., 0., 0., 0., 0., 0., 0.0001, 0., 0.,
-        0., 0., 0., 0., 1.;
+    cov << resLoc1 * resLoc1, 0., 0., 0., 0., 0., 0., resLoc2 * resLoc2, 0., 0.,
+        0., 0., 0., 0., resPhi * resPhi, 0., 0., 0., 0., 0., 0.,
+        resTheta * resTheta, 0., 0., 0., 0., 0., 0., 0.0001, 0., 0., 0., 0., 0.,
+        0., 1.;
 
     double q = 1;
     double time = 0;
-    double phi = gauss(generator)*resPhi;
-    double theta = M_PI/2 + gauss(generator)*resTheta;
-    Vector3D pos(0, resLoc1 * gauss(generator), resLoc2 * gauss(generator)); // Units: mm
-    Vector3D mom(p*sin(theta)*cos(phi), p*sin(theta)*sin(phi), p*cos(theta)); // Units: GeV 
+    double phi = gauss(generator) * resPhi;
+    double theta = M_PI / 2 + gauss(generator) * resTheta;
+    Vector3D pos(0, resLoc1 * gauss(generator),
+                 resLoc2 * gauss(generator)); // Units: mm
+    Vector3D mom(p * sin(theta) * cos(phi), p * sin(theta) * sin(phi),
+                 p * cos(theta)); // Units: GeV
 
     startPars.emplace_back(cov, pos, mom, q, time);
   }
@@ -255,40 +267,42 @@ int main(int argc, char *argv[]) {
   KalmanFitterType kFitter(rPropagator);
   KalmanFitterOptions<VoidOutlierFinder> kfOptions(gctx, mctx);
 
-  KalmanFitterType * kFitterPtr;
+  KalmanFitterType *kFitterPtr;
   GPUERRCHK(cudaMallocManaged(&kFitterPtr, sizeof(KalmanFitterType)));
   kFitterPtr = &kFitter;
 
   auto start = std::chrono::high_resolution_clock::now();
 
-  std::vector<TSType*> fittedTracks;
-  for(int it =0; it< nTracks; it++){
-    // Struct with deleted default constructor will have problem 
-   auto states = new TSType[nSurfaces];
-   if(states == nullptr) {
-    std::cout<<"memory allocation failure"<<std::endl;
-    return 1;
-   }
-   fittedTracks.push_back(states);
+  std::vector<TSType *> fittedTracks;
+  for (int it = 0; it < nTracks; it++) {
+    // Struct with deleted default constructor will have problem
+    auto states = new TSType[nSurfaces];
+    if (states == nullptr) {
+      std::cout << "memory allocation failure" << std::endl;
+      return 1;
+    }
+    fittedTracks.push_back(states);
   }
- 
+
   // Running directly on host or offloading to GPU
   bool useGPU = (device == "gpu" ? true : false);
   if (useGPU) {
     // Allocate memory on device
-    PixelSourceLink* d_sourcelinks; 
+    PixelSourceLink *d_sourcelinks;
     CurvilinearParameters *d_pars;
-    TSType* d_fittedTracks;
+    TSType *d_fittedTracks;
 
-    GPUERRCHK(cudaMalloc(&d_sourcelinks, sizeof(PixelSourceLink)*nSurfaces*nTracks));
-    GPUERRCHK(cudaMalloc(&d_fittedTracks, sizeof(TSType)*nSurfaces*nTracks));
-    GPUERRCHK(cudaMalloc(&d_pars, sizeof(CurvilinearParameters)*nTracks));
+    GPUERRCHK(cudaMalloc(&d_sourcelinks,
+                         sizeof(PixelSourceLink) * nSurfaces * nTracks));
+    GPUERRCHK(
+        cudaMalloc(&d_fittedTracks, sizeof(TSType) * nSurfaces * nTracks));
+    GPUERRCHK(cudaMalloc(&d_pars, sizeof(CurvilinearParameters) * nTracks));
 
     // Copy from host to device
-    for(int it=0; it<nTracks; it++){
-    GPUERRCHK(cudaMemcpy(d_sourcelinks+it*nSurfaces, ress[it].sourcelinks.data(),
-                         sizeof(PixelSourceLink)*nSurfaces,
-                         cudaMemcpyHostToDevice));
+    for (int it = 0; it < nTracks; it++) {
+      GPUERRCHK(cudaMemcpy(
+          d_sourcelinks + it * nSurfaces, ress[it].sourcelinks.data(),
+          sizeof(PixelSourceLink) * nSurfaces, cudaMemcpyHostToDevice));
     }
     GPUERRCHK(cudaMemcpy(d_pars, startPars.data(),
                          nTracks * sizeof(CurvilinearParameters),
@@ -298,16 +312,17 @@ int main(int argc, char *argv[]) {
     int threadsPerBlock = 256;
     int blocksPerGrid = (nTracks + threadsPerBlock - 1) / threadsPerBlock;
     propKernel<<<blocksPerGrid, threadsPerBlock>>>(
-        //d_propagator, d_pars, d_opt, d_ress, nTracks);
-        kFitterPtr, d_sourcelinks, d_pars, kfOptions, d_fittedTracks, surfacePtrs, nSurfaces, nTracks);
+        // d_propagator, d_pars, d_opt, d_ress, nTracks);
+        kFitterPtr, d_sourcelinks, d_pars, kfOptions, d_fittedTracks,
+        surfacePtrs, nSurfaces, nTracks);
 
     GPUERRCHK(cudaPeekAtLastError());
     GPUERRCHK(cudaDeviceSynchronize());
 
     // Copy result from device to host
-    for(int it=0; it<nTracks; it++){
-    GPUERRCHK(cudaMemcpy(fittedTracks[it], d_fittedTracks + it*nSurfaces, sizeof(TSType)*nSurfaces,
-                         cudaMemcpyDeviceToHost));
+    for (int it = 0; it < nTracks; it++) {
+      GPUERRCHK(cudaMemcpy(fittedTracks[it], d_fittedTracks + it * nSurfaces,
+                           sizeof(TSType) * nSurfaces, cudaMemcpyDeviceToHost));
     }
 
     // Free the memory on device
@@ -317,20 +332,19 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaFree(surfaces));
     GPUERRCHK(cudaFree(surfacePtrs));
     GPUERRCHK(cudaFree(kFitterPtr));
-  } 
-//  else {
-//// Run on host
-//#pragma omp parallel for
-//    for (int it = 0; it < nTracks; it++) {
-//      ress[it] = propagator.propagate(startPars[it], propOptions);
-//    }
-//  }
+  }
+  //  else {
+  //// Run on host
+  //#pragma omp parallel for
+  //    for (int it = 0; it < nTracks; it++) {
+  //      ress[it] = propagator.propagate(startPars[it], propOptions);
+  //    }
+  //  }
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed_seconds = end - start;
   std::cout << "Time (sec) to run propagation tests: "
             << elapsed_seconds.count() << std::endl;
-
 
   std::cout << "------------------------  ending  -----------------------"
             << std::endl;

@@ -236,7 +236,7 @@ template <typename bfield_t> struct EigenStepper {
   /// Output the Step Size - single component
   ///
   /// @param state [in,out] The stepping state (thread-local cache)
-  std::string outputStepSize(const State& state) const {
+  std::string outputStepSize(const State &state) const {
     return state.stepSize.toString();
   }
 

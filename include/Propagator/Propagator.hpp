@@ -169,10 +169,10 @@ public:
   ///
   template <typename parameters_t, typename propagator_options_t,
             typename path_aborter_t = PathLimitReached>
-  ACTS_DEVICE_FUNC
-      PropagatorResult
-      propagate(const parameters_t &start,
-                const propagator_options_t &options, typename propagator_options_t::action_type::result_type& actorResult) const;
+  ACTS_DEVICE_FUNC PropagatorResult propagate(
+      const parameters_t &start, const propagator_options_t &options,
+      typename propagator_options_t::action_type::result_type &actorResult)
+      const;
 
   /// @brief Get a non-const reference on the underlying stepper
   ///

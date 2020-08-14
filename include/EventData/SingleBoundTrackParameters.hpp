@@ -38,9 +38,7 @@ public:
   ACTS_DEVICE_FUNC SingleBoundTrackParameters()
       : SingleTrackParameters<ChargePolicy>(
             CovarianceMatrix::Zero(), ParametersVector::Zero(),
-            Vector3D(0,0,0), 
-            Vector3D(0,0,0)){
-  }
+            Vector3D(0, 0, 0), Vector3D(0, 0, 0)) {}
 
   /// @brief Constructor of track parameters bound to a surface
   /// This is the constructor from global parameters, enabled only
@@ -57,9 +55,9 @@ public:
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, ChargedPolicy>::value, int> = 0>
   ACTS_DEVICE_FUNC SingleBoundTrackParameters(const GeometryContext &gctx,
-                             const CovarianceMatrix &cov,
-                             const ParametersVector &parValues,
-                             const Surface *surface)
+                                              const CovarianceMatrix &cov,
+                                              const ParametersVector &parValues,
+                                              const Surface *surface)
       : SingleTrackParameters<ChargePolicy>(
             std::move(cov), parValues,
             detail::coordinate_transformation::parameters2globalPosition(
@@ -89,10 +87,11 @@ public:
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, ChargedPolicy>::value, int> = 0>
   ACTS_DEVICE_FUNC SingleBoundTrackParameters(const GeometryContext &gctx,
-                             const CovarianceMatrix &cov,
-                             const Vector3D &position, const Vector3D &momentum,
-                             Scalar dCharge, Scalar dTime,
-                             const Surface *surface)
+                                              const CovarianceMatrix &cov,
+                                              const Vector3D &position,
+                                              const Vector3D &momentum,
+                                              Scalar dCharge, Scalar dTime,
+                                              const Surface *surface)
       : SingleTrackParameters<ChargePolicy>(
             std::move(cov),
             detail::coordinate_transformation::global2parameters(
@@ -118,9 +117,9 @@ public:
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, NeutralPolicy>::value, int> = 0>
   ACTS_DEVICE_FUNC SingleBoundTrackParameters(const GeometryContext &gctx,
-                             const CovarianceMatrix &cov,
-                             const ParametersVector &parValues,
-                             const Surface *surface)
+                                              const CovarianceMatrix &cov,
+                                              const ParametersVector &parValues,
+                                              const Surface *surface)
       : SingleTrackParameters<ChargePolicy>(
             std::move(cov), parValues,
             detail::coordinate_transformation::parameters2globalPosition(
@@ -149,7 +148,8 @@ public:
   /// @param[in] surface The reference surface the parameters are bound to
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, NeutralPolicy>::value, int> = 0>
-  ACTS_DEVICE_FUNC SingleBoundTrackParameters(const GeometryContext &gctx,
+  ACTS_DEVICE_FUNC
+  SingleBoundTrackParameters(const GeometryContext &gctx,
                              const CovarianceMatrix &cov,
                              const Vector3D &position, const Vector3D &momentum,
                              Scalar dTime, const Surface *surface)
@@ -170,7 +170,8 @@ public:
 
   /// @brief move constructor - charged/neutral
   /// @param[in] other The source parameters
-  ACTS_DEVICE_FUNC SingleBoundTrackParameters(SingleBoundTrackParameters<ChargePolicy> &&other)
+  ACTS_DEVICE_FUNC
+  SingleBoundTrackParameters(SingleBoundTrackParameters<ChargePolicy> &&other)
       : SingleTrackParameters<ChargePolicy>(std::move(other)),
         m_pSurface(std::move(other.m_pSurface)) {}
 

@@ -3,10 +3,10 @@ using namespace Acts;
 template <typename S, typename N>
 template <typename parameters_t, typename propagator_options_t,
           typename path_aborter_t>
-ACTS_DEVICE_FUNC
-    PropagatorResult
-    Acts::Propagator<S, N>::propagate(
-        const parameters_t &start, const propagator_options_t &options, typename propagator_options_t::action_type::result_type& actorResult) const {
+ACTS_DEVICE_FUNC PropagatorResult Acts::Propagator<S, N>::propagate(
+    const parameters_t &start, const propagator_options_t &options,
+    typename propagator_options_t::action_type::result_type &actorResult)
+    const {
   PropagatorResult result;
 
   using StateType = State<propagator_options_t>;
@@ -65,14 +65,14 @@ ACTS_DEVICE_FUNC
   state.options.action(state, m_stepper, actorResult);
 
   /// Convert into return type and fill the result object
-//  auto curvState = m_stepper.curvilinearState(state.stepping);
+  //  auto curvState = m_stepper.curvilinearState(state.stepping);
   // Fill the end parameters
   // result.endParameters = std::make_unique<const
   // CurvilinearParameters>(std::get<CurvilinearParameters>(curvState));
   // Only fill the transport jacobian when covariance transport was done
-//  if (state.stepping.covTransport) {
-//    result.transportJacobian = std::get<Jacobian>(curvState);
-//  }
+  //  if (state.stepping.covTransport) {
+  //    result.transportJacobian = std::get<Jacobian>(curvState);
+  //  }
 
   return result;
 }

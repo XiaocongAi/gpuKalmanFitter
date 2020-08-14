@@ -47,7 +47,7 @@ public:
   /// surface sequence
   struct Initializer {
     /// The Surface sequence
-    const Surface** surfaceSequence = nullptr;
+    const Surface **surfaceSequence = nullptr;
 
     /// The surface sequence size
     size_t surfaceSequenceSize = 0;
@@ -74,8 +74,8 @@ public:
       // Only act once
       if (not r.initialized) {
         // Initialize the surface sequence
-	state.navigation.surfaceSequence = surfaceSequence;
-	state.navigation.surfaceSequenceSize = surfaceSequenceSize;
+        state.navigation.surfaceSequence = surfaceSequence;
+        state.navigation.surfaceSequenceSize = surfaceSequenceSize;
         r.initialized = true;
       }
     }
@@ -94,7 +94,7 @@ public:
   struct State {
     /// Externally provided surfaces - expected to be ordered
     /// along the path
-    const Surface** surfaceSequence = nullptr;
+    const Surface **surfaceSequence = nullptr;
 
     /// The surface sequence size
     size_t surfaceSequenceSize = 0;
@@ -135,23 +135,27 @@ public:
     // Navigator status always resets the current surface
     state.navigation.currentSurface = nullptr;
     // Check if we are on surface
-    if (state.navigation.nextSurfaceIter != state.navigation.surfaceSequenceSize) {
-        auto surfacePtr = state.navigation.surfaceSequence[state.navigation.nextSurfaceIter];
-        // Establish the surface status
-        auto surfaceStatus =
-            stepper.updateSurfaceStatus(state.stepping, *surfacePtr, false);
-        if (surfaceStatus == Intersection::Status::onSurface) {
-          // Set the current surface
-          state.navigation.currentSurface = surfacePtr;
-          // Move the sequence to the next surface
-          ++state.navigation.nextSurfaceIter;
-          //@Todo: I guess this could be removed as it's already done in the updateSurfaceStatus
-          if (state.navigation.nextSurfaceIter != state.navigation.surfaceSequenceSize) {
-            stepper.releaseStepSize(state.stepping);
-          }
+    if (state.navigation.nextSurfaceIter !=
+        state.navigation.surfaceSequenceSize) {
+      auto surfacePtr =
+          state.navigation.surfaceSequence[state.navigation.nextSurfaceIter];
+      // Establish the surface status
+      auto surfaceStatus =
+          stepper.updateSurfaceStatus(state.stepping, *surfacePtr, false);
+      if (surfaceStatus == Intersection::Status::onSurface) {
+        // Set the current surface
+        state.navigation.currentSurface = surfacePtr;
+        // Move the sequence to the next surface
+        ++state.navigation.nextSurfaceIter;
+        //@Todo: I guess this could be removed as it's already done in the
+        // updateSurfaceStatus
+        if (state.navigation.nextSurfaceIter !=
+            state.navigation.surfaceSequenceSize) {
+          stepper.releaseStepSize(state.stepping);
         }
-      } 
-    //printf("end of status\n");
+      }
+    }
+    // printf("end of status\n");
   }
 
   /// @brief Navigator target call
@@ -167,15 +171,17 @@ public:
 
     // Navigator target always resets the current surface
     state.navigation.currentSurface = nullptr;
-    if (state.navigation.nextSurfaceIter != state.navigation.surfaceSequenceSize) {
-        auto surfacePtr = state.navigation.surfaceSequence[state.navigation.nextSurfaceIter];
-        // Establish & update the surface status
-        auto surfaceStatus =
-            stepper.updateSurfaceStatus(state.stepping, *surfacePtr, false);
-        if (surfaceStatus == Intersection::Status::unreachable) {
-          // Move the sequence to the next surface
-          ++state.navigation.nextSurfaceIter;
-        }
+    if (state.navigation.nextSurfaceIter !=
+        state.navigation.surfaceSequenceSize) {
+      auto surfacePtr =
+          state.navigation.surfaceSequence[state.navigation.nextSurfaceIter];
+      // Establish & update the surface status
+      auto surfaceStatus =
+          stepper.updateSurfaceStatus(state.stepping, *surfacePtr, false);
+      if (surfaceStatus == Intersection::Status::unreachable) {
+        // Move the sequence to the next surface
+        ++state.navigation.nextSurfaceIter;
+      }
     } else {
       // Set the navigation break
       state.navigation.navigationBreak = true;
@@ -184,7 +190,7 @@ public:
         state.navigation.targetReached = true;
       }
     }
-    //printf("end of target\n");
+    // printf("end of target\n");
   }
 };
 

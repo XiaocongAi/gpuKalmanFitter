@@ -12,57 +12,51 @@
 #define ACTS_DEVICE_FUNC
 #endif
 
-namespace Acts{
+namespace Acts {
 
 // Template structure to pass to kernel
-template <typename T>
-struct CudaKernelContainer 
-{
-    CudaKernelContainer() = default;
+template <typename T> struct CudaKernelContainer {
+  CudaKernelContainer() = default;
 
-    ACTS_DEVICE_FUNC CudaKernelContainer(T* array, size_t size):_array(array), _size(size){
-      for(size_t i =0 ; i<_size; i++){
-       if((_array+i)==nullptr){
+  ACTS_DEVICE_FUNC CudaKernelContainer(T *array, size_t size)
+      : _array(array), _size(size) {
+    for (size_t i = 0; i < _size; i++) {
+      if ((_array + i) == nullptr) {
         printf("Nullptr found.\nTerminating.\n");
         exit(1);
-       } 
-      } 
+      }
     }
+  }
 
-    ACTS_DEVICE_FUNC T*& array(){
-       return _array; 
+  ACTS_DEVICE_FUNC T *&array() { return _array; }
+
+  ACTS_DEVICE_FUNC size_t size() const { return _size; }
+
+  ACTS_DEVICE_FUNC T &operator[](size_t i) {
+    if (i > _size) {
+      printf("Index out of bounds\n");
+      return _array[0];
     }
+    return _array[i];
+  }
 
-    ACTS_DEVICE_FUNC size_t size() const{
-      return _size;    
+  ACTS_DEVICE_FUNC T *end() const { return nullptr; }
+
+  ACTS_DEVICE_FUNC const T *
+  find_if(const std::function<bool(const T &)> &visitor) const {
+    T *matched = nullptr;
+    for (size_t i = 0; i < _size; i++) {
+      if (visitor(_array[i])) {
+        matched = _array + i;
+        break;
+      }
     }
+    return matched;
+  }
 
-   ACTS_DEVICE_FUNC T& operator[](size_t i) {
-     if( i > _size ) {
-        printf("Index out of bounds\n");
-        return _array[0];
-     }
-     return _array[i];
-   }
-
-   ACTS_DEVICE_FUNC T* end() const{
-     return nullptr; 
-   }
-
-   ACTS_DEVICE_FUNC const T* find_if(const std::function<bool(const T&)>& visitor) const{
-    T* matched = nullptr; 
-     for(size_t i =0 ; i<_size; i++){
-	     if(visitor(_array[i])){
-	      matched = _array+i; 
-	      break; 
-	     }
-     } 
-     return matched;
-    } 
-   
-private: 
-    T*  _array = nullptr;
-    size_t _size = 0;
+private:
+  T *_array = nullptr;
+  size_t _size = 0;
 };
 
-}//namespace Acts
+} // namespace Acts

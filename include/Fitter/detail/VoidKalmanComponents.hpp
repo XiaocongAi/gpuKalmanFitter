@@ -23,7 +23,7 @@ struct VoidKalmanComponents {
   /// @return void-calibrated measurement
   template <typename measurement_t, typename parameters_t>
   measurement_t operator()(measurement_t measurement,
-                                   const parameters_t& /* parameters */) const {
+                           const parameters_t & /* parameters */) const {
     return measurement;
   }
 };
@@ -40,8 +40,9 @@ struct VoidKalmanUpdater {
   ///
   /// @return The copied predicted parameters
   template <typename track_state_t, typename predicted_state_t>
-  ACTS_DEVICE_FUNC auto operator()(track_state_t& /* trackState */,
-                  const predicted_state_t& /*predicted*/) const {
+  ACTS_DEVICE_FUNC auto
+  operator()(track_state_t & /* trackState */,
+             const predicted_state_t & /*predicted*/) const {
     return true;
   }
 };
@@ -56,7 +57,8 @@ struct VoidKalmanSmoother {
   ///
   /// @return The resulting
   template <typename parameters_t, typename track_states_t>
-  ACTS_DEVICE_FUNC const parameters_t* operator()(track_states_t& /* trackStates */) const {
+  ACTS_DEVICE_FUNC const parameters_t *
+  operator()(track_states_t & /* trackStates */) const {
     return nullptr;
   }
 };
@@ -71,9 +73,10 @@ struct VoidOutlierFinder {
   ///
   /// @return Whether it's outlier or not
   template <typename track_state_t>
-  ACTS_DEVICE_FUNC constexpr bool operator()(const track_state_t& /* trackState */) const {
+  ACTS_DEVICE_FUNC constexpr bool
+  operator()(const track_state_t & /* trackState */) const {
     return false;
   }
 };
 
-}  // namespace Acts
+} // namespace Acts
