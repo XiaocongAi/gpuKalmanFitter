@@ -32,7 +32,7 @@ class GainMatrixUpdater {
   /// @note Non-'successful' updates could be holes or outliers,
   ///       which need to be treated differently in calling code.
   template <typename track_state_t>
-  bool operator()(
+  ACTS_DEVICE_FUNC bool operator()(
       const GeometryContext& gctx, track_state_t& trackState) const {
     //printf("Invoked GainMatrixUpdater\n");
     using parameters_t = typename track_state_t::Parameters;
@@ -44,6 +44,8 @@ class GainMatrixUpdater {
     using projector_t = typename source_link_t::projector_t;
     using meas_par_t = typename source_link_t::meas_par_t;
     using meas_cov_t = typename source_link_t::meas_cov_t;
+
+     constexpr size_t measdim = meas_par_t::RowsAtCompileTime;
 
     // read-only prediction handle
     const parameters_t& predicted = trackState.parameter.predicted;
@@ -62,7 +64,8 @@ class GainMatrixUpdater {
     const auto& H = sl.projector();
 
     // The Kalman gain matrix
-    const auto K = predicted_covariance * H.transpose() *
+    const ActsMatrixD<eBoundParametersSize, measdim> K = predicted_covariance * 
+	           H.transpose() *
                       (H * predicted_covariance * H.transpose() +
                        sl.covariance())
                           .inverse();

@@ -4,9 +4,12 @@
 #include "Plugins/BFieldUtils.hpp"
 #include "Propagator/EigenStepper.hpp"
 #include "EventData/TrackParameters.hpp"
+#include "EventData/PixelSourceLink.hpp"
 #include "Propagator/Propagator.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
 #include "Utilities/Units.hpp"
+#include "Fitter/KalmanFitter.hpp"
+#include "Fitter/GainMatrixUpdater.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -41,10 +44,52 @@ static void show_usage(std::string name) {
 
 using namespace Acts;
 
+std::default_random_engine generator(42);
+std::normal_distribution<double> gauss(0., 1.);
+
 // Struct for B field
 struct ConstantBField {
   ACTS_DEVICE_FUNC static Vector3D getField(const Vector3D & /*field*/) {
     return Vector3D(0., 0., 2.*Acts::units::_T);
+  }
+};
+
+// Measurement creator
+struct MeasurementCreator {
+  double resX = 30*Acts::units::_um;
+  double resY = 30*Acts::units::_um;
+
+  struct this_result {
+   std::vector<PixelSourceLink> sourcelinks;
+  };
+  using result_type = this_result;
+
+  template <typename propagator_state_t, typename stepper_t>
+  void operator()(propagator_state_t &state, const stepper_t &stepper,
+                  result_type &result) const {
+    if(state.navigation.currentSurface!=nullptr) {
+
+     // Apply global to local
+     Vector2D lPos;
+     state.navigation.currentSurface->globalToLocal(state.options.geoContext,
+                                 stepper.position(state.stepping),
+                                 stepper.direction(state.stepping), lPos);
+     // Perform the smearing to truth
+     double dx = resX * gauss(generator);
+     double dy = resY * gauss(generator);
+
+     // The measurement values
+     Vector2D values;
+     values << lPos[0] + dx, lPos[1] + dy;
+
+     // The measurement covariance
+     SymMatrix2D cov;
+     cov << resX* resX, 0., 0., resY*resY;
+
+     // Push back to the container
+     result.sourcelinks.emplace_back(values, cov, state.navigation.currentSurface);
+    }
+    return;
   }
 };
 
@@ -74,20 +119,28 @@ struct VoidAborter {
 using Stepper = EigenStepper<ConstantBField>;
 //using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
 using PropagatorType = Propagator<Stepper>;
-using PropResultType =
-    PropagatorResult<typename VoidActor::result_type>;
-using PropOptionsType = PropagatorOptions<VoidActor, VoidAborter>;
+using PropResultType = PropagatorResult;
+using PropOptionsType = PropagatorOptions<MeasurementCreator, VoidAborter>;
+
+using KalmanFitterType =
+    KalmanFitter<PropagatorType, GainMatrixUpdater>;
+using KalmanFitterResultType = KalmanFitterResult<PixelSourceLink, BoundParameters>;
+using TSType = typename KalmanFitterResultType::TrackStateType;
 
 // Device code
-__global__ void propKernel(PropagatorType *propagator,
+__global__ void propKernel(KalmanFitterType *kFitter,
+		           PixelSourceLink* sourcelinks,
                            CurvilinearParameters *tpars,
-                           //PropOptionsType *propOptions,
-                           PropOptionsType propOptions,
-                           PropResultType *propResult, 
+                           KalmanFitterOptions<VoidOutlierFinder> kfOptions,
+                           TSType *fittedTracks,
+			   const Surface** surfacePtrs, 
+			   int nSurfaces, 
                            int N) {
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if (i < N) {
-    propResult[i] = propagator->propagate(tpars[i], propOptions);
+    KalmanFitterResultType kfResult;
+    kfResult.fittedStates = CudaKernelContainer<TSType>(fittedTracks+i*nSurfaces, nSurfaces);
+    kFitter->fit(CudaKernelContainer<PixelSourceLink>(sourcelinks+i*nSurfaces, nSurfaces), tpars[i], kfOptions, kfResult, surfacePtrs, nSurfaces);
   }
 }
 
@@ -136,7 +189,8 @@ int main(int argc, char *argv[]) {
     surfaces[isur] = Acts::PlaneSurface(translations[isur], Acts::Vector3D(1,0,0));
   }
 
-  const Acts::Surface* surfacePtrs[nSurfaces];
+  const Acts::Surface** surfacePtrs;
+  GPUERRCHK(cudaMallocManaged(&surfacePtrs, sizeof(const Acts::Surface*)*nSurfaces));
   for(unsigned int isur = 0; isur< nSurfaces; isur++){
     surfacePtrs[isur] = &surfaces[isur];
   }
@@ -165,57 +219,79 @@ int main(int argc, char *argv[]) {
   propOptions.initializer.surfaceSequenceSize = nSurfaces;
 
   // Construct random starting track parameters
-  std::default_random_engine generator(42);
-  std::normal_distribution<double> gauss(0., 1.);
   std::vector<CurvilinearParameters> startPars;
-  startPars.reserve(nTracks);
+  double resLoc1 = 0.1*Acts::units::_mm;
+  double resLoc2 = 0.1*Acts::units::_mm;
+  double resPhi = 0.01;
+  double resTheta = 0.01;
   for (int i = 0; i < nTracks; i++) {
     BoundSymMatrix cov = BoundSymMatrix::Zero();
-    cov << 0.01, 0., 0., 0., 0., 0., 0., 0.01, 0., 0., 0., 0., 0., 0., 0.0001,
-        0., 0., 0., 0., 0., 0., 0.0001, 0., 0., 0., 0., 0., 0., 0.0001, 0., 0.,
+    cov << resLoc1*resLoc1, 0., 0., 0., 0., 0., 0., resLoc2*resLoc2, 0., 0., 0., 0., 0., 0., resPhi*resPhi,
+        0., 0., 0., 0., 0., 0., resTheta*resTheta, 0., 0., 0., 0., 0., 0., 0.0001, 0., 0.,
         0., 0., 0., 0., 1.;
 
     double q = 1;
     double time = 0;
-     double phi = gauss(generator)*0.01;
-    double theta = M_PI/2 + gauss(generator)*0.01;
-    Vector3D pos(-0, 0.1 * gauss(generator), 0.1 * gauss(generator)); // Units: mm
+    double phi = gauss(generator)*resPhi;
+    double theta = M_PI/2 + gauss(generator)*resTheta;
+    Vector3D pos(0, resLoc1 * gauss(generator), resLoc2 * gauss(generator)); // Units: mm
     Vector3D mom(p*sin(theta)*cos(phi), p*sin(theta)*sin(phi), p*cos(theta)); // Units: GeV 
 
     startPars.emplace_back(cov, pos, mom, q, time);
   }
 
   // Propagation result
-  std::vector<PropResultType> ress;
-  ress.reserve(nTracks);
+  // Propagation result
+  MeasurementCreator::result_type ress[nTracks];
+
+  // Creating the tracks
+  for (int it = 0; it < nTracks; it++) {
+    propagator.propagate(startPars[it], propOptions, ress[it]);
+  }
+
+  // start to perform fit to the created tracks
+  // Contruct a KalmanFitter instance
+  PropagatorType rPropagator(stepper);
+  KalmanFitterType kFitter(rPropagator);
+  KalmanFitterOptions<VoidOutlierFinder> kfOptions(gctx, mctx);
+
+  KalmanFitterType * kFitterPtr;
+  GPUERRCHK(cudaMallocManaged(&kFitterPtr, sizeof(KalmanFitterType)));
+  kFitterPtr = &kFitter;
 
   auto start = std::chrono::high_resolution_clock::now();
 
+  std::vector<TSType*> fittedTracks;
+  for(int it =0; it< nTracks; it++){
+    // Struct with deleted default constructor will have problem 
+   auto states = new TSType[nSurfaces];
+   if(states == nullptr) {
+    std::cout<<"memory allocation failure"<<std::endl;
+    return 1;
+   }
+   fittedTracks.push_back(states);
+  }
+ 
   // Running directly on host or offloading to GPU
   bool useGPU = (device == "gpu" ? true : false);
   if (useGPU) {
     // Allocate memory on device
-    PropagatorType *d_propagator;
-    //PropOptionsType *d_opt;
+    PixelSourceLink* d_sourcelinks; 
     CurvilinearParameters *d_pars;
-    PropResultType *d_ress;
+    TSType* d_fittedTracks;
 
-    GPUERRCHK(cudaMalloc(&d_propagator, sizeof(PropagatorType)));
-//    GPUERRCHK(cudaMalloc(&d_opt, sizeof(PropOptionsType)));
-    GPUERRCHK(cudaMalloc(&d_pars, nTracks * sizeof(CurvilinearParameters)));
-    GPUERRCHK(cudaMalloc(&d_ress, nTracks * sizeof(PropResultType)));
+    GPUERRCHK(cudaMalloc(&d_sourcelinks, sizeof(PixelSourceLink)*nSurfaces*nTracks));
+    GPUERRCHK(cudaMalloc(&d_fittedTracks, sizeof(TSType)*nSurfaces*nTracks));
+    GPUERRCHK(cudaMalloc(&d_pars, sizeof(CurvilinearParameters)*nTracks));
 
     // Copy from host to device
-    GPUERRCHK(cudaMemcpy(d_propagator, &propagator, sizeof(propagator),
+    for(int it=0; it<nTracks; it++){
+    GPUERRCHK(cudaMemcpy(d_sourcelinks+it*nSurfaces, ress[it].sourcelinks.data(),
+                         sizeof(PixelSourceLink)*nSurfaces,
                          cudaMemcpyHostToDevice));
-//    GPUERRCHK(cudaMemcpy(d_opt, &propOptions, sizeof(PropOptionsType),
-//                         cudaMemcpyHostToDevice));
+    }
     GPUERRCHK(cudaMemcpy(d_pars, startPars.data(),
                          nTracks * sizeof(CurvilinearParameters),
-                         cudaMemcpyHostToDevice));
-    GPUERRCHK(cudaMemcpy(d_ress, ress.data(), nTracks * sizeof(PropResultType),
-                         cudaMemcpyHostToDevice));
-    GPUERRCHK(cudaMemcpy(d_ress, ress.data(), nTracks * sizeof(PropResultType),
                          cudaMemcpyHostToDevice));
 
     // Run on device
@@ -223,48 +299,38 @@ int main(int argc, char *argv[]) {
     int blocksPerGrid = (nTracks + threadsPerBlock - 1) / threadsPerBlock;
     propKernel<<<blocksPerGrid, threadsPerBlock>>>(
         //d_propagator, d_pars, d_opt, d_ress, nTracks);
-        d_propagator, d_pars, propOptions, d_ress, nTracks);
+        kFitterPtr, d_sourcelinks, d_pars, kfOptions, d_fittedTracks, surfacePtrs, nSurfaces, nTracks);
 
     GPUERRCHK(cudaPeekAtLastError());
     GPUERRCHK(cudaDeviceSynchronize());
 
     // Copy result from device to host
-    GPUERRCHK(cudaMemcpy(ress.data(), d_ress, nTracks * sizeof(PropResultType),
+    for(int it=0; it<nTracks; it++){
+    GPUERRCHK(cudaMemcpy(fittedTracks[it], d_fittedTracks + it*nSurfaces, sizeof(TSType)*nSurfaces,
                          cudaMemcpyDeviceToHost));
+    }
 
     // Free the memory on device
-    GPUERRCHK(cudaFree(d_propagator));
-//    GPUERRCHK(cudaFree(d_opt));
+    GPUERRCHK(cudaFree(d_sourcelinks));
     GPUERRCHK(cudaFree(d_pars));
-    GPUERRCHK(cudaFree(d_ress));
+    GPUERRCHK(cudaFree(d_fittedTracks));
     GPUERRCHK(cudaFree(surfaces));
-  } else {
-// Run on host
-#pragma omp parallel for
-    for (int it = 0; it < nTracks; it++) {
-      ress[it] = propagator.propagate(startPars[it], propOptions);
-    }
-  }
+    GPUERRCHK(cudaFree(surfacePtrs));
+    GPUERRCHK(cudaFree(kFitterPtr));
+  } 
+//  else {
+//// Run on host
+//#pragma omp parallel for
+//    for (int it = 0; it < nTracks; it++) {
+//      ress[it] = propagator.propagate(startPars[it], propOptions);
+//    }
+//  }
+
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed_seconds = end - start;
   std::cout << "Time (sec) to run propagation tests: "
             << elapsed_seconds.count() << std::endl;
 
-  if (output) {
-    // Write result to obj file
-    std::cout << "Writing yielded " << nTracks << " tracks to obj files..."
-              << std::endl;
-
-    for (int it = 0; it < nTracks; it++) {
-      PropResultType res = ress[it];
-      std::ofstream obj_track;
-      std::string fileName =
-          device + "_output/Track-" + std::to_string(it) + ".obj";
-      obj_track.open(fileName.c_str());
-
-      obj_track.close();
-    }
-  }
 
   std::cout << "------------------------  ending  -----------------------"
             << std::endl;

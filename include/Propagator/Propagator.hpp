@@ -30,11 +30,8 @@ namespace Acts {
 /// @tparam parameters_t Type of final track parameters
 /// @tparam result_t  Result for additional propagation
 ///                      quantity
-template <typename result_t> struct PropagatorResult {
+struct PropagatorResult {
   PropagatorResult() = default;
-
-  // The single action result
-  result_t actorResult;
 
   // The direct navigator initializer result
   DirectNavigator::Initializer::result_type initializerResult;
@@ -173,9 +170,9 @@ public:
   template <typename parameters_t, typename propagator_options_t,
             typename path_aborter_t = PathLimitReached>
   ACTS_DEVICE_FUNC
-      PropagatorResult<typename propagator_options_t::action_type::result_type>
+      PropagatorResult
       propagate(const parameters_t &start,
-                const propagator_options_t &options) const;
+                const propagator_options_t &options, typename propagator_options_t::action_type::result_type& actorResult) const;
 
   /// @brief Get a non-const reference on the underlying stepper
   ///

@@ -66,8 +66,9 @@ struct coordinate_transformation {
     double p = std::abs(1. / pars(Acts::eQOP));
     double phi = pars(Acts::ePHI);
     double theta = pars(Acts::eTHETA);
-    momentum << p * sin(theta) * cos(phi), p * sin(theta) * sin(phi),
-        p * cos(theta);
+    momentum[0] = p * sin(theta) * cos(phi);
+    momentum[1] = p * sin(theta) * sin(phi);
+    momentum[2] = p * cos(theta);
 
     return momentum;
   }

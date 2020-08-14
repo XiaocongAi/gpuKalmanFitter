@@ -113,7 +113,8 @@ struct VoidAborter {
 using Stepper = EigenStepper<ConstantBField>;
 //using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
 using PropagatorType = Propagator<Stepper>;
-using PropResultType = PropagatorResult<typename MeasurementCreator::result_type>;
+//using PropResultType = PropagatorResult<typename MeasurementCreator::result_type>;
+using PropResultType = PropagatorResult;
 using PropOptionsType = PropagatorOptions<MeasurementCreator, VoidAborter>;
 
 int main(int argc, char *argv[]) {
@@ -231,13 +232,13 @@ int main(int argc, char *argv[]) {
   }
 
   // Propagation result
-  PropResultType ress[nTracks];
+  MeasurementCreator::result_type ress[nTracks];
 
   auto start = std::chrono::high_resolution_clock::now();
 
   // Creating the tracks 
   for (int it = 0; it < nTracks; it++) {
-    ress[it] = propagator.propagate(startPars[it], propOptions);
+    propagator.propagate(startPars[it], propOptions, ress[it]);
   }
 
   auto end_propagate = std::chrono::high_resolution_clock::now();
@@ -251,13 +252,24 @@ int main(int argc, char *argv[]) {
   using KalmanFitter =
       KalmanFitter<RecoPropagator, GainMatrixUpdater>;
   using KalmanFitterResult = KalmanFitterResult<PixelSourceLink, BoundParameters>;
+  using TrackState = typename KalmanFitterResult::TrackStateType;
 
   // Contruct a KalmanFitter instance
   RecoPropagator rPropagator(stepper);
   KalmanFitter kFitter(rPropagator);
   KalmanFitterOptions kfOptions(gctx, mctx);
 
-  std::vector<typename KalmanFitterResult::TrajectoryType> fittedTracks;
+  std::vector<TrackState*> fittedTracks;
+  for(int it =0; it< nTracks; it++){
+    // Struct with deleted default constructor will have problem 
+   auto states = new TrackState[nSurfaces];
+   if(states == nullptr) {
+    std::cout<<"memory allocation failure"<<std::endl;
+    return 1; 
+   } 
+   fittedTracks.push_back(states); 
+  } 
+
   for (int it = 0; it < nTracks; it++) {
     BoundSymMatrix cov = BoundSymMatrix::Zero();
     cov << resLoc1*resLoc1, 0., 0., 0., 0., 0., 0., resLoc2*resLoc2, 0., 0., 0., 0., 0., 0., resPhi*resPhi,
@@ -276,12 +288,17 @@ int main(int argc, char *argv[]) {
 //    for(const auto& sl: ress[it].actorResult.sourcelinks){
 //       sourcelinks.push_back(sl); 
 //    }
-   
-    auto fitRes = kFitter.fit(ress[it].actorResult.sourcelinks, rStart, kfOptions, surfacePtrs, nSurfaces);
-    if(not fitRes.result) {
+    
+    // Dynamically allocating memory for the fitted states here 
+    KalmanFitterResult kfResult;
+    kfResult.fittedStates = CudaKernelContainer(fittedTracks[it], nSurfaces);
+
+    auto sourcelinkTrack = CudaKernelContainer(ress[it].sourcelinks.data(), ress[it].sourcelinks.size());
+    // The fittedTracks will be changed here
+    auto fitStatus = kFitter.fit(sourcelinkTrack, rStart, kfOptions, kfResult, surfacePtrs, nSurfaces);
+    if(not fitStatus) {
        std::cout<<"fit failure for track "<<it << std::endl;
     }
-    fittedTracks.push_back(fitRes.fittedStates); 
   }
 
   auto end_fit = std::chrono::high_resolution_clock::now();
@@ -317,6 +334,7 @@ int main(int argc, char *argv[]) {
     }
     */
 
+    std::cout<<"writing propagation results"<<std::endl;
     // Write all of the created tracks to one obj file
     std::ofstream obj_track;
     std::string fileName ="cpu_output/Tracks-propagation.obj";
@@ -325,13 +343,14 @@ int main(int argc, char *argv[]) {
     // Initialize the vertex counter
     unsigned int vCounter = 0;
     for(int it = 0; it< nTracks; it++){
-      auto tracks = ress[it].actorResult.sourcelinks;
+      auto tracks = ress[it].sourcelinks;
       ++vCounter;
       for (const auto& sl: tracks) {
 	 const auto& pos = sl.globalPosition(gctx);
 	 obj_track << "v " << pos.x() << " "
                  << pos.y() << " " <<
                  pos.z() << "\n";
+	 std::cout<<"pos.x() "<<pos.x()<<std::endl;
       }
       // Write out the line - only if we have at least two points created
       size_t vBreak = vCounter + tracks.size() - 1;
@@ -340,6 +359,7 @@ int main(int argc, char *argv[]) {
     }
     obj_track.close();
 
+    std::cout<<"writing KF results"<<std::endl;
     // Write all of the created tracks to one obj file
     std::ofstream obj_ftrack;
     std::string fileName_ ="cpu_output/Tracks-fitted.obj";
@@ -349,20 +369,24 @@ int main(int argc, char *argv[]) {
     vCounter = 0;
     for(int it = 0; it< nTracks; it++){
       ++vCounter;
-      for (const auto& ts: fittedTracks[it]) {
-         const auto& pos = ts.parameter.filtered.position();
+      for (int is = 0; is< nSurfaces; is++) {
+         const auto& pos = fittedTracks[it][is].parameter.filtered.position();
          obj_ftrack << "v " << pos.x() << " "
                  << pos.y() << " " <<
                  pos.z() << "\n";
       }
       // Write out the line - only if we have at least two points created
-      size_t vBreak = vCounter + fittedTracks[it].size() - 1;
+      size_t vBreak = vCounter + nSurfaces - 1;
       for (; vCounter < vBreak; ++vCounter)
         obj_ftrack << "l " << vCounter << " " << vCounter + 1 << '\n';
     }
     obj_ftrack.close();
 
   }
+
+  for(int it =0; it< nTracks; it++){
+   delete[] fittedTracks[it];
+  } 
 
   std::cout << "------------------------  ending  -----------------------"
             << std::endl;

@@ -47,14 +47,15 @@ public:
   using Parameters = parameters_t;
   using Jacobian = typename Parameters::CovarianceMatrix;
 
-  TrackState() = delete;
+  //TrackState() = delete;
+  TrackState() = default;
 
   /// Constructor from (uncalibrated) measurement
   ///
   /// @param m The measurement object
-  TrackState(SourceLink m) : m_surface(&m.referenceSurface()) {
+  ACTS_DEVICE_FUNC TrackState(SourceLink m) : m_surface(&m.referenceSurface()) {
     measurement.uncalibrated = std::move(m);
-    m_typeFlags.set(MeasurementFlag);
+    //m_typeFlags.set(MeasurementFlag);
   }
 
   /// Constructor from parameters
@@ -73,14 +74,14 @@ public:
   /// Copy constructor
   ///
   /// @param rhs is the source TrackState
-  TrackState(const TrackState &rhs)
+  ACTS_DEVICE_FUNC TrackState(const TrackState &rhs)
       : parameter(rhs.parameter), measurement(rhs.measurement),
         m_surface(rhs.m_surface), m_typeFlags(rhs.m_typeFlags) {}
 
   /// Copy move constructor
   ///
   /// @param rhs is the source TrackState
-  TrackState(TrackState &&rhs)
+  ACTS_DEVICE_FUNC TrackState(TrackState &&rhs)
       : parameter(std::move(rhs.parameter)),
         measurement(std::move(rhs.measurement)),
         m_surface(std::move(rhs.m_surface)),
@@ -89,7 +90,7 @@ public:
   /// Assignment operator
   ///
   /// @param rhs is the source TrackState
-  TrackState &operator=(const TrackState &rhs) {
+  ACTS_DEVICE_FUNC TrackState &operator=(const TrackState &rhs) {
     parameter = rhs.parameter;
     measurement = rhs.measurement;
     m_surface = rhs.m_surface;
@@ -100,7 +101,7 @@ public:
   /// Assignment move operator
   ///
   /// @param rhs is the source TrackState
-  TrackState &operator=(TrackState &&rhs) {
+  ACTS_DEVICE_FUNC TrackState &operator=(TrackState &&rhs) {
     parameter = std::move(rhs.parameter);
     measurement = std::move(rhs.measurement);
     m_surface = std::move(rhs.m_surface);
@@ -109,21 +110,21 @@ public:
   }
 
   /// @brief return method for the surface
-  const Surface &referenceSurface() const { return (*m_surface); }
+  ACTS_DEVICE_FUNC const Surface &referenceSurface() const { return (*m_surface); }
 
   /// @brief set the type flag
-  void setType(const TrackStateFlag &flag, bool status = true) {
+  ACTS_DEVICE_FUNC void setType(const TrackStateFlag &flag, bool status = true) {
     m_typeFlags.set(flag, status);
   }
 
   /// @brief test if the tracks state is flagged as a given type
-  bool isType(const TrackStateFlag &flag) const {
+  ACTS_DEVICE_FUNC bool isType(const TrackStateFlag &flag) const {
     assert(flag < NumTrackStateFlags);
     return m_typeFlags.test(flag);
   }
 
   /// @brief return method for the type flags
-  TrackStateType type() const { return m_typeFlags; }
+  ACTS_DEVICE_FUNC TrackStateType type() const { return m_typeFlags; }
 
   /// @brief number of Measured parameters, forwarded
   /// @note This only returns a value if there is a calibrated measurement

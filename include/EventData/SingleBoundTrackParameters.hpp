@@ -35,7 +35,7 @@ public:
   /// @To to removed
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, ChargedPolicy>::value, int> = 0>
-  SingleBoundTrackParameters()
+  ACTS_DEVICE_FUNC SingleBoundTrackParameters()
       : SingleTrackParameters<ChargePolicy>(
             CovarianceMatrix::Zero(), ParametersVector::Zero(),
             Vector3D(0,0,0), 
@@ -56,7 +56,7 @@ public:
   /// @param[in] surface The reference surface the parameters are bound to
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, ChargedPolicy>::value, int> = 0>
-  SingleBoundTrackParameters(const GeometryContext &gctx,
+  ACTS_DEVICE_FUNC SingleBoundTrackParameters(const GeometryContext &gctx,
                              const CovarianceMatrix &cov,
                              const ParametersVector &parValues,
                              const Surface *surface)
@@ -66,7 +66,7 @@ public:
                 gctx, parValues, *surface),
             detail::coordinate_transformation::parameters2globalMomentum(
                 parValues)),
-        m_pSurface(std::move(surface)) {
+        m_pSurface(surface) {
     assert(m_pSurface);
   }
 
@@ -88,7 +88,7 @@ public:
   /// @param[in] surface The reference surface the parameters are bound to
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, ChargedPolicy>::value, int> = 0>
-  SingleBoundTrackParameters(const GeometryContext &gctx,
+  ACTS_DEVICE_FUNC SingleBoundTrackParameters(const GeometryContext &gctx,
                              const CovarianceMatrix &cov,
                              const Vector3D &position, const Vector3D &momentum,
                              Scalar dCharge, Scalar dTime,
@@ -117,7 +117,7 @@ public:
   /// @param[in] surface The reference surface the parameters are bound to
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, NeutralPolicy>::value, int> = 0>
-  SingleBoundTrackParameters(const GeometryContext &gctx,
+  ACTS_DEVICE_FUNC SingleBoundTrackParameters(const GeometryContext &gctx,
                              const CovarianceMatrix &cov,
                              const ParametersVector &parValues,
                              const Surface *surface)
@@ -149,7 +149,7 @@ public:
   /// @param[in] surface The reference surface the parameters are bound to
   template <typename T = ChargePolicy,
             std::enable_if_t<std::is_same<T, NeutralPolicy>::value, int> = 0>
-  SingleBoundTrackParameters(const GeometryContext &gctx,
+  ACTS_DEVICE_FUNC SingleBoundTrackParameters(const GeometryContext &gctx,
                              const CovarianceMatrix &cov,
                              const Vector3D &position, const Vector3D &momentum,
                              Scalar dTime, const Surface *surface)
@@ -162,7 +162,7 @@ public:
 
   /// @brief copy constructor  - charged/neutral
   /// @param[in] copy The source parameters
-  SingleBoundTrackParameters(
+  ACTS_DEVICE_FUNC SingleBoundTrackParameters(
       const SingleBoundTrackParameters<ChargePolicy> &copy)
       : SingleTrackParameters<ChargePolicy>(copy) {
     m_pSurface = copy.m_pSurface;
@@ -170,7 +170,7 @@ public:
 
   /// @brief move constructor - charged/neutral
   /// @param[in] other The source parameters
-  SingleBoundTrackParameters(SingleBoundTrackParameters<ChargePolicy> &&other)
+  ACTS_DEVICE_FUNC SingleBoundTrackParameters(SingleBoundTrackParameters<ChargePolicy> &&other)
       : SingleTrackParameters<ChargePolicy>(std::move(other)),
         m_pSurface(std::move(other.m_pSurface)) {}
 
@@ -179,7 +179,7 @@ public:
   ~SingleBoundTrackParameters() = default;
 
   /// @brief copy assignment operator - charged/neutral
-  SingleBoundTrackParameters<ChargePolicy> &
+  ACTS_DEVICE_FUNC SingleBoundTrackParameters<ChargePolicy> &
   operator=(const SingleBoundTrackParameters<ChargePolicy> &rhs) {
     // check for self-assignment
     if (this != &rhs) {
@@ -191,7 +191,7 @@ public:
 
   /// @brief move assignment operator - charged/neutral
   /// checks if the surface is free and in such a case delete-clones it
-  SingleBoundTrackParameters<ChargePolicy> &
+  ACTS_DEVICE_FUNC SingleBoundTrackParameters<ChargePolicy> &
   operator=(SingleBoundTrackParameters<ChargePolicy> &&rhs) {
     // check for self-assignment
     if (this != &rhs) {

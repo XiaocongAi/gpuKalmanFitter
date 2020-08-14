@@ -19,15 +19,10 @@
 #include "Propagator/StandardAborters.hpp"
 #include "Propagator/detail/CovarianceEngine.hpp"
 #include "Utilities/Definitions.hpp"
+#include "Utilities/CudaKernelContainer.hpp"
 
 #include <functional>
-#include <map>
 #include <memory>
-#include <type_traits>
-
-//#include <thrust/host_vector.h>
-//#include <thrust/device_vector.h>
-//#include <thrust/find.h>
 
 namespace Acts {
 
@@ -73,7 +68,7 @@ struct KalmanFitterOptions {
   /// @param mScattering Whether to include multiple scattering
   /// @param eLoss Whether to include energy loss
   /// @param bwdFiltering Whether to run backward filtering as smoothing
-  KalmanFitterOptions(const GeometryContext& gctx,
+  ACTS_DEVICE_FUNC KalmanFitterOptions(const GeometryContext& gctx,
                       const MagneticFieldContext& mctx,
                       const OutlierFinder& outlierFinder_ = VoidOutlierFinder(),
                       const Surface* rSurface = nullptr)
@@ -94,14 +89,46 @@ struct KalmanFitterOptions {
   const Surface* referenceSurface = nullptr;
 };
 
-template< typename source_link_t, typename parameters_t, bool allocate_on_gpu = false>
+template< typename source_link_t, typename parameters_t>
 struct KalmanFitterResult {
    using TrackStateType = TrackState<source_link_t, parameters_t>;
-   //using TrajectoryType = typename std::conditional<allocate_on_gpu, thrust::device_vector<TrackStateType>, std::vector<TrackStateType>>::type;
-   using TrajectoryType = std::vector<TrackStateType>;
-  
+
+  // /// Delete default constructor
+  // KalmanFitterResult() = delete;
+
+  ///// Constructor with states size
+  /////
+  ///// @param [in] nStates The number of states on track (has to decided upon creation) 
+  //ACTS_DEVICE_FUNC KalmanFitterResult(size_t nStates) {
+  //  fittedStates = CudaKernelContainer<TrackStateType>(new TrackStateType[nStates], nStates);
+  //}
+
+  // /// Copy constructor
+  // ///
+  // /// @param rhs is the source Grid
+  // ACTS_DEVICE_FUNC KalmanFitterResult(const KalmanFitterResult &rhs){
+  //   size_t nStates = rhs.fittedStates.size();
+  //   fittedStates  = CudaKernelContainer<TrackStateType>(new TrackStateType[nStates], nStates);
+  //   memcpy(fittedStates.array(), rhs.fittedStates.array(), sizeof(TrackStateType) * nStates);
+  // }
+
+  //  /// Assignment constructor
+  /////
+  ///// @param rhs is the source Grid
+  //ACTS_DEVICE_FUNC KalmanFitterResult&operator=(const KalmanFitterResult &rhs) {
+  // size_t nStates = rhs.fittedStates.size(); 
+  // fittedStates  = CudaKernelContainer<TrackStateType>(new TrackStateType[nStates], nStates);
+  // memcpy(fittedStates.array(), rhs.fittedStates.array(), sizeof(TrackStateType) * nStates);
+  //
+  // return (*this);
+  //}
+
+  ///// @brief default destructor
+  /////
+  //ACTS_DEVICE_FUNC ~KalmanFitterResult() { delete[] fittedStates.array(); }
+
    // Fitted states that the actor has handled.
-   TrajectoryType fittedStates;
+   CudaKernelContainer<TrackStateType> fittedStates;
   
    // The optional Parameters at the provided surface
    //std::optional<BoundParameters> fittedParameters;
@@ -152,7 +179,7 @@ struct KalmanFitterResult {
 /// The void components are provided mainly for unit testing.
 template <typename propagator_t, typename updater_t = VoidKalmanUpdater,
           typename smoother_t = VoidKalmanSmoother,
-          typename outlier_finder_t = VoidOutlierFinder, bool allocate_on_gpu = false>
+          typename outlier_finder_t = VoidOutlierFinder>
 class KalmanFitter {
  public:
 
@@ -160,7 +187,7 @@ class KalmanFitter {
   KalmanFitter() = delete;
 
   /// Constructor from arguments
-  KalmanFitter(propagator_t pPropagator)
+  ACTS_DEVICE_FUNC KalmanFitter(propagator_t pPropagator)
       : m_propagator(std::move(pPropagator)) {}
 
  private:
@@ -179,13 +206,13 @@ class KalmanFitter {
    public:
 
     /// Broadcast the result_type
-    using result_type = KalmanFitterResult<source_link_t, parameters_t, allocate_on_gpu>;
+    using result_type = KalmanFitterResult<source_link_t, parameters_t>;
 
     using TrackStateType =  typename result_type::TrackStateType; 
    
     /// Broadcast the input measurement container type
-    //using InputMeasurementsType = typename std::conditional<allocate_on_gpu, thrust::device_vector<source_link_t>, std::vector<source_link_t>>::type;
-    using InputMeasurementsType = std::vector<source_link_t>;
+    using InputMeasurementsType = CudaKernelContainer<source_link_t>;
+    //using InputMeasurementsType = std::vector<source_link_t>;
 
     /// The target surface
     const Surface* targetSurface = nullptr;
@@ -202,14 +229,14 @@ class KalmanFitter {
     /// @param stepper The stepper in use
     /// @param result is the mutable result state object
     template <typename propagator_state_t, typename stepper_t>
-    void operator()(propagator_state_t& state, const stepper_t& stepper,
+    ACTS_DEVICE_FUNC void operator()(propagator_state_t& state, const stepper_t& stepper,
                     result_type& result) const {
       //printf("KalmanFitter step\n");
 
       // Update:
       // - Waiting for a current surface
       auto surface = state.navigation.currentSurface;
-      if (surface != nullptr and !result.smoothed) {
+      if (surface != nullptr and !result.smoothed and !result.finished) {
           auto res = filter(surface, state, stepper, result);
           if (!res) {
             printf("Error in filter:\n");
@@ -256,28 +283,31 @@ class KalmanFitter {
     /// @param stepper The stepper in use
     /// @param result The mutable result state object
     template <typename propagator_state_t, typename stepper_t>
-    bool filter(const Surface* surface, propagator_state_t& state,
+    ACTS_DEVICE_FUNC bool filter(const Surface* surface, propagator_state_t& state,
                         const stepper_t& stepper, result_type& result) const {
       // Try to find the surface in the measurement surfaces
       SurfaceFinder sFinder{surface};
-      //auto sourcelink_it = thrust::find_if(inputMeasurements.begin(), inputMeasurements.end(), sFinder);  
-      auto sourcelink_it = std::find_if(inputMeasurements.begin(), inputMeasurements.end(), sFinder);  
+      //auto sourcelink_it = std::find_if(inputMeasurements.begin(), inputMeasurements.end(), sFinder);  
+      auto sourcelink_it = inputMeasurements.find_if(sFinder); 
       if (sourcelink_it != inputMeasurements.end()) {
         // Screen output message
-        //printf("Measurement surface detected");
+        printf("Measurement surface detected\n");
 
 	// create track state on the vector from sourcelink
-        result.fittedStates.push_back(TrackStateType(*sourcelink_it));
-        TrackStateType& trackState = result.fittedStates.back();
+        //result.fittedStates.push_back(TrackStateType(*sourcelink_it));
+        //TrackStateType& trackState = result.fittedStates.back();
+	result.fittedStates[result.measurementStates] = TrackStateType(*sourcelink_it);
+        TrackStateType& trackState = result.fittedStates[result.measurementStates];
 
         // Transport & bind the state to the current surface
-        auto [boundParams, jacobian, pathLength] =
+        //auto [boundParams, jacobian, pathLength] =
+        std::tuple<BoundParameters, BoundMatrix, double> bState =
             stepper.boundState(state.stepping, *surface);
 
         // Fill the track state
-        trackState.parameter.predicted = boundParams;
-        trackState.parameter.jacobian = jacobian;
-        trackState.parameter.pathLength = pathLength;
+        trackState.parameter.predicted = std::get<0>(bState);
+        trackState.parameter.jacobian = std::get<1>(bState);
+        trackState.parameter.pathLength = std::get<2>(bState);
 
         // Get and set the type flags
         //auto& typeFlags = trackState.typeFlags();
@@ -286,7 +316,8 @@ class KalmanFitter {
 
         // If the update is successful, set covariance and
         auto updateRes = m_updater(state.options.geoContext, trackState);
-        if (!updateRes) {
+        printf("updater\n"); 
+      	if (!updateRes) {
           printf("Update step failed:\n");
           return false ;
         }
@@ -310,7 +341,7 @@ class KalmanFitter {
     /// @param stepper The stepper in use
     /// @param result is the mutable result state object
     template <typename propagator_state_t, typename stepper_t>
-    bool finalize(propagator_state_t& state, const stepper_t& stepper,
+    ACTS_DEVICE_FUNC bool finalize(propagator_state_t& state, const stepper_t& stepper,
                           result_type& result) const {
       // Remember you smoothed the track states
       result.smoothed = true;
@@ -356,7 +387,7 @@ class KalmanFitter {
 
     template <typename propagator_state_t, typename stepper_t,
               typename result_t>
-    bool operator()(propagator_state_t& /*state*/, const stepper_t& /*stepper*/,
+    ACTS_DEVICE_FUNC bool operator()(propagator_state_t& /*state*/, const stepper_t& /*stepper*/,
                     const result_t& result) const {
       if (!result.result or result.finished) {
 	 return true;
@@ -383,20 +414,17 @@ class KalmanFitter {
   /// the fit.
   ///
   /// @return the output as an output track
-  template <typename source_link_collection_t, typename start_parameters_t,
+  template <typename source_link_t, typename start_parameters_t,
             typename parameters_t = BoundParameters>
-  auto fit(const source_link_collection_t& sourcelinks,
+  ACTS_DEVICE_FUNC bool fit(const CudaKernelContainer<source_link_t>& sourcelinks,
            const start_parameters_t& sParameters,
            const KalmanFitterOptions<outlier_finder_t>& kfOptions,
-	   const Surface** surfaceSequence = nullptr, size_t surfaceSequenceSize = 0) const
-      -> KalmanFitterResult { 
+	   KalmanFitterResult<source_link_t, parameters_t>& kfResult,
+	   const Surface** surfaceSequence = nullptr, size_t surfaceSequenceSize = 0) const { 
 
-    // To be able to find measurements later, we put them into a map
-    // We need to copy input SourceLinks anyways, so the map can own them.
     //printf("Preparing %lu input measurements\n", sourcelinks.size());
 
     // Create the ActionList and AbortList
-    using source_link_t = typename source_link_collection_t::value_type;
     using KalmanAborter = Aborter<source_link_t, parameters_t>;
     using KalmanActor = Actor<source_link_t, parameters_t>;
     using KalmanResult = typename KalmanActor::result_type;
@@ -416,17 +444,15 @@ class KalmanFitter {
     kalmanActor.m_outlierFinder = kfOptions.outlierFinder;
 
     // Run the fitter
-    const auto propRes  = m_propagator.template propagate(sParameters, kalmanOptions);
+    const auto propRes  = m_propagator.template propagate(sParameters, kalmanOptions, kfResult);
 
-    /// Get the result of the fit
-    auto kalmanResult = propRes.actorResult;
-
-    if (!kalmanResult.result) {
+    if (!kfResult.result) {
       printf("KalmanFilter failed: \n");
+      return false;
     }
 
     // Return the converted Track
-    return kalmanResult;
+    return true;
   }
 
 };

@@ -24,7 +24,7 @@ class PixelSourceLink {
   using meas_par_t = ActsVector<FreeParametersScalar, 2>;
   using meas_cov_t = ActsMatrix<FreeParametersScalar, 2, 2>;
 
-  PixelSourceLink(const meas_par_t& values, const meas_cov_t& cov, const Surface* surface)
+  ACTS_DEVICE_FUNC PixelSourceLink(const meas_par_t& values, const meas_cov_t& cov, const Surface* surface)
       : m_values(values),
         m_cov(cov),
         m_surface(surface) {}
@@ -46,18 +46,18 @@ class PixelSourceLink {
     return global;
   }
 
-  constexpr const meas_cov_t& covariance() const{
+  ACTS_DEVICE_FUNC constexpr const meas_cov_t& covariance() const{
    return m_cov;
   } 
 
-  constexpr const Surface& referenceSurface() const { return *m_surface; }
+  ACTS_DEVICE_FUNC constexpr const Surface& referenceSurface() const { return *m_surface; }
 
-  projector_t projector() const{
+  ACTS_DEVICE_FUNC projector_t projector() const{
     return projector_t::Identity();
   }
   
   template< typename parameters_t>
-  meas_par_t residual(const parameters_t& par) const{
+  ACTS_DEVICE_FUNC meas_par_t residual(const parameters_t& par) const{
    meas_par_t residual = meas_par_t::Zero();
    residual[0] = m_values[0] - par.parameters()[0]; 
    residual[1] = m_values[1] - par.parameters()[1]; 

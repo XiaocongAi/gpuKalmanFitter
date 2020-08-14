@@ -4,12 +4,10 @@ template <typename S, typename N>
 template <typename parameters_t, typename propagator_options_t,
           typename path_aborter_t>
 ACTS_DEVICE_FUNC
-    PropagatorResult<typename propagator_options_t::action_type::result_type>
+    PropagatorResult
     Acts::Propagator<S, N>::propagate(
-        const parameters_t &start, const propagator_options_t &options) const {
-  using ResultType =
-      PropagatorResult<typename propagator_options_t::action_type::result_type>;
-  ResultType result;
+        const parameters_t &start, const propagator_options_t &options, typename propagator_options_t::action_type::result_type& actorResult) const {
+  PropagatorResult result;
 
   using StateType = State<propagator_options_t>;
   StateType state(start, options);
@@ -21,14 +19,14 @@ ACTS_DEVICE_FUNC
   // Navigator initialize state call
   m_navigator.status(state, m_stepper);
   // Pre-Stepping call to the action list
-  state.options.action(state, m_stepper, result.actorResult);
+  state.options.action(state, m_stepper, actorResult);
   // assume negative outcome, only set to true later if we actually have
   // a positive outcome.
   // This is needed for correct error logging
   bool terminatedNormally = false;
 
   // Pre-Stepping: abort condition check
-  if (!state.options.aborter(state, m_stepper, result.actorResult) and
+  if (!state.options.aborter(state, m_stepper, actorResult) and
       !pathAborter(state, m_stepper)) {
     // Pre-Stepping: target setting
     m_navigator.target(state, m_stepper);
@@ -46,9 +44,9 @@ ACTS_DEVICE_FUNC
       // Post-stepping:
       // navigator status call - action list - aborter list - target call
       m_navigator.status(state, m_stepper);
-      state.options.action(state, m_stepper, result.actorResult);
+      state.options.action(state, m_stepper, actorResult);
 
-      if (state.options.aborter(state, m_stepper, result.actorResult) or
+      if (state.options.aborter(state, m_stepper, actorResult) or
           pathAborter(state, m_stepper)) {
         terminatedNormally = true;
         break;
@@ -64,7 +62,7 @@ ACTS_DEVICE_FUNC
   }
 
   // Post-stepping call to the action list
-  state.options.action(state, m_stepper, result.actorResult);
+  state.options.action(state, m_stepper, actorResult);
 
   /// Convert into return type and fill the result object
 //  auto curvState = m_stepper.curvilinearState(state.stepping);

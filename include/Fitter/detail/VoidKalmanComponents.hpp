@@ -8,8 +8,6 @@
 
 #pragma once
 
-#include "Utilities/TypeTraits.hpp"
-
 namespace Acts {
 
 /// @brief void Measurement calibrator and converter
@@ -42,7 +40,7 @@ struct VoidKalmanUpdater {
   ///
   /// @return The copied predicted parameters
   template <typename track_state_t, typename predicted_state_t>
-  auto operator()(track_state_t& /* trackState */,
+  ACTS_DEVICE_FUNC auto operator()(track_state_t& /* trackState */,
                   const predicted_state_t& /*predicted*/) const {
     return true;
   }
@@ -58,7 +56,7 @@ struct VoidKalmanSmoother {
   ///
   /// @return The resulting
   template <typename parameters_t, typename track_states_t>
-  const parameters_t* operator()(track_states_t& /* trackStates */) const {
+  ACTS_DEVICE_FUNC const parameters_t* operator()(track_states_t& /* trackStates */) const {
     return nullptr;
   }
 };
@@ -73,7 +71,7 @@ struct VoidOutlierFinder {
   ///
   /// @return Whether it's outlier or not
   template <typename track_state_t>
-  constexpr bool operator()(const track_state_t& /* trackState */) const {
+  ACTS_DEVICE_FUNC constexpr bool operator()(const track_state_t& /* trackState */) const {
     return false;
   }
 };
