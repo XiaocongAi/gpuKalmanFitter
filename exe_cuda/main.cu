@@ -68,7 +68,6 @@ struct MeasurementCreator {
   void operator()(propagator_state_t &state, const stepper_t &stepper,
                   result_type &result) const {
     if (state.navigation.currentSurface != nullptr) {
-
       // Apply global to local
       Vector2D lPos;
       state.navigation.currentSurface->globalToLocal(
@@ -391,7 +390,6 @@ int main(int argc, char *argv[]) {
         const auto &pos = sl.globalPosition(gctx);
         obj_track << "v " << pos.x() << " " << pos.y() << " " << pos.z()
                   << "\n";
-        std::cout << "pos.x() " << pos.x() << std::endl;
       }
       // Write out the line - only if we have at least two points created
       size_t vBreak = vCounter + tracks.size() - 1;

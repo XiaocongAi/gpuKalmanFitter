@@ -262,6 +262,58 @@ int main(int argc, char *argv[]) {
   std::cout << "Time (sec) to run propagation tests: "
             << elapsed_seconds.count() << std::endl;
 
+  unsigned int vCounter = 0;
+  if (output) {
+    // Write result to obj file
+
+    // Write one track to one obj file
+    /*
+    for (int it = 0; it < nTracks; it++) {
+      auto tracks = ress[it].actorResult.sourcelinks;
+      std::ofstream obj_track;
+      std::string fileName ="cpu_output/Track-" + std::to_string(it) + ".obj";
+      obj_track.open(fileName.c_str());
+
+       for (const auto& sl: tracks) {
+        const auto& pos = sl.globalPosition(gctx);
+        obj_track << "v " << pos.x() << " "
+                 << pos.y() << " " <<
+                 pos.z()
+                << std::endl;
+      }
+       for (unsigned int iv = 2; iv <= tracks.size(); ++iv) {
+        obj_track << "l " << iv - 1 << " " << iv << std::endl;
+      }
+
+      obj_track.close();
+    }
+    */
+
+    std::cout << "writing propagation results" << std::endl;
+    // Write all of the created tracks to one obj file
+    std::ofstream obj_track;
+    std::string fileName = "cpu_output/Tracks-propagation.obj";
+    obj_track.open(fileName.c_str());
+
+    // Initialize the vertex counter
+    for (int it = 0; it < nTracks; it++) {
+      auto tracks = ress[it].sourcelinks;
+      ++vCounter;
+      for (const auto &sl : tracks) {
+        const auto &pos = sl.globalPosition(gctx);
+        obj_track << "v " << pos.x() << " " << pos.y() << " " << pos.z()
+                  << "\n";
+      }
+      // Write out the line - only if we have at least two points created
+      size_t vBreak = vCounter + tracks.size() - 1;
+      for (; vCounter < vBreak; ++vCounter)
+        obj_track << "l " << vCounter << " " << vCounter + 1 << '\n';
+    }
+    obj_track.close();
+    
+  }
+
+
   // start to perform fit to the created tracks
   using RecoStepper = EigenStepper<ConstantBField>;
   using RecoPropagator = Propagator<RecoStepper>;
@@ -319,57 +371,6 @@ int main(int argc, char *argv[]) {
             << elapsed_seconds.count() << std::endl;
 
   if (output) {
-    // Write result to obj file
-    std::cout << "Writing yielded " << nTracks << " tracks to obj files..."
-              << std::endl;
-
-    // Write one track to one obj file
-    /*
-    for (int it = 0; it < nTracks; it++) {
-      auto tracks = ress[it].actorResult.sourcelinks;
-      std::ofstream obj_track;
-      std::string fileName ="cpu_output/Track-" + std::to_string(it) + ".obj";
-      obj_track.open(fileName.c_str());
-
-       for (const auto& sl: tracks) {
-        const auto& pos = sl.globalPosition(gctx);
-        obj_track << "v " << pos.x() << " "
-                 << pos.y() << " " <<
-                 pos.z()
-                << std::endl;
-      }
-       for (unsigned int iv = 2; iv <= tracks.size(); ++iv) {
-        obj_track << "l " << iv - 1 << " " << iv << std::endl;
-      }
-
-      obj_track.close();
-    }
-    */
-
-    std::cout << "writing propagation results" << std::endl;
-    // Write all of the created tracks to one obj file
-    std::ofstream obj_track;
-    std::string fileName = "cpu_output/Tracks-propagation.obj";
-    obj_track.open(fileName.c_str());
-
-    // Initialize the vertex counter
-    unsigned int vCounter = 0;
-    for (int it = 0; it < nTracks; it++) {
-      auto tracks = ress[it].sourcelinks;
-      ++vCounter;
-      for (const auto &sl : tracks) {
-        const auto &pos = sl.globalPosition(gctx);
-        obj_track << "v " << pos.x() << " " << pos.y() << " " << pos.z()
-                  << "\n";
-        std::cout << "pos.x() " << pos.x() << std::endl;
-      }
-      // Write out the line - only if we have at least two points created
-      size_t vBreak = vCounter + tracks.size() - 1;
-      for (; vCounter < vBreak; ++vCounter)
-        obj_track << "l " << vCounter << " " << vCounter + 1 << '\n';
-    }
-    obj_track.close();
-
     std::cout << "writing KF results" << std::endl;
     // Write all of the created tracks to one obj file
     std::ofstream obj_ftrack;
