@@ -44,7 +44,7 @@ public:
   /// surface sequence
   struct Initializer {
     /// The Surface sequence
-    const Surface **surfaceSequence = nullptr;
+    const Surface *surfaceSequence = nullptr;
 
     /// The surface sequence size
     size_t surfaceSequenceSize = 0;
@@ -91,7 +91,7 @@ public:
   struct State {
     /// Externally provided surfaces - expected to be ordered
     /// along the path
-    const Surface **surfaceSequence = nullptr;
+    const Surface *surfaceSequence = nullptr;
 
     /// The surface sequence size
     size_t surfaceSequenceSize = 0;
@@ -129,7 +129,7 @@ public:
     if (state.navigation.nextSurfaceIter !=
         state.navigation.surfaceSequenceSize) {
       auto surfacePtr =
-          state.navigation.surfaceSequence[state.navigation.nextSurfaceIter];
+          state.navigation.surfaceSequence + state.navigation.nextSurfaceIter;
       // Establish the surface status
       auto surfaceStatus =
           stepper.updateSurfaceStatus(state.stepping, *surfacePtr, false);
@@ -164,7 +164,7 @@ public:
     if (state.navigation.nextSurfaceIter !=
         state.navigation.surfaceSequenceSize) {
       auto surfacePtr =
-          state.navigation.surfaceSequence[state.navigation.nextSurfaceIter];
+          state.navigation.surfaceSequence + state.navigation.nextSurfaceIter;
       // Establish & update the surface status
       auto surfaceStatus =
           stepper.updateSurfaceStatus(state.stepping, *surfacePtr, false);

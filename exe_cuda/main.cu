@@ -134,7 +134,7 @@ __global__ void propKernel(KalmanFitterType *kFitter,
                            PixelSourceLink *sourcelinks,
                            CurvilinearParameters *tpars,
                            KalmanFitterOptions<VoidOutlierFinder> kfOptions,
-                           TSType *fittedTracks, const Surface **surfacePtrs,
+                           TSType *fittedTracks, const Surface *surfacePtrs,
                            int nSurfaces, int N) {
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if (i < N) {
@@ -198,30 +198,15 @@ int main(int argc, char *argv[]) {
   GPUERRCHK(
       cudaMallocManaged(&surfaces, sizeof(Acts::PlaneSurface) * nSurfaces));
   std::cout<<"Allocating the memory for the surfaces"<<std::endl;
+  
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
     surfaces[isur] = Acts::PlaneSurface(translations[isur], Acts::Vector3D(1, 0, 0));
   }
-  std::cout << "Creating " << nSurfaces << " boundless plane surfaces"
-            << std::endl;
 
   // Unified memory allocation for pointers to the surfaces
   // It's more convenient to explicity to pass the surface ptrs to the
   // propagator; Otherwide, dynamic cast is needed which is not possible on GPU
   // kernel
-  //const Acts::Surface *surfacePtrs[nSurfaces];
-  const Acts::Surface **surfacePtrs;
-  GPUERRCHK(cudaMallocManaged(&surfacePtrs,
-                              sizeof(const Acts::Surface *) * nSurfaces));
-  for (unsigned int isur = 0; isur < nSurfaces; isur++) {
-    surfacePtrs[isur] = surfaces + isur;
-  }
-
-  // Test the pointers to surfaces
-  for (unsigned int isur = 0; isur < nSurfaces; isur++) {
-     auto surface = surfaces[isur]; 
-     std::cout<<"surface " << isur <<  " has center at: \n"
-     <<surface.center(gctx)<<std::endl;
-  }
 
   std::cout << "----- Kalman fitter test of " << nTracks << " tracks on " << device
             << std::endl;
@@ -237,7 +222,7 @@ int main(int argc, char *argv[]) {
   PropagatorType propagator(stepper);
   PropOptionsType propOptions(gctx, mctx);
   propOptions.maxSteps = 100;
-  propOptions.initializer.surfaceSequence = surfacePtrs;
+  propOptions.initializer.surfaceSequence = surfaces;
   propOptions.initializer.surfaceSequenceSize = nSurfaces;
 
   // Construct random starting track parameters
@@ -322,16 +307,7 @@ int main(int argc, char *argv[]) {
   KalmanFitterOptions<VoidOutlierFinder> kfOptions(gctx, mctx);
 
   // Allocate memory for KF fitted tracks
-  std::vector<TSType *> fittedTracks;
-  for (int it = 0; it < nTracks; it++) {
-    // Struct with deleted default constructor will have problem
-    auto states = new TSType[nSurfaces];
-    if (states == nullptr) {
-      std::cout << "memory allocation failure" << std::endl;
-      return 1;
-    }
-    fittedTracks.push_back(states);
-  }
+  std::vector<TSType> fittedTracks (nSurfaces * nTracks);
 
   // Running directly on host or offloading to GPU
   bool useGPU = (device == "gpu" ? true : false);
@@ -361,23 +337,21 @@ int main(int argc, char *argv[]) {
     int blocksPerGrid = (nTracks + threadsPerBlock - 1) / threadsPerBlock;
     propKernel<<<blocksPerGrid, threadsPerBlock>>>(
         kFitterPtr, d_sourcelinks, d_pars, kfOptions, d_fittedTracks,
-        surfacePtrs, nSurfaces, nTracks);
+        surfaces, nSurfaces, nTracks);
 
     GPUERRCHK(cudaPeekAtLastError());
     GPUERRCHK(cudaDeviceSynchronize());
 
     // Copy result from device to host
-    for (int it = 0; it < nTracks; it++) {
-      GPUERRCHK(cudaMemcpy(fittedTracks[it], d_fittedTracks + it * nSurfaces,
-                           sizeof(TSType) * nSurfaces, cudaMemcpyDeviceToHost));
-    }
+    GPUERRCHK(cudaMemcpy(&fittedTracks[0], d_fittedTracks,
+              sizeof(TSType) * nSurfaces * nTracks,
+	      cudaMemcpyDeviceToHost));
 
     // Free the memory on device
     GPUERRCHK(cudaFree(d_sourcelinks));
     GPUERRCHK(cudaFree(d_pars));
     GPUERRCHK(cudaFree(d_fittedTracks));
     GPUERRCHK(cudaFree(surfaces));
-    GPUERRCHK(cudaFree(surfacePtrs));
     GPUERRCHK(cudaFree(kFitterPtr));
   } else {
 //// Run on host
@@ -386,13 +360,13 @@ int main(int argc, char *argv[]) {
       // Dynamically allocating memory for the fitted states here
       KalmanFitterResultType kfResult;
       kfResult.fittedStates =
-          CudaKernelContainer<TSType>(fittedTracks[it], nSurfaces);
+          CudaKernelContainer<TSType>(&fittedTracks[it * nTracks], nSurfaces);
 
       auto sourcelinkTrack = CudaKernelContainer<PixelSourceLink>(
           ress[it].sourcelinks.data(), ress[it].sourcelinks.size());
       // The fittedTracks will be changed here
       kFitter.fit(sourcelinkTrack, startPars[it], kfOptions, kfResult,
-                  surfacePtrs, nSurfaces);
+                  surfaces, nSurfaces);
     }
   }
 
@@ -413,8 +387,9 @@ int main(int argc, char *argv[]) {
     vCounter = 0;
     for (int it = 0; it < nTracks; it++) {
       ++vCounter;
+      auto fittedTracksBase = &fittedTracks[it * nTracks];
       for (int is = 0; is < nSurfaces; is++) {
-        const auto &pos = fittedTracks[it][is].parameter.filtered.position();
+        const auto &pos = fittedTracksBase[is].parameter.filtered.position();
         obj_ftrack << "v " << pos.x() << " " << pos.y() << " " << pos.z()
                    << "\n";
       }
@@ -424,10 +399,6 @@ int main(int argc, char *argv[]) {
         obj_ftrack << "l " << vCounter << " " << vCounter + 1 << '\n';
     }
     obj_ftrack.close();
-  }
-
-  for (int it = 0; it < nTracks; it++) {
-    delete[] fittedTracks[it];
   }
 
   std::cout << "------------------------  ending  -----------------------"
