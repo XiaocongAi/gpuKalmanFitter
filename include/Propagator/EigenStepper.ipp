@@ -209,8 +209,15 @@ ACTS_DEVICE_FUNC auto
 Acts::EigenStepper<B>::boundState(State &state, const Surface &surface) const
     -> BoundState {
   FreeVector parameters;
-  parameters << state.pos[0], state.pos[1], state.pos[2], state.t, state.dir[0],
-      state.dir[1], state.dir[2], state.q / state.p;
+  parameters[0] = state.pos[0];
+  parameters[1] = state.pos[1];
+  parameters[2] = state.pos[2];
+  parameters[3] = state.t;
+  parameters[4] = state.dir[0];
+  parameters[5] = state.dir[1];
+  parameters[6] = state.dir[2];
+  parameters[7] = state.q/state.p;
+ 
   return detail::boundState(state.geoContext, state.cov, state.jacobian,
                             state.jacTransport, state.derivative,
                             state.jacToGlobal, parameters, state.covTransport,
@@ -264,8 +271,14 @@ ACTS_DEVICE_FUNC void
 Acts::EigenStepper<B>::covarianceTransport(State &state,
                                            const Surface &surface) const {
   FreeVector parameters;
-  parameters << state.pos[0], state.pos[1], state.pos[2], state.t, state.dir[0],
-      state.dir[1], state.dir[2], state.q / state.p;
+  parameters[0] = state.pos[0];
+  parameters[1] = state.pos[1];
+  parameters[2] = state.pos[2];
+  parameters[3] = state.t;
+  parameters[4] = state.dir[0];
+  parameters[5] = state.dir[1];
+  parameters[6] = state.dir[2];
+  parameters[7] = state.q/state.p;
   detail::covarianceTransport(state.geoContext, state.cov, state.jacobian,
                               state.jacTransport, state.derivative,
                               state.jacToGlobal, parameters, surface);
