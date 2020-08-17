@@ -5,7 +5,7 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX ${PROJECT_SOURCE_DIR}/INSTALL CACHE PATH "Default prefix of install directories" FORCE)
 endif()
 
-set(CMAKE_CXX_STANDARD 17)
+# set(CMAKE_CXX_STANDARD 17)
 
 include(CheckLanguage)
 check_language(CUDA)
@@ -17,7 +17,6 @@ check_language(CUDA)
 
 aux_source_directory(src/MagneticField LIB_SRC_BField)
 aux_source_directory(src/Plugins LIB_SRC_Plugins)
-aux_source_directory(src/Surfaces LIB_SRC_Surfaces)
 aux_source_directory(src/Propagator/detail LIB_SRC_Propagator)
 
 find_package(CUDA)
@@ -30,10 +29,11 @@ include_directories(${CUDA_TOOLKIT_INCLUDE})
 include(cmake/FindEigen.cmake)
 
 # make sure libActscore.so is available at runtime
-set(CMAKE_INSTALL_RPATH "$ORIGIN/../bin")
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
+#set(CMAKE_INSTALL_RPATH "$ORIGIN/../bin")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -std=c++14")
 
-add_library(Actscore SHARED ${LIB_SRC_MAT} ${LIB_SRC_SUR} ${LIB_SRC_BField} ${LIB_SRC_Plugins} ${LIB_SRC_Surfaces} ${LIB_SRC_Propagator})
+
+add_library(Actscore STATIC ${LIB_SRC_MAT} ${LIB_SRC_SUR} ${LIB_SRC_BField} ${LIB_SRC_Plugins} ${LIB_SRC_Propagator})
 
 #target_link_libraries(Actscore PUBLIC OpenMP::OpenMP_CXX  Eigen3::Eigen)
 target_link_libraries(Actscore PUBLIC Eigen3::Eigen)

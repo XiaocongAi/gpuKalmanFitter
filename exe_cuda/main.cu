@@ -154,11 +154,11 @@ int main(int argc, char *argv[]) {
     show_usage(argv[0]);
     return 1;
   }
-  unsigned int nTracks;
+  unsigned int nTracks = 1000;
   bool output = false;
-  std::string device;
+  std::string device = "cpu";
   std::string bFieldFileName;
-  double p;
+  double p = 1* Acts::units::_GeV;
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
     if ((arg == "-h") or (arg == "--help")) {
@@ -181,11 +181,11 @@ int main(int argc, char *argv[]) {
   }
 
   // Create a test context
-  GeometryContext gctx;
-  MagneticFieldContext mctx;
+  GeometryContext gctx(0);
+  MagneticFieldContext mctx(0);
 
   // Create the geometry
-  size_t nSurfaces = 15;
+  size_t nSurfaces = 10;
 
   // Set translation vectors
   std::vector<Acts::Vector3D> translations;
@@ -193,13 +193,14 @@ int main(int argc, char *argv[]) {
     translations.push_back({(isur * 30. + 19) * Acts::units::_mm, 0., 0.});
   }
 
-  Acts::PlaneSurface *surfaces;
+  //Acts::PlaneSurface surfaces[nSurfaces];
+  Acts::PlaneSurface* surfaces;
   // Unifited memory allocation for geometry
   GPUERRCHK(
       cudaMallocManaged(&surfaces, sizeof(Acts::PlaneSurface) * nSurfaces));
+  std::cout<<"Allocating the memory for the surfaces"<<std::endl;
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
-    surfaces[isur] =
-        Acts::PlaneSurface(translations[isur], Acts::Vector3D(1, 0, 0));
+    surfaces[isur] = Acts::PlaneSurface(translations[isur], Acts::Vector3D(1, 0, 0));
   }
   std::cout << "Creating " << nSurfaces << " boundless plane surfaces"
             << std::endl;
@@ -208,15 +209,22 @@ int main(int argc, char *argv[]) {
   // It's more convenient to explicity to pass the surface ptrs to the
   // propagator; Otherwide, dynamic cast is needed which is not possible on GPU
   // kernel
+  //const Acts::Surface *surfacePtrs[nSurfaces];
   const Acts::Surface **surfacePtrs;
   GPUERRCHK(cudaMallocManaged(&surfacePtrs,
                               sizeof(const Acts::Surface *) * nSurfaces));
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
-    surfacePtrs[isur] = &surfaces[isur];
+    surfacePtrs[isur] = surfaces + isur;
   }
 
-  std::cout << "----- Propgation test of " << nTracks << " tracks on " << device
-            << ". Writing results to obj file? " << output << " ----- "
+  // Test the pointers to surfaces
+  for (unsigned int isur = 0; isur < nSurfaces; isur++) {
+     auto surface = surfaces[isur]; 
+     std::cout<<"surface " << isur <<  " has center at: \n"
+     <<surface.center(gctx)<<std::endl;
+  }
+
+  std::cout << "----- Kalman fitter test of " << nTracks << " tracks on " << device
             << std::endl;
 
   // InterpolatedBFieldMap3D bField = Options::readBField(bFieldFileName);
@@ -229,7 +237,7 @@ int main(int argc, char *argv[]) {
   Stepper stepper;
   PropagatorType propagator(stepper);
   PropOptionsType propOptions(gctx, mctx);
-  propOptions.maxSteps = 10;
+  propOptions.maxSteps = 100;
   propOptions.initializer.surfaceSequence = surfacePtrs;
   propOptions.initializer.surfaceSequenceSize = nSurfaces;
 
@@ -257,14 +265,23 @@ int main(int argc, char *argv[]) {
 
     startPars.emplace_back(cov, pos, mom, q, time);
   }
+  std::cout<<"Finish creating starting parameters"<<std::endl;
 
   // Propagation result
   MeasurementCreator::result_type ress[nTracks];
+
+
+  auto start = std::chrono::high_resolution_clock::now();
 
   // Run propagation to create the measurements
   for (int it = 0; it < nTracks; it++) {
     propagator.propagate(startPars[it], propOptions, ress[it]);
   }
+
+  auto end_propagate = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> elapsed_seconds = end_propagate - start;
+  std::cout << "Time (sec) to run propagation tests: "
+            << elapsed_seconds.count() << std::endl;
 
   // start to perform fit to the created tracks
   // Unified memory allocation for KalmanFitter
@@ -288,8 +305,6 @@ int main(int argc, char *argv[]) {
     }
     fittedTracks.push_back(states);
   }
-
-  auto start = std::chrono::high_resolution_clock::now();
 
   // Running directly on host or offloading to GPU
   bool useGPU = (device == "gpu" ? true : false);
@@ -354,10 +369,63 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  auto end = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> elapsed_seconds = end - start;
-  std::cout << "Time (sec) to run propagation tests: "
+  auto end_fit = std::chrono::high_resolution_clock::now();
+  elapsed_seconds = end_fit - end_propagate;
+  std::cout << "Time (sec) to run KalmanFitter for " << nTracks << " : "
             << elapsed_seconds.count() << std::endl;
+
+  if (output) {
+
+    std::cout << "writing propagation results" << std::endl;
+    // Write all of the created tracks to one obj file
+    std::ofstream obj_track;
+    std::string fileName = "cpu_output/Tracks-propagation.obj";
+    obj_track.open(fileName.c_str());
+
+    // Initialize the vertex counter
+    unsigned int vCounter = 0;
+    for (int it = 0; it < nTracks; it++) {
+      auto tracks = ress[it].sourcelinks;
+      ++vCounter;
+      for (const auto &sl : tracks) {
+        const auto &pos = sl.globalPosition(gctx);
+        obj_track << "v " << pos.x() << " " << pos.y() << " " << pos.z()
+                  << "\n";
+        std::cout << "pos.x() " << pos.x() << std::endl;
+      }
+      // Write out the line - only if we have at least two points created
+      size_t vBreak = vCounter + tracks.size() - 1;
+      for (; vCounter < vBreak; ++vCounter)
+        obj_track << "l " << vCounter << " " << vCounter + 1 << '\n';
+    }
+    obj_track.close();
+
+     std::cout << "writing KF results" << std::endl;
+    // Write all of the created tracks to one obj file
+    std::ofstream obj_ftrack;
+    std::string fileName_ = "cpu_output/Tracks-fitted.obj";
+    obj_ftrack.open(fileName_.c_str());
+
+    // Initialize the vertex counter
+    vCounter = 0;
+    for (int it = 0; it < nTracks; it++) {
+      ++vCounter;
+      for (int is = 0; is < nSurfaces; is++) {
+        const auto &pos = fittedTracks[it][is].parameter.filtered.position();
+        obj_ftrack << "v " << pos.x() << " " << pos.y() << " " << pos.z()
+                   << "\n";
+      }
+      // Write out the line - only if we have at least two points created
+      size_t vBreak = vCounter + nSurfaces - 1;
+      for (; vCounter < vBreak; ++vCounter)
+        obj_ftrack << "l " << vCounter << " " << vCounter + 1 << '\n';
+    }
+    obj_ftrack.close();
+  }
+
+  for (int it = 0; it < nTracks; it++) {
+    delete[] fittedTracks[it];
+  }
 
   std::cout << "------------------------  ending  -----------------------"
             << std::endl;

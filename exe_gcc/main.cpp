@@ -26,9 +26,9 @@ static void show_usage(std::string name) {
             << "\t-t,--tracks \tSpecify the number of tracks\n"
             << "\t-p,--pt \tSpecify the pt of particle\n"
             << "\t-o,--output \tIndicator for writing propagation results\n"
-            << "\t-d,--device \tSpecify the device: 'gpu' or 'cpu'\n"
-            << "\t-b,--bf-map \tSpecify the path of *.txt for interpolated "
-               "BField map\n"
+            //<< "\t-d,--device \tSpecify the device: 'gpu' or 'cpu'\n"
+            //<< "\t-b,--bf-map \tSpecify the path of *.txt for interpolated "
+            //   "BField map\n"
             << std::endl;
 }
 
@@ -187,6 +187,15 @@ int main(int argc, char *argv[]) {
     surfacePtrs[isur] = &surfaces[isur];
   }
 
+
+  Acts::PlaneSurface surfaceArrs[nSurfaces];
+  for (unsigned int isur = 0; isur < nSurfaces; isur++) {
+    surfaceArrs[isur] = Acts::PlaneSurface(translations[isur], Acts::Vector3D(1, 0, 0));
+     const Acts::Surface* surface = &surfaceArrs[isur];
+     std::cout<<(*surface).center(gctx)<<std::endl;
+  }
+
+
   std::cout << "Creating " << surfaces.size() << " boundless plane surfaces"
             << std::endl;
 
@@ -264,7 +273,7 @@ int main(int argc, char *argv[]) {
   // Contruct a KalmanFitter instance
   RecoPropagator rPropagator(stepper);
   KalmanFitter kFitter(rPropagator);
-  KalmanFitterOptions kfOptions(gctx, mctx);
+  KalmanFitterOptions<VoidOutlierFinder> kfOptions(gctx, mctx);
 
   std::vector<TrackState *> fittedTracks;
   for (int it = 0; it < nTracks; it++) {
@@ -292,9 +301,9 @@ int main(int argc, char *argv[]) {
     CurvilinearParameters rStart(cov, pos, mom, q, time);
 
     KalmanFitterResult kfResult;
-    kfResult.fittedStates = CudaKernelContainer(fittedTracks[it], nSurfaces);
+    kfResult.fittedStates = CudaKernelContainer<TrackState>(fittedTracks[it], nSurfaces);
 
-    auto sourcelinkTrack = CudaKernelContainer(ress[it].sourcelinks.data(),
+    auto sourcelinkTrack = CudaKernelContainer<PixelSourceLink>(ress[it].sourcelinks.data(),
                                                ress[it].sourcelinks.size());
     // The fittedTracks will be changed here
     auto fitStatus = kFitter.fit(sourcelinkTrack, rStart, kfOptions, kfResult,
