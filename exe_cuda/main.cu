@@ -407,8 +407,11 @@ int main(int argc, char *argv[]) {
           ress[it].sourcelinks.data(), ress[it].sourcelinks.size());
   
       // The fittedTracks will be changed here
-      kFitter.fit(sourcelinkTrack, rStart, kfOptions, kfResult,
-                  surfacePtrs, nSurfaces);
+      auto fitStatus =   kFitter.fit(sourcelinkTrack, rStart, kfOptions, kfResult,
+                    surfacePtrs, nSurfaces);
+      if (not fitStatus) {
+        std::cout << "fit failure for track " << it << std::endl;
+      }
     }
   }
 
