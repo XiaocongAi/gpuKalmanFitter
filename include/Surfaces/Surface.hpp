@@ -29,6 +29,7 @@
 #include "Surfaces/SurfaceBounds.hpp"
 #include "Utilities/Definitions.hpp"
 #include "Utilities/Intersection.hpp"
+#include "Surfaces/detail/PlanarHelper.hpp"
 
 #include <memory>
 
@@ -132,7 +133,7 @@ public:
 
 public:
   /// Return method for the Surface type to avoid dynamic casts
-  ACTS_DEVICE_FUNC virtual SurfaceType type() const = 0;
+  virtual SurfaceType type() const = 0;
 
   /// Return method for the surface Transform3D by reference
   /// In case a detector element is associated the surface transform
@@ -164,8 +165,8 @@ public:
   /// constructed
   ///
   /// @return normal vector by value
-  ACTS_DEVICE_FUNC virtual const Vector3D
-  normal(const GeometryContext &gctx, const Vector2D &lposition) const = 0;
+  ACTS_DEVICE_FUNC const Vector3D
+  normal(const GeometryContext &gctx, const Vector2D &lposition) const;
 
   /// Return method for the normal vector of the surface
   /// The normal vector can only be generally defined at a given local position
@@ -230,10 +231,10 @@ public:
   /// @param momentum global 3D momentum representation (optionally ignored)
   /// @param position global 3D position to be filled (given by reference for
   /// method symmetry)
-  ACTS_DEVICE_FUNC virtual void localToGlobal(const GeometryContext &gctx,
+  ACTS_DEVICE_FUNC void localToGlobal(const GeometryContext &gctx,
                                               const Vector2D &lposition,
                                               const Vector3D &momentum,
-                                              Vector3D &position) const = 0;
+                                              Vector3D &position) const;
 
   /// Global to local transformation
   /// Generalized global to local transformation for the surface types. Since
@@ -249,10 +250,10 @@ public:
   ///
   /// @return boolean indication if operation was successful (fail means global
   /// position was not on surface)
-  ACTS_DEVICE_FUNC virtual bool globalToLocal(const GeometryContext &gctx,
+  ACTS_DEVICE_FUNC bool globalToLocal(const GeometryContext &gctx,
                                               const Vector3D &position,
                                               const Vector3D &momentum,
-                                              Vector2D &lposition) const = 0;
+                                              Vector2D &lposition) const;
 
   /// Return mehtod for the reference frame
   /// This is the frame in which the covariance matrix is defined (specialized
@@ -337,9 +338,9 @@ public:
   /// @param direction global 3D momentum direction
   ///
   /// @return Path correction with respect to the nominal incident.
-  ACTS_DEVICE_FUNC virtual double
+  ACTS_DEVICE_FUNC double
   pathCorrection(const GeometryContext &gctx, const Vector3D &position,
-                 const Vector3D &direction) const = 0;
+                 const Vector3D &direction) const;
 
   /// Straight line intersection schema from position/direction
   ///
@@ -355,7 +356,7 @@ public:
 
   {
     // Get the intersection with the surface
-    auto sIntersection =
+    Intersection sIntersection =
         intersectionEstimate(gctx, position, direction, bcheck);
     // return a surface intersection with result direction
     return SurfaceIntersection(sIntersection, this);
@@ -371,10 +372,10 @@ public:
   /// @param bcheck boundary check directive for this operation
   ///
   /// @return Intersection object
-  ACTS_DEVICE_FUNC virtual Intersection
+  ACTS_DEVICE_FUNC Intersection
   intersectionEstimate(const GeometryContext &gctx, const Vector3D &position,
                        const Vector3D &direction,
-                       const BoundaryCheck &bcheck) const = 0;
+                       const BoundaryCheck &bcheck) const;
 
   /// Return properly formatted class name
   //virtual std::string name() const = 0;
