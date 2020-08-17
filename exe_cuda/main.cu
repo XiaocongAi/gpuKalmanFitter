@@ -282,6 +282,34 @@ int main(int argc, char *argv[]) {
   std::cout << "Time (sec) to run propagation tests: "
             << elapsed_seconds.count() << std::endl;
 
+
+    // Initialize the vertex counter
+    unsigned int vCounter = 0;
+   if (output) {
+
+    std::cout << "writing propagation results" << std::endl;
+    // Write all of the created tracks to one obj file
+    std::ofstream obj_track;
+    std::string fileName = "Tracks-propagation.obj";
+    obj_track.open(fileName.c_str());
+
+    for (int it = 0; it < nTracks; it++) {
+      auto tracks = ress[it].sourcelinks;
+      ++vCounter;
+      for (const auto &sl : tracks) {
+        const auto &pos = sl.globalPosition(gctx);
+        obj_track << "v " << pos.x() << " " << pos.y() << " " << pos.z()
+                  << "\n";
+      }
+      // Write out the line - only if we have at least two points created
+      size_t vBreak = vCounter + tracks.size() - 1;
+      for (; vCounter < vBreak; ++vCounter)
+        obj_track << "l " << vCounter << " " << vCounter + 1 << '\n';
+    }
+    obj_track.close();
+   }
+
+
   // start to perform fit to the created tracks
   // Unified memory allocation for KalmanFitter
   PropagatorType rPropagator(stepper);
@@ -375,30 +403,7 @@ int main(int argc, char *argv[]) {
 
   if (output) {
 
-    std::cout << "writing propagation results" << std::endl;
-    // Write all of the created tracks to one obj file
-    std::ofstream obj_track;
-    std::string fileName = "Tracks-propagation.obj";
-    obj_track.open(fileName.c_str());
-
-    // Initialize the vertex counter
-    unsigned int vCounter = 0;
-    for (int it = 0; it < nTracks; it++) {
-      auto tracks = ress[it].sourcelinks;
-      ++vCounter;
-      for (const auto &sl : tracks) {
-        const auto &pos = sl.globalPosition(gctx);
-        obj_track << "v " << pos.x() << " " << pos.y() << " " << pos.z()
-                  << "\n";
-      }
-      // Write out the line - only if we have at least two points created
-      size_t vBreak = vCounter + tracks.size() - 1;
-      for (; vCounter < vBreak; ++vCounter)
-        obj_track << "l " << vCounter << " " << vCounter + 1 << '\n';
-    }
-    obj_track.close();
-
-     std::cout << "writing KF results" << std::endl;
+    std::cout << "writing KF results" << std::endl;
     // Write all of the created tracks to one obj file
     std::ofstream obj_ftrack;
     std::string fileName_ = "Tracks-fitted.obj";
