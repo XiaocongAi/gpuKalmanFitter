@@ -108,7 +108,8 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
 
   // First Runge-Kutta point (at current position)
   sd.B_first = getField(state.stepping, state.stepping.pos);
-
+  sd.k1 = evaluatek(sd.B_first, 0);
+  
   // The following functor starts to perform a Runge-Kutta step of a certain
   // size, going up to the point where it can return an estimate of the local
   // integration error. The results are stated in the local variables above,
