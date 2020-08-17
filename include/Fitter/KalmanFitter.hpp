@@ -291,8 +291,9 @@ private:
       auto sourcelink_it = inputMeasurements.find_if(sFinder);
       if (sourcelink_it != inputMeasurements.end()) {
         // Screen output message
-	auto center = (*surface).center(state.options.geoContext);
-        //printf("Measurement surface detected with center = (%f, %f, %f)\n", center.x(), center.y(), center.z());
+        auto center = (*surface).center(state.options.geoContext);
+        // printf("Measurement surface detected with center = (%f, %f, %f)\n",
+        // center.x(), center.y(), center.z());
 
         // create track state on the vector from sourcelink
         // result.fittedStates.push_back(TrackStateType(*sourcelink_it));
@@ -301,8 +302,8 @@ private:
             TrackStateType(*sourcelink_it);
         TrackStateType &trackState =
             result.fittedStates[result.measurementStates];
-	auto pos = (*sourcelink_it).globalPosition(state.options.geoContext);
-        //printf("sl position = (%f, %f, %f)\n", pos.x(), pos.y(), pos.z());
+        auto pos = (*sourcelink_it).globalPosition(state.options.geoContext);
+        // printf("sl position = (%f, %f, %f)\n", pos.x(), pos.y(), pos.z());
 
         // Transport & bind the state to the current surface
         // auto [boundParams, jacobian, pathLength] =
@@ -313,8 +314,9 @@ private:
         trackState.parameter.jacobian = bState.jacobian;
         trackState.parameter.pathLength = bState.path;
         auto prePos = trackState.parameter.predicted.position();
-	//printf("Predicted parameter position = (%f, %f, %f)\n", prePos.x(), prePos.y(), prePos.z());
-        
+        // printf("Predicted parameter position = (%f, %f, %f)\n", prePos.x(),
+        // prePos.y(), prePos.z());
+
         // Get and set the type flags
         // auto& typeFlags = trackState.typeFlags();
         // typeFlags.set(TrackStateFlag::ParameterFlag);
@@ -329,7 +331,9 @@ private:
 
         // Get the filtered parameters and update the stepping state
         const auto &filtered = trackState.parameter.filtered;
-	//printf("Filtered parameter position = (%f, %f, %f)\n", filtered.position().x(), filtered.position().y(), filtered.position().z());
+        // printf("Filtered parameter position = (%f, %f, %f)\n",
+        // filtered.position().x(), filtered.position().y(),
+        // filtered.position().z());
         stepper.update(state.stepping, filtered.position(),
                        filtered.momentum().normalized(),
                        filtered.momentum().norm(), filtered.time());

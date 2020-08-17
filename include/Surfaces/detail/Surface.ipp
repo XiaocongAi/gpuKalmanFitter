@@ -13,12 +13,11 @@ inline Surface::Surface(const Surface &other)
     : GeometryObject(other), m_transform(other.m_transform) {}
 
 inline Surface::Surface(const GeometryContext &gctx, const Surface &other,
-                       const Transform3D &shift)
+                        const Transform3D &shift)
     : GeometryObject(),
       m_transform(Transform3D(shift * other.transform(gctx))) {}
 
-inline Surface::Surface(const Vector3D &center, const Vector3D &normal)
-{
+inline Surface::Surface(const Vector3D &center, const Vector3D &normal) {
   /// the right-handed coordinate system is defined as
   /// T = normal
   /// U = Z x T if T not parallel to Z otherwise U = X x T
@@ -40,15 +39,15 @@ inline Surface::Surface(const Vector3D &center, const Vector3D &normal)
 }
 
 inline bool Surface::isOnSurface(const GeometryContext &gctx,
-                                const Vector3D &position,
-                                const Vector3D &momentum,
-                                const BoundaryCheck &bcheck) const {
+                                 const Vector3D &position,
+                                 const Vector3D &momentum,
+                                 const BoundaryCheck &bcheck) const {
   // create the local position
   Vector2D lposition{0., 0.};
   // global to local transformation
   bool gtlSuccess = globalToLocal(gctx, position, momentum, lposition);
   if (gtlSuccess) {
-    //return bcheck ? bounds().inside(lposition, bcheck) : true;
+    // return bcheck ? bounds().inside(lposition, bcheck) : true;
     return true;
   }
   // did not succeed
@@ -58,7 +57,7 @@ inline bool Surface::isOnSurface(const GeometryContext &gctx,
 inline Surface &Surface::operator=(const Surface &other) {
   if (&other != this) {
     //@Todo: active this
-    //GeometryObject::operator=(other);
+    // GeometryObject::operator=(other);
     // detector element, identifier & layer association are unique
     m_transform = other.m_transform;
   }
@@ -71,13 +70,13 @@ inline bool Surface::operator==(const Surface &other) const {
     return true;
   }
   // (b) fast exit for type
-//  if (other.type() != type()) {
-//    return false;
-//  }
-//  // (c) fast exit for bounds
-//  if (other.bounds() != bounds()) {
-//    return false;
-//  }
+  //  if (other.type() != type()) {
+  //    return false;
+  //  }
+  //  // (c) fast exit for bounds
+  //  if (other.bounds() != bounds()) {
+  //    return false;
+  //  }
   // (e) compare transform values
   if (!m_transform.isApprox(other.m_transform, 1e-9)) {
     return false;
@@ -90,7 +89,6 @@ inline bool Surface::operator==(const Surface &other) const {
 inline bool Surface::operator!=(const Surface &sf) const {
   return !(operator==(sf));
 }
-
 
 inline const Vector3D Surface::center(const GeometryContext &gctx) const {
   // fast access via tranform matrix (and not translation())
@@ -110,7 +108,7 @@ Surface::transform(const GeometryContext &gctx) const {
 
 inline bool Surface::insideBounds(const Vector2D &lposition,
                                   const BoundaryCheck &bcheck) const {
-  //return bounds().inside(lposition, bcheck);
+  // return bounds().inside(lposition, bcheck);
   return true;
 }
 
@@ -202,18 +200,18 @@ inline const BoundRowVector Surface::derivativeFactors(
 }
 
 inline void Surface::localToGlobal(const GeometryContext &gctx,
-                                       const Vector2D &lposition,
-                                       const Vector3D & /*gmom*/,
-                                       Vector3D &position) const {
+                                   const Vector2D &lposition,
+                                   const Vector3D & /*gmom*/,
+                                   Vector3D &position) const {
   Vector3D loc3Dframe(lposition[eLOC_X], lposition[eLOC_Y], 0.);
   /// the chance that there is no transform is almost 0, let's apply it
   position = transform(gctx) * loc3Dframe;
 }
 
 inline bool Surface::globalToLocal(const GeometryContext &gctx,
-                                       const Vector3D &position,
-                                       const Vector3D & /*gmom*/,
-                                       Acts::Vector2D &lposition) const {
+                                   const Vector3D &position,
+                                   const Vector3D & /*gmom*/,
+                                   Acts::Vector2D &lposition) const {
   /// the chance that there is no transform is almost 0, let's apply it
   Vector3D loc3Dframe = (transform(gctx).inverse()) * position;
   lposition = Vector2D(loc3Dframe.x(), loc3Dframe.y());
@@ -224,15 +222,15 @@ inline bool Surface::globalToLocal(const GeometryContext &gctx,
 }
 
 inline const Vector3D Surface::normal(const GeometryContext &gctx,
-                                           const Vector2D & /*lpos*/) const {
+                                      const Vector2D & /*lpos*/) const {
   // fast access via tranform matrix (and not rotation())
   const auto &tMatrix = transform(gctx).matrix();
   return Vector3D(tMatrix(0, 2), tMatrix(1, 2), tMatrix(2, 2));
 }
 
 inline double Surface::pathCorrection(const GeometryContext &gctx,
-                                           const Vector3D &position,
-                                           const Vector3D &direction) const {
+                                      const Vector3D &position,
+                                      const Vector3D &direction) const {
   // We can ignore the global position here
   return 1. / std::abs(Surface::normal(gctx, position).dot(direction));
 }
@@ -258,4 +256,3 @@ inline Intersection Surface::intersectionEstimate(
   }
   return intersection;
 }
-

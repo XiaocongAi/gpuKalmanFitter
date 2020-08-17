@@ -34,7 +34,7 @@ public:
   template <typename track_state_t>
   ACTS_DEVICE_FUNC bool operator()(const GeometryContext &gctx,
                                    track_state_t &trackState) const {
-    //printf("Invoked GainMatrixUpdater\n");
+    // printf("Invoked GainMatrixUpdater\n");
     using parameters_t = typename track_state_t::Parameters;
     using source_link_t = typename track_state_t::SourceLink;
 
@@ -51,9 +51,6 @@ public:
     const parameters_t &predicted = trackState.parameter.predicted;
     const CovMatrix_t &predicted_covariance = *predicted.covariance();
 
-    // ACTS_VERBOSE("Predicted parameters: " << predicted.transpose());
-    // ACTS_VERBOSE("Predicted covariance:\n" << predicted_covariance);
-
     ParVector_t filtered_parameters;
     CovMatrix_t filtered_covariance;
 
@@ -64,40 +61,37 @@ public:
     const auto &H = sl.projector();
     meas_cov_t cov = H * predicted_covariance * H.transpose() + sl.covariance();
     meas_cov_t covInv = get2DMatrixInverse(cov);
-    //printf("covInv (%f, %f, %f, %f)\n", covInv(0,0), covInv(0,1), covInv(1,0), covInv(1,1));
     // The Kalman gain matrix
     const ActsMatrixD<eBoundParametersSize, measdim> K =
-        predicted_covariance * H.transpose() *
-        covInv;
+        predicted_covariance * H.transpose() * covInv;
 
     // filtered new parameters after update
     const ParVector_t gain = K * sl.residual(predicted);
     filtered_parameters = predicted.parameters() + gain;
 
-    const CovMatrix_t KH = K*H;
+    const CovMatrix_t KH = K * H;
     const CovMatrix_t C = CovMatrix_t::Identity() - KH;
     // updated covariance after filtering
-    filtered_covariance =
-        C * predicted_covariance;
+    filtered_covariance = C * predicted_covariance;
 
     // Create new filtered parameters and covariance
     parameters_t filtered(gctx, std::move(filtered_covariance),
                           filtered_parameters, &sl.referenceSurface());
-//
-//    // calculate the chi2
-//    // chi2 = r^T * R^-1 * r
-//    // r is the residual of the filtered state
-//    // R is the covariance matrix of the filtered residual
-//    meas_cov_t R = (meas_cov_t::Identity() - H * K) * sl.covariance();
-//    meas_par_t residual = sl.residual(filtered);
-//    trackState.parameter.chi2 =
-//        (residual.transpose() *
-//         get2DMatrixInverse(R) *
-//         residual)
-//            .eval()(0, 0);
-//
+    //
+    //    // calculate the chi2
+    //    // chi2 = r^T * R^-1 * r
+    //    // r is the residual of the filtered state
+    //    // R is the covariance matrix of the filtered residual
+    //    meas_cov_t R = (meas_cov_t::Identity() - H * K) * sl.covariance();
+    //    meas_par_t residual = sl.residual(filtered);
+    //    trackState.parameter.chi2 =
+    //        (residual.transpose() *
+    //         get2DMatrixInverse(R) *
+    //         residual)
+    //            .eval()(0, 0);
+    //
     trackState.parameter.filtered = filtered;
-    //trackState.parameter.filtered = predicted;
+    // trackState.parameter.filtered = predicted;
 
     // always succeed, no outlier logic yet
     return true;

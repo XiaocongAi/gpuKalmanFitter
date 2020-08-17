@@ -23,7 +23,7 @@ template <typename T> struct CudaKernelContainer {
     for (size_t i = 0; i < _size; i++) {
       if ((_array + i) == nullptr) {
         printf("Nullptr found.\nTerminating.\n");
-        //exit(1);
+        // exit(1);
       }
     }
   }
@@ -42,9 +42,8 @@ template <typename T> struct CudaKernelContainer {
 
   ACTS_DEVICE_FUNC T *end() const { return nullptr; }
 
-  template< typename visitor_t>
-  ACTS_DEVICE_FUNC const T *
-  find_if(visitor_t&& visitor) const {
+  template <typename visitor_t>
+  ACTS_DEVICE_FUNC const T *find_if(visitor_t &&visitor) const {
     T *matched = nullptr;
     for (size_t i = 0; i < _size; i++) {
       if (visitor(_array[i])) {

@@ -139,10 +139,6 @@ int main(int argc, char *argv[]) {
         p = atof(argv[++i]) * Acts::units::_GeV;
       } else if ((arg == "-o") or (arg == "--output")) {
         output = (atoi(argv[++i]) == 1);
-      } else if ((arg == "-d") or (arg == "--device")) {
-        device = argv[++i];
-      } else if ((arg == "-b") or (arg == "--bf-map")) {
-        bFieldFileName = argv[++i];
       } else {
         std::cerr << "Unknown argument." << std::endl;
         return 1;
@@ -168,14 +164,6 @@ int main(int argc, char *argv[]) {
   }
 
   // Create plane surfaces without boundaries
-  // std::vector<std::shared_ptr<const Acts::PlaneSurface>> surfaces;
-  // std::vector<const Acts::Surface*> surfacePtrs;
-  // for(unsigned int isur = 0; isur< s_surfacesSize; isur++){
-  // surfaces.push_back(std::make_shared<Acts::PlaneSurface>(translations[isur],
-  // Acts::Vector3D(1,0,0)));
-  //  surfacePtrs.push_back(surfaces[isur].get());
-  //}
-
   std::vector<Acts::PlaneSurface> surfaces;
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
     surfaces.push_back(
@@ -187,25 +175,24 @@ int main(int argc, char *argv[]) {
     surfacePtrs[isur] = &surfaces[isur];
   }
 
-
   Acts::PlaneSurface surfaceArrs[nSurfaces];
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
-    surfaceArrs[isur] = Acts::PlaneSurface(translations[isur], Acts::Vector3D(1, 0, 0));
-     const Acts::Surface* surface = &surfaceArrs[isur];
-     std::cout<<(*surface).center(gctx)<<std::endl;
+    surfaceArrs[isur] =
+        Acts::PlaneSurface(translations[isur], Acts::Vector3D(1, 0, 0));
+    const Acts::Surface *surface = &surfaceArrs[isur];
+    std::cout << (*surface).center(gctx) << std::endl;
   }
-
 
   std::cout << "Creating " << surfaces.size() << " boundless plane surfaces"
             << std::endl;
 
-  // Test the pointers to surfaces
-  const PlaneSurface *surfacePtr = surfaces.data();
-  for (unsigned int isur = 0; isur < nSurfaces; isur++) {
-    // std::cout<<"surface " << isur <<  " has center at: \n"
-    // <<(*surfacePtr).center(gctx)<<std::endl;
-    surfacePtr++;
-  }
+  //  // Test the pointers to surfaces
+  //  const PlaneSurface *surfacePtr = surfaces.data();
+  //  for (unsigned int isur = 0; isur < nSurfaces; isur++) {
+  //     std::cout<<"surface " << isur <<  " has center at: \n"
+  //     <<(*surfacePtr).center(gctx)<<std::endl;
+  //    surfacePtr++;
+  //  }
 
   //   InterpolatedBFieldMap3D bField = Options::readBField(bFieldFileName);
   //   std::cout
@@ -310,9 +297,7 @@ int main(int argc, char *argv[]) {
         obj_track << "l " << vCounter << " " << vCounter + 1 << '\n';
     }
     obj_track.close();
-    
   }
-
 
   // start to perform fit to the created tracks
   using RecoStepper = EigenStepper<ConstantBField>;
@@ -327,7 +312,7 @@ int main(int argc, char *argv[]) {
   KalmanFitter kFitter(rPropagator);
   KalmanFitterOptions<VoidOutlierFinder> kfOptions(gctx, mctx);
 
-  std::vector<TrackState> fittedTracks(nSurfaces*nTracks);
+  std::vector<TrackState> fittedTracks(nSurfaces * nTracks);
 
   for (int it = 0; it < nTracks; it++) {
     BoundSymMatrix cov = BoundSymMatrix::Zero();
@@ -344,10 +329,11 @@ int main(int argc, char *argv[]) {
     CurvilinearParameters rStart(cov, pos, mom, q, time);
 
     KalmanFitterResult kfResult;
-    kfResult.fittedStates = CudaKernelContainer<TrackState>(fittedTracks.data() + it *nSurfaces, nSurfaces);
+    kfResult.fittedStates = CudaKernelContainer<TrackState>(
+        fittedTracks.data() + it * nSurfaces, nSurfaces);
 
-    auto sourcelinkTrack = CudaKernelContainer<PixelSourceLink>(ress[it].sourcelinks.data(),
-                                               ress[it].sourcelinks.size());
+    auto sourcelinkTrack = CudaKernelContainer<PixelSourceLink>(
+        ress[it].sourcelinks.data(), ress[it].sourcelinks.size());
     // The fittedTracks will be changed here
     auto fitStatus = kFitter.fit(sourcelinkTrack, rStart, kfOptions, kfResult,
                                  surfacePtrs, nSurfaces);
@@ -373,7 +359,8 @@ int main(int argc, char *argv[]) {
     for (int it = 0; it < nTracks; it++) {
       ++vCounter;
       for (int is = 0; is < nSurfaces; is++) {
-        const auto &pos = fittedTracks[it*nSurfaces + is].parameter.filtered.position();
+        const auto &pos =
+            fittedTracks[it * nSurfaces + is].parameter.filtered.position();
         obj_ftrack << "v " << pos.x() << " " << pos.y() << " " << pos.z()
                    << "\n";
       }
@@ -384,7 +371,6 @@ int main(int argc, char *argv[]) {
     }
     obj_ftrack.close();
   }
-
 
   std::cout << "------------------------  ending  -----------------------"
             << std::endl;

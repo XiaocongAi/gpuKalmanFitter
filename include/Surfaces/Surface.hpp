@@ -19,7 +19,7 @@
 // works properly on the device side
 #include <cuda_runtime.h>
 #else
-#define ACTS_DEVICE_FUNC 
+#define ACTS_DEVICE_FUNC
 #endif
 
 #include "Geometry/GeometryContext.hpp"
@@ -27,9 +27,9 @@
 #include "Geometry/GeometryStatics.hpp"
 #include "Surfaces/BoundaryCheck.hpp"
 #include "Surfaces/SurfaceBounds.hpp"
+#include "Surfaces/detail/PlanarHelper.hpp"
 #include "Utilities/Definitions.hpp"
 #include "Utilities/Intersection.hpp"
-#include "Surfaces/detail/PlanarHelper.hpp"
 
 #include <memory>
 
@@ -96,7 +96,7 @@ protected:
   /// @param other Source surface for copy
   /// @param shift Additional transform applied after copying from the source
   Surface(const GeometryContext &gctx, const Surface &other,
-                           const Transform3D &shift);
+          const Transform3D &shift);
 
   /// Dedicated Constructor with normal vector
   /// This is for curvilinear surfaces which are by definition boundless
@@ -152,9 +152,8 @@ public:
   /// @param gctx The current geometry context object, e.g. alignment
   ///
   /// @return center position by value
-  ACTS_DEVICE_FUNC 
-	  const Vector3D
-  center(const GeometryContext &gctx) const;
+  ACTS_DEVICE_FUNC
+  const Vector3D center(const GeometryContext &gctx) const;
 
   /// Return method for the normal vector of the surface
   /// The normal vector can only be generally defined at a given local position
@@ -165,8 +164,8 @@ public:
   /// constructed
   ///
   /// @return normal vector by value
-  ACTS_DEVICE_FUNC const Vector3D
-  normal(const GeometryContext &gctx, const Vector2D &lposition) const;
+  ACTS_DEVICE_FUNC const Vector3D normal(const GeometryContext &gctx,
+                                         const Vector2D &lposition) const;
 
   /// Return method for the normal vector of the surface
   /// The normal vector can only be generally defined at a given local position
@@ -178,8 +177,8 @@ public:
 
   ///
   /// @return normal vector by value
-  ACTS_DEVICE_FUNC const Vector3D
-  normal(const GeometryContext &gctx, const Vector3D &position) const;
+  ACTS_DEVICE_FUNC const Vector3D normal(const GeometryContext &gctx,
+                                         const Vector3D &position) const;
 
   /// Return method for the normal vector of the surface
   ///
@@ -188,14 +187,13 @@ public:
   /// @param gctx The current geometry context object, e.g. alignment
   //
   /// @return normal vector by value
-  ACTS_DEVICE_FUNC const Vector3D
-  normal(const GeometryContext &gctx) const {
+  ACTS_DEVICE_FUNC const Vector3D normal(const GeometryContext &gctx) const {
     return normal(gctx, center(gctx));
   }
 
   /// Return method for SurfaceBounds
   /// @return SurfaceBounds by reference
-  //ACTS_DEVICE_FUNC virtual const SurfaceBounds &bounds() const = 0;
+  // ACTS_DEVICE_FUNC virtual const SurfaceBounds &bounds() const = 0;
 
   /// The geometric onSurface method
   ///
@@ -217,9 +215,8 @@ public:
   /// @param lposition The local position to check
   /// @param bcheck BoundaryCheck directive for this onSurface check
   /// @return boolean indication if operation was successful
-  ACTS_DEVICE_FUNC  bool
-  insideBounds(const Vector2D &lposition,
-               const BoundaryCheck &bcheck = true) const;
+  ACTS_DEVICE_FUNC bool insideBounds(const Vector2D &lposition,
+                                     const BoundaryCheck &bcheck = true) const;
 
   /// Local to global transformation
   /// Generalized local to global transformation for the surface types. Since
@@ -232,9 +229,9 @@ public:
   /// @param position global 3D position to be filled (given by reference for
   /// method symmetry)
   ACTS_DEVICE_FUNC void localToGlobal(const GeometryContext &gctx,
-                                              const Vector2D &lposition,
-                                              const Vector3D &momentum,
-                                              Vector3D &position) const;
+                                      const Vector2D &lposition,
+                                      const Vector3D &momentum,
+                                      Vector3D &position) const;
 
   /// Global to local transformation
   /// Generalized global to local transformation for the surface types. Since
@@ -251,9 +248,9 @@ public:
   /// @return boolean indication if operation was successful (fail means global
   /// position was not on surface)
   ACTS_DEVICE_FUNC bool globalToLocal(const GeometryContext &gctx,
-                                              const Vector3D &position,
-                                              const Vector3D &momentum,
-                                              Vector2D &lposition) const;
+                                      const Vector3D &position,
+                                      const Vector3D &momentum,
+                                      Vector2D &lposition) const;
 
   /// Return mehtod for the reference frame
   /// This is the frame in which the covariance matrix is defined (specialized
@@ -284,10 +281,11 @@ public:
   /// @param position is the global position of the parameters
   /// @param direction is the direction at of the parameters
   /// @param pars is the parameter vector
-  ACTS_DEVICE_FUNC void
-  initJacobianToGlobal(const GeometryContext &gctx, BoundToFreeMatrix &jacobian,
-                       const Vector3D &position, const Vector3D &direction,
-                       const BoundVector &pars) const;
+  ACTS_DEVICE_FUNC void initJacobianToGlobal(const GeometryContext &gctx,
+                                             BoundToFreeMatrix &jacobian,
+                                             const Vector3D &position,
+                                             const Vector3D &direction,
+                                             const BoundVector &pars) const;
 
   /// Initialize the jacobian from global to local
   /// the surface knows best, hence the calculation is done here.
@@ -304,10 +302,9 @@ public:
   /// @param gctx The current geometry context object, e.g. alignment
   ///
   /// @return the transposed reference frame (avoids recalculation)
-  ACTS_DEVICE_FUNC const RotationMatrix3D
-  initJacobianToLocal(const GeometryContext &gctx, FreeToBoundMatrix &jacobian,
-                      const Vector3D &position,
-                      const Vector3D &direction) const;
+  ACTS_DEVICE_FUNC const RotationMatrix3D initJacobianToLocal(
+      const GeometryContext &gctx, FreeToBoundMatrix &jacobian,
+      const Vector3D &position, const Vector3D &direction) const;
 
   /// Calculate the form factors for the derivatives
   /// the calculation is identical for all surfaces where the
@@ -338,9 +335,9 @@ public:
   /// @param direction global 3D momentum direction
   ///
   /// @return Path correction with respect to the nominal incident.
-  ACTS_DEVICE_FUNC double
-  pathCorrection(const GeometryContext &gctx, const Vector3D &position,
-                 const Vector3D &direction) const;
+  ACTS_DEVICE_FUNC double pathCorrection(const GeometryContext &gctx,
+                                         const Vector3D &position,
+                                         const Vector3D &direction) const;
 
   /// Straight line intersection schema from position/direction
   ///
@@ -372,18 +369,17 @@ public:
   /// @param bcheck boundary check directive for this operation
   ///
   /// @return Intersection object
-  ACTS_DEVICE_FUNC Intersection
-  intersectionEstimate(const GeometryContext &gctx, const Vector3D &position,
-                       const Vector3D &direction,
-                       const BoundaryCheck &bcheck) const;
+  ACTS_DEVICE_FUNC Intersection intersectionEstimate(
+      const GeometryContext &gctx, const Vector3D &position,
+      const Vector3D &direction, const BoundaryCheck &bcheck) const;
 
   /// Return properly formatted class name
-  //virtual std::string name() const = 0;
+  // virtual std::string name() const = 0;
 
 protected:
   /// Transform3D definition that positions
   /// (translation, rotation) the surface in global space
-  //Transform3D m_transform = s_idTransform;
+  // Transform3D m_transform = s_idTransform;
   Transform3D m_transform = Transform3D::Identity();
 };
 

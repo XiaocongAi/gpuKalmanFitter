@@ -18,18 +18,18 @@
 
 namespace Acts {
 
-struct BoundState{
+struct BoundState {
   BoundParameters boundParams;
   BoundMatrix jacobian;
-  double path;	 
+  double path;
 };
 
-struct CurvilinearState{
+struct CurvilinearState {
   CurvilinearParameters curvParams;
   BoundMatrix jacobian;
   double path;
-};	
-	
+};
+
 namespace {
 /// Some type defs
 using Jacobian = BoundMatrix;
@@ -182,8 +182,8 @@ reinitializeJacobians(const GeometryContext &geoContext,
   const Vector3D direction = parameters.segment<3>(eFreeDir0);
   surface.globalToLocal(geoContext, position, direction, loc);
   BoundVector pars;
-//  pars << loc[eLOC_0], loc[eLOC_1], phi(direction), theta(direction),
-//      parameters[eFreeQOverP], parameters[eFreeTime];
+  //  pars << loc[eLOC_0], loc[eLOC_1], phi(direction), theta(direction),
+  //      parameters[eFreeQOverP], parameters[eFreeTime];
   pars[0] = loc[eLOC_0];
   pars[1] = loc[eLOC_1];
   pars[2] = phi(direction);
@@ -239,7 +239,6 @@ reinitializeJacobians(FreeMatrix &transportJacobian, FreeVector &derivatives,
 }
 } // namespace
 
-
 /// @brief These functions perform the transport of a covariance matrix using
 /// given Jacobians. The required data is provided by the stepper object
 /// with some additional data. Since this is a purely algebraic problem the
@@ -267,8 +266,8 @@ covarianceTransport(const GeometryContext &geoContext,
                     BoundSymMatrix &covarianceMatrix, BoundMatrix &jacobian,
                     FreeMatrix &transportJacobian, FreeVector &derivatives,
                     BoundToFreeMatrix &jacobianLocalToGlobal,
-                    const FreeVector &parameters, const Surface &surface){
- // Build the full jacobian
+                    const FreeVector &parameters, const Surface &surface) {
+  // Build the full jacobian
   jacobianLocalToGlobal = transportJacobian * jacobianLocalToGlobal;
   const FreeToBoundMatrix jacToLocal = surfaceDerivative(
       geoContext, parameters, jacobianLocalToGlobal, derivatives, surface);
@@ -300,7 +299,7 @@ ACTS_DEVICE_FUNC void
 covarianceTransport(BoundSymMatrix &covarianceMatrix, BoundMatrix &jacobian,
                     FreeMatrix &transportJacobian, FreeVector &derivatives,
                     BoundToFreeMatrix &jacobianLocalToGlobal,
-                    const Vector3D &direction){
+                    const Vector3D &direction) {
   // Build the full jacobian
   jacobianLocalToGlobal = transportJacobian * jacobianLocalToGlobal;
   const FreeToBoundMatrix jacToLocal =
@@ -346,8 +345,8 @@ boundState(const GeometryContext &geoContext, BoundSymMatrix &covarianceMatrix,
            BoundMatrix &jacobian, FreeMatrix &transportJacobian,
            FreeVector &derivatives, BoundToFreeMatrix &jacobianLocalToGlobal,
            const FreeVector &parameters, bool covTransport,
-           double accumulatedPath, const Surface &surface){
-// Covariance transport
+           double accumulatedPath, const Surface &surface) {
+  // Covariance transport
   BoundSymMatrix cov = BoundSymMatrix::Zero();
   if (covTransport) {
     covarianceTransport(geoContext, covarianceMatrix, jacobian,
@@ -367,7 +366,6 @@ boundState(const GeometryContext &geoContext, BoundSymMatrix &covarianceMatrix,
   // Create the bound state
   return BoundState{std::move(boundParameters), jacobian, accumulatedPath};
 }
-
 
 /// Create and return a curvilinear state at the current position
 ///
@@ -389,13 +387,12 @@ boundState(const GeometryContext &geoContext, BoundSymMatrix &covarianceMatrix,
 ///   - the curvilinear parameters at given position
 ///   - the stepweise jacobian towards it (from last bound)
 ///   - and the path length (from start - for ordering)
-CurvilinearState ACTS_DEVICE_FUNC
-curvilinearState(BoundSymMatrix &covarianceMatrix, BoundMatrix &jacobian,
-                 FreeMatrix &transportJacobian, FreeVector &derivatives,
-                 BoundToFreeMatrix &jacobianLocalToGlobal,
-                 const FreeVector &parameters, bool covTransport,
-                 double accumulatedPath){
- const Vector3D &direction = parameters.segment<3>(eFreeDir0);
+CurvilinearState ACTS_DEVICE_FUNC curvilinearState(
+    BoundSymMatrix &covarianceMatrix, BoundMatrix &jacobian,
+    FreeMatrix &transportJacobian, FreeVector &derivatives,
+    BoundToFreeMatrix &jacobianLocalToGlobal, const FreeVector &parameters,
+    bool covTransport, double accumulatedPath) {
+  const Vector3D &direction = parameters.segment<3>(eFreeDir0);
 
   // Covariance transport
   BoundSymMatrix cov = BoundSymMatrix::Zero();
@@ -413,7 +410,7 @@ curvilinearState(BoundSymMatrix &covarianceMatrix, BoundMatrix &jacobian,
                                               time);
   // Create the curvilinear state
   return CurvilinearState{std::move(curvilinearParameters), jacobian,
-                         accumulatedPath};
+                          accumulatedPath};
 }
 } // namespace detail
 } // namespace Acts

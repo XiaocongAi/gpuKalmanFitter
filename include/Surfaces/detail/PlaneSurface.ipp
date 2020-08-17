@@ -14,17 +14,17 @@ inline PlaneSurface::PlaneSurface(const PlaneSurface &other)
     : GeometryObject(), Surface(other), m_bounds(other.m_bounds) {}
 
 inline PlaneSurface::PlaneSurface(const GeometryContext &gctx,
-                                 const PlaneSurface &other,
-                                 const Transform3D &transf)
+                                  const PlaneSurface &other,
+                                  const Transform3D &transf)
     : GeometryObject(), Surface(gctx, other, transf), m_bounds(other.m_bounds) {
 }
 
-inline PlaneSurface::PlaneSurface(const Vector3D &center, const Vector3D &normal)
-    : Surface(center, normal), m_bounds(nullptr) {
-}
+inline PlaneSurface::PlaneSurface(const Vector3D &center,
+                                  const Vector3D &normal)
+    : Surface(center, normal), m_bounds(nullptr) {}
 
 inline PlaneSurface::PlaneSurface(const Transform3D &htrans,
-                                 const PlanarBounds *pbounds)
+                                  const PlanarBounds *pbounds)
     : Surface(std::move(htrans)), m_bounds(std::move(pbounds)) {}
 
 inline PlaneSurface &Acts::PlaneSurface::operator=(const PlaneSurface &other) {
@@ -39,7 +39,7 @@ inline Surface::SurfaceType PlaneSurface::type() const {
   return Surface::Plane;
 }
 
-//inline void PlaneSurface::localToGlobal(const GeometryContext &gctx,
+// inline void PlaneSurface::localToGlobal(const GeometryContext &gctx,
 //                                       const Vector2D &lposition,
 //                                       const Vector3D & /*gmom*/,
 //                                       Vector3D &position) const {
@@ -48,7 +48,7 @@ inline Surface::SurfaceType PlaneSurface::type() const {
 //  position = transform(gctx) * loc3Dframe;
 //}
 //
-//inline bool PlaneSurface::globalToLocal(const GeometryContext &gctx,
+// inline bool PlaneSurface::globalToLocal(const GeometryContext &gctx,
 //                                       const Vector3D &position,
 //                                       const Vector3D & /*gmom*/,
 //                                       Acts::Vector2D &lposition) const {
@@ -61,7 +61,7 @@ inline Surface::SurfaceType PlaneSurface::type() const {
 //              : true);
 //}
 //
-//inline const Vector3D PlaneSurface::normal(const GeometryContext &gctx,
+// inline const Vector3D PlaneSurface::normal(const GeometryContext &gctx,
 //                                           const Vector2D & /*lpos*/) const {
 //  // fast access via tranform matrix (and not rotation())
 //  const auto &tMatrix = transform(gctx).matrix();

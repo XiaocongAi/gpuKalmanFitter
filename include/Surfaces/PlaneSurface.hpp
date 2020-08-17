@@ -80,8 +80,9 @@ public:
   /// @param lposition is the local position is ignored
   ///
   /// return a Vector3D by value
-//  ACTS_DEVICE_FUNC const Vector3D normal(const GeometryContext &gctx,
-//                                         const Vector2D &lposition) const final;
+  //  ACTS_DEVICE_FUNC const Vector3D normal(const GeometryContext &gctx,
+  //                                         const Vector2D &lposition) const
+  //                                         final;
 
   /// The binning position is the position calcualted
   /// for a certain binning type
@@ -97,7 +98,7 @@ public:
   SurfaceType type() const override;
 
   /// Return method for bounds object of this surfrace
-  //ACTS_DEVICE_FUNC const SurfaceBounds &bounds() const override;
+  // ACTS_DEVICE_FUNC const SurfaceBounds &bounds() const override;
 
   /// Local to global transformation
   /// For planar surfaces the momentum is ignroed in the local to global
@@ -108,10 +109,10 @@ public:
   /// @param momentum global 3D momentum representation (optionally ignored)
   /// @param position global 3D position to be filled (given by reference for
   /// method symmetry)
-//  ACTS_DEVICE_FUNC void localToGlobal(const GeometryContext &gctx,
-//                                      const Vector2D &lposition,
-//                                      const Vector3D &momentum,
-//                                      Vector3D &position) const override;
+  //  ACTS_DEVICE_FUNC void localToGlobal(const GeometryContext &gctx,
+  //                                      const Vector2D &lposition,
+  //                                      const Vector3D &momentum,
+  //                                      Vector3D &position) const override;
 
   /// Global to local transformation
   /// For planar surfaces the momentum is ignroed in the global to local
@@ -126,10 +127,10 @@ public:
   ///
   /// @return boolean indication if operation was successful (fail means global
   /// position was not on surface)
-//  ACTS_DEVICE_FUNC bool globalToLocal(const GeometryContext &gctx,
-//                                      const Vector3D &position,
-//                                      const Vector3D &momentum,
-//                                      Vector2D &lposition) const override;
+  //  ACTS_DEVICE_FUNC bool globalToLocal(const GeometryContext &gctx,
+  //                                      const Vector3D &position,
+  //                                      const Vector3D &momentum,
+  //                                      Vector2D &lposition) const override;
 
   /// Method that calculates the correction due to incident angle
   ///
@@ -139,10 +140,11 @@ public:
   /// @note this is the final implementation of the pathCorrection function
   ///
   /// @return a double representing the scaling factor
-//  ACTS_DEVICE_FUNC double pathCorrection(const GeometryContext &gctx,
-//                                         const Vector3D &position,
-//                                         const Vector3D &direction) const final;
-//
+  //  ACTS_DEVICE_FUNC double pathCorrection(const GeometryContext &gctx,
+  //                                         const Vector3D &position,
+  //                                         const Vector3D &direction) const
+  //                                         final;
+  //
   /// @brief Straight line intersection schema
   ///
   /// @param gctx The current geometry context object, e.g. alignment
@@ -169,13 +171,14 @@ public:
   /// - perpendicular to the normal of the plane
   ///
   /// @return the Intersection object
-//  ACTS_DEVICE_FUNC Intersection
-//  intersectionEstimate(const GeometryContext &gctx, const Vector3D &position,
-//                       const Vector3D &direction,
-//                       const BoundaryCheck &bcheck = false) const final;
+  //  ACTS_DEVICE_FUNC Intersection
+  //  intersectionEstimate(const GeometryContext &gctx, const Vector3D
+  //  &position,
+  //                       const Vector3D &direction,
+  //                       const BoundaryCheck &bcheck = false) const final;
 
   /// Return properly formatted class name for screen output
-  //std::string name() const override;
+  // std::string name() const override;
 
 protected:
   /// the bounds of this surface

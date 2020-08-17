@@ -2,14 +2,13 @@
 
 #include "EventData/TrackParameters.hpp"
 #include "Propagator/ConstrainedStep.hpp"
-#include "Propagator/detail/SteppingHelper.hpp"
 #include "Propagator/detail/CovarianceEngine.hpp"
+#include "Propagator/detail/SteppingHelper.hpp"
 #include "Surfaces/Surface.hpp"
 #include "Utilities/Definitions.hpp"
 #include "Utilities/Helpers.hpp"
 #include "Utilities/Intersection.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
-
 
 #include <iostream>
 #include <numeric>

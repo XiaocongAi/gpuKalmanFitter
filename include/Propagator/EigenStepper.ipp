@@ -216,8 +216,8 @@ Acts::EigenStepper<B>::boundState(State &state, const Surface &surface) const
   parameters[4] = state.dir[0];
   parameters[5] = state.dir[1];
   parameters[6] = state.dir[2];
-  parameters[7] = state.q/state.p;
- 
+  parameters[7] = state.q / state.p;
+
   return detail::boundState(state.geoContext, state.cov, state.jacobian,
                             state.jacTransport, state.derivative,
                             state.jacToGlobal, parameters, state.covTransport,
@@ -278,7 +278,7 @@ Acts::EigenStepper<B>::covarianceTransport(State &state,
   parameters[4] = state.dir[0];
   parameters[5] = state.dir[1];
   parameters[6] = state.dir[2];
-  parameters[7] = state.q/state.p;
+  parameters[7] = state.q / state.p;
   detail::covarianceTransport(state.geoContext, state.cov, state.jacobian,
                               state.jacTransport, state.derivative,
                               state.jacToGlobal, parameters, surface);
