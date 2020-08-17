@@ -176,16 +176,18 @@ int main(int argc, char *argv[]) {
   //  surfacePtrs.push_back(surfaces[isur].get());
   //}
 
-  std::vector<Acts::PlaneSurface> surfaces;
+  //std::vector<Acts::PlaneSurface> surfaces;
+  Acts::PlaneSurface* surfaces;
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
-    surfaces.push_back(
-        Acts::PlaneSurface(translations[isur], Acts::Vector3D(1, 0, 0)));
+    //surfaces.push_back(
+    //    Acts::PlaneSurface(translations[isur], Acts::Vector3D(1, 0, 0)));
+    surfaces[isur] = Acts::PlaneSurface(translations[isur], Acts::Vector3D(1, 0, 0));
   }
 
-  const Acts::Surface *surfacePtrs[nSurfaces];
-  for (unsigned int isur = 0; isur < nSurfaces; isur++) {
-    surfacePtrs[isur] = &surfaces[isur];
-  }
+  //const Acts::Surface *surfacePtrs[nSurfaces];
+  //for (unsigned int isur = 0; isur < nSurfaces; isur++) {
+  //  surfacePtrs[isur] = &surfaces[isur];
+  //}
 
 
   Acts::PlaneSurface surfaceArrs[nSurfaces];
@@ -196,16 +198,16 @@ int main(int argc, char *argv[]) {
   }
 
 
-  std::cout << "Creating " << surfaces.size() << " boundless plane surfaces"
+  std::cout << "Creating " << nSurfaces << " boundless plane surfaces"
             << std::endl;
 
-  // Test the pointers to surfaces
-  const PlaneSurface *surfacePtr = surfaces.data();
-  for (unsigned int isur = 0; isur < nSurfaces; isur++) {
-    // std::cout<<"surface " << isur <<  " has center at: \n"
-    // <<(*surfacePtr).center(gctx)<<std::endl;
-    surfacePtr++;
-  }
+  //// Test the pointers to surfaces
+  //const PlaneSurface *surfacePtr = surfaces.data();
+  //for (unsigned int isur = 0; isur < nSurfaces; isur++) {
+  //  // std::cout<<"surface " << isur <<  " has center at: \n"
+  //  // <<(*surfacePtr).center(gctx)<<std::endl;
+  //  surfacePtr++;
+  //}
 
   //   InterpolatedBFieldMap3D bField = Options::readBField(bFieldFileName);
   //   std::cout
@@ -219,7 +221,7 @@ int main(int argc, char *argv[]) {
   PropagatorType propagator(stepper);
   PropOptionsType propOptions(gctx, mctx);
   propOptions.maxSteps = 100;
-  propOptions.initializer.surfaceSequence = surfacePtrs;
+  propOptions.initializer.surfaceSequence = surfaces;
   propOptions.initializer.surfaceSequenceSize = nSurfaces;
 
   // Construct random starting track parameters
@@ -359,7 +361,7 @@ int main(int argc, char *argv[]) {
                                                ress[it].sourcelinks.size());
     // The fittedTracks will be changed here
     auto fitStatus = kFitter.fit(sourcelinkTrack, rStart, kfOptions, kfResult,
-                                 surfacePtrs, nSurfaces);
+                                 surfaces, nSurfaces);
     if (not fitStatus) {
       std::cout << "fit failure for track " << it << std::endl;
     }
