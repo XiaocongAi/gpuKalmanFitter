@@ -327,16 +327,7 @@ int main(int argc, char *argv[]) {
   KalmanFitter kFitter(rPropagator);
   KalmanFitterOptions<VoidOutlierFinder> kfOptions(gctx, mctx);
 
-  std::vector<TrackState *> fittedTracks;
-  for (int it = 0; it < nTracks; it++) {
-    // Struct with deleted default constructor will have problem
-    auto states = new TrackState[nSurfaces];
-    if (states == nullptr) {
-      std::cout << "memory allocation failure" << std::endl;
-      return 1;
-    }
-    fittedTracks.push_back(states);
-  }
+  std::vector<TrackState> fittedTracks(nSurfaces*nTracks);
 
   for (int it = 0; it < nTracks; it++) {
     BoundSymMatrix cov = BoundSymMatrix::Zero();
@@ -353,7 +344,7 @@ int main(int argc, char *argv[]) {
     CurvilinearParameters rStart(cov, pos, mom, q, time);
 
     KalmanFitterResult kfResult;
-    kfResult.fittedStates = CudaKernelContainer<TrackState>(fittedTracks[it], nSurfaces);
+    kfResult.fittedStates = CudaKernelContainer<TrackState>(fittedTracks.data() + it *nSurfaces, nSurfaces);
 
     auto sourcelinkTrack = CudaKernelContainer<PixelSourceLink>(ress[it].sourcelinks.data(),
                                                ress[it].sourcelinks.size());
@@ -382,7 +373,7 @@ int main(int argc, char *argv[]) {
     for (int it = 0; it < nTracks; it++) {
       ++vCounter;
       for (int is = 0; is < nSurfaces; is++) {
-        const auto &pos = fittedTracks[it][is].parameter.filtered.position();
+        const auto &pos = fittedTracks[it*nSurfaces + is].parameter.filtered.position();
         obj_ftrack << "v " << pos.x() << " " << pos.y() << " " << pos.z()
                    << "\n";
       }
@@ -394,9 +385,6 @@ int main(int argc, char *argv[]) {
     obj_ftrack.close();
   }
 
-  for (int it = 0; it < nTracks; it++) {
-    delete[] fittedTracks[it];
-  }
 
   std::cout << "------------------------  ending  -----------------------"
             << std::endl;

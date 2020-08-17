@@ -315,23 +315,26 @@ int main(int argc, char *argv[]) {
   PropagatorType rPropagator(stepper);
   KalmanFitterType kFitter(rPropagator);
   KalmanFitterType *kFitterPtr;
-  GPUERRCHK(cudaMallocManaged(&kFitterPtr, sizeof(KalmanFitterType)));
-  kFitterPtr = &kFitter;
+  GPUERRCHK(
+        cudaMalloc(&kFitterPtr, sizeof(KalmanFitterType)));
+  GPUERRCHK(cudaMemcpy(
+          kFitterPtr, &kFitter,
+          sizeof(KalmanFitterType), cudaMemcpyHostToDevice));
+
+  // Restore the source links
+  std::vector<PixelSourceLink> sourcelinks(nSurfaces*nTracks);
+  for(int it =0 ; it < nTracks; it++) {
+    const auto& sls = ress[it].sourcelinks;
+    for(int is =0 ; is < nSurfaces; is++){
+      sourcelinks[it*nSurfaces + is ] = sls[is]; 
+    }
+  }
 
   // The KF options
   KalmanFitterOptions<VoidOutlierFinder> kfOptions(gctx, mctx);
 
   // Allocate memory for KF fitted tracks
-  std::vector<TSType *> fittedTracks;
-  for (int it = 0; it < nTracks; it++) {
-    // Struct with deleted default constructor will have problem
-    auto states = new TSType[nSurfaces];
-    if (states == nullptr) {
-      std::cout << "memory allocation failure" << std::endl;
-      return 1;
-    }
-    fittedTracks.push_back(states);
-  }
+  std::vector<TSType> fittedTracks(nTracks*nSurfaces);
 
   // Running directly on host or offloading to GPU
   bool useGPU = (device == "gpu" ? true : false);
@@ -347,30 +350,28 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaMalloc(&d_pars, sizeof(CurvilinearParameters) * nTracks));
 
     // Copy from host to device
-    for (int it = 0; it < nTracks; it++) {
-      GPUERRCHK(cudaMemcpy(
-          d_sourcelinks + it * nSurfaces, ress[it].sourcelinks.data(),
-          sizeof(PixelSourceLink) * nSurfaces, cudaMemcpyHostToDevice));
-    }
+    GPUERRCHK(cudaMemcpy(
+          d_sourcelinks, sourcelinks.data(),
+          sizeof(PixelSourceLink) * nSurfaces * nTracks, cudaMemcpyHostToDevice));
     GPUERRCHK(cudaMemcpy(d_pars, startPars.data(),
                          nTracks * sizeof(CurvilinearParameters),
                          cudaMemcpyHostToDevice));
 
+    std::cout<<"Prepared to launch kernel"<<std::endl;
     // Run on device
     int threadsPerBlock = 256;
     int blocksPerGrid = (nTracks + threadsPerBlock - 1) / threadsPerBlock;
     propKernel<<<blocksPerGrid, threadsPerBlock>>>(
         kFitterPtr, d_sourcelinks, d_pars, kfOptions, d_fittedTracks,
         surfacePtrs, nSurfaces, nTracks);
+    std::cout<<"Back from kernel"<<std::endl;
 
     GPUERRCHK(cudaPeekAtLastError());
     GPUERRCHK(cudaDeviceSynchronize());
 
     // Copy result from device to host
-    for (int it = 0; it < nTracks; it++) {
-      GPUERRCHK(cudaMemcpy(fittedTracks[it], d_fittedTracks + it * nSurfaces,
-                           sizeof(TSType) * nSurfaces, cudaMemcpyDeviceToHost));
-    }
+    GPUERRCHK(cudaMemcpy(fittedTracks.data(), d_fittedTracks,
+                         sizeof(TSType) * nSurfaces, cudaMemcpyDeviceToHost));
 
     // Free the memory on device
     GPUERRCHK(cudaFree(d_sourcelinks));
@@ -380,18 +381,33 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaFree(surfacePtrs));
     GPUERRCHK(cudaFree(kFitterPtr));
   } else {
-//// Run on host
-#pragma omp parallel for
+////// Run on host
+//#pragma omp parallel for
     for (int it = 0; it < nTracks; it++) {
+    BoundSymMatrix cov = BoundSymMatrix::Zero();
+    cov << resLoc1 * resLoc1, 0., 0., 0., 0., 0., 0., resLoc2 * resLoc2, 0., 0.,
+        0., 0., 0., 0., resPhi * resPhi, 0., 0., 0., 0., 0., 0.,
+        resTheta * resTheta, 0., 0., 0., 0., 0., 0., 0.0001, 0., 0., 0., 0., 0.,
+        0., 1.;
+
+    double q = 1;
+    double time = 0;
+    Vector3D pos(0, 0, 0); // Units: mm
+    Vector3D mom(p, 0, 0); // Units: GeV
+
+    CurvilinearParameters rStart(cov, pos, mom, q, time);
+	  
+	  
       // Dynamically allocating memory for the fitted states here
       KalmanFitterResultType kfResult;
       kfResult.fittedStates =
-          CudaKernelContainer<TSType>(fittedTracks[it], nSurfaces);
+          CudaKernelContainer<TSType>(fittedTracks.data() + it*nSurfaces, nSurfaces);
 
       auto sourcelinkTrack = CudaKernelContainer<PixelSourceLink>(
           ress[it].sourcelinks.data(), ress[it].sourcelinks.size());
+  
       // The fittedTracks will be changed here
-      kFitter.fit(sourcelinkTrack, startPars[it], kfOptions, kfResult,
+      kFitter.fit(sourcelinkTrack, rStart, kfOptions, kfResult,
                   surfacePtrs, nSurfaces);
     }
   }
@@ -414,7 +430,7 @@ int main(int argc, char *argv[]) {
     for (int it = 0; it < nTracks; it++) {
       ++vCounter;
       for (int is = 0; is < nSurfaces; is++) {
-        const auto &pos = fittedTracks[it][is].parameter.filtered.position();
+        const auto &pos = fittedTracks[it*nSurfaces + is].parameter.filtered.position();
         obj_ftrack << "v " << pos.x() << " " << pos.y() << " " << pos.z()
                    << "\n";
       }
@@ -426,9 +442,6 @@ int main(int argc, char *argv[]) {
     obj_ftrack.close();
   }
 
-  for (int it = 0; it < nTracks; it++) {
-    delete[] fittedTracks[it];
-  }
 
   std::cout << "------------------------  ending  -----------------------"
             << std::endl;
