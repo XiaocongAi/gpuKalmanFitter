@@ -104,10 +104,10 @@ template <typename action_t, typename aborter_t> struct PropagatorOptions {
   DirectNavigator::Initializer initializer;
 
   /// The context object for the geometry
-  const GeometryContext &geoContext;
+  const GeometryContext geoContext;
 
   /// The context object for the magnetic field
-  const MagneticFieldContext &magFieldContext;
+  const MagneticFieldContext magFieldContext;
 };
 
 /// @brief Propagator for particles (optionally in a magnetic field)

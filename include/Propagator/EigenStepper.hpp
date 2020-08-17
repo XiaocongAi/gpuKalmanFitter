@@ -108,7 +108,7 @@ template <typename bfield_t> struct EigenStepper {
     double tolerance = s_onSurfaceTolerance;
 
     /// The geometry context
-    const GeometryContext &geoContext;
+    const GeometryContext geoContext;
 
     /// @brief Storage of magnetic field and the sub steps during a RKN4 step
     struct {

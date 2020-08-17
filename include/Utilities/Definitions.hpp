@@ -18,21 +18,13 @@
 #define ACTS_DEVICE_FUNC
 #endif
 
-// for GNU: ignore this specific warning, otherwise just include Eigen/Dense
-#if defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmisleading-indentation"
-#include <Eigen/Dense>
-#pragma GCC diagnostic pop
-#else
-#include <Eigen/Dense>
-#endif
-
 #ifdef TRKDETDESCR_USEFLOATPRECISON
 using TDD_real_t = float;
 #else
 using TDD_real_t = double;
 #endif
+
+#include <Eigen/Dense>
 
 #define TDD_max_bound_value 10e10
 
