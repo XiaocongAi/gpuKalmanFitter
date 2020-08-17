@@ -10,6 +10,57 @@
 // PlaneSurface.ipp, Acts project
 ///////////////////////////////////////////////////////////////////
 
+inline PlaneSurface::PlaneSurface(const PlaneSurface &other)
+    : GeometryObject(), Surface(other), m_bounds(other.m_bounds) {}
+
+inline PlaneSurface::PlaneSurface(const GeometryContext &gctx,
+                                 const PlaneSurface &other,
+                                 const Transform3D &transf)
+    : GeometryObject(), Surface(gctx, other, transf), m_bounds(other.m_bounds) {
+}
+
+inline PlaneSurface::PlaneSurface(const Vector3D &center, const Vector3D &normal)
+    : Surface(center, normal), m_bounds(nullptr) {
+}
+
+inline PlaneSurface::PlaneSurface(const Transform3D &htrans,
+                                 const PlanarBounds *pbounds)
+    : Surface(std::move(htrans)), m_bounds(std::move(pbounds)) {}
+
+inline PlaneSurface &Acts::PlaneSurface::operator=(const PlaneSurface &other) {
+  if (this != &other) {
+    Surface::operator=(other);
+    m_bounds = other.m_bounds;
+  }
+  return *this;
+}
+
+inline Surface::SurfaceType PlaneSurface::type() const {
+  return Surface::Plane;
+}
+
+inline void PlaneSurface::localToGlobal(const GeometryContext &gctx,
+                                       const Vector2D &lposition,
+                                       const Vector3D & /*gmom*/,
+                                       Vector3D &position) const {
+  Vector3D loc3Dframe(lposition[eLOC_X], lposition[eLOC_Y], 0.);
+  /// the chance that there is no transform is almost 0, let's apply it
+  position = transform(gctx) * loc3Dframe;
+}
+
+inline bool PlaneSurface::globalToLocal(const GeometryContext &gctx,
+                                       const Vector3D &position,
+                                       const Vector3D & /*gmom*/,
+                                       Acts::Vector2D &lposition) const {
+  /// the chance that there is no transform is almost 0, let's apply it
+  Vector3D loc3Dframe = (transform(gctx).inverse()) * position;
+  lposition = Vector2D(loc3Dframe.x(), loc3Dframe.y());
+  return ((loc3Dframe.z() * loc3Dframe.z() >
+           s_onSurfaceTolerance * s_onSurfaceTolerance)
+              ? false
+              : true);
+}
+
 inline const Vector3D PlaneSurface::normal(const GeometryContext &gctx,
                                            const Vector2D & /*lpos*/) const {
   // fast access via tranform matrix (and not rotation())
