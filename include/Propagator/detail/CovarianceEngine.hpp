@@ -362,10 +362,8 @@ boundState(const GeometryContext &geoContext, BoundSymMatrix &covarianceMatrix,
   const double charge = std::copysign(1., parameters[eFreeQOverP]);
   const double time = parameters[eFreeTime];
 
-  printf("position: (%f, %f, %f)\n", position[0], position[1], position[2]);
   BoundParameters boundParameters(geoContext, cov, position, momentum, charge,
                                   time, &surface);
-  printf("bound position: (%f, \n", boundParameters.position()[0]);
   // Create the bound state
   return BoundState{std::move(boundParameters), jacobian, accumulatedPath};
 }

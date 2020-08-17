@@ -313,7 +313,7 @@ private:
         trackState.parameter.jacobian = bState.jacobian;
         trackState.parameter.pathLength = bState.path;
         auto prePos = trackState.parameter.predicted.position();
-	printf("Predicted parameter position = (%f, %f, %f)\n", prePos.x(), prePos.y(), prePos.z());
+	//printf("Predicted parameter position = (%f, %f, %f)\n", prePos.x(), prePos.y(), prePos.z());
         
         // Get and set the type flags
         // auto& typeFlags = trackState.typeFlags();
@@ -322,7 +322,6 @@ private:
 
         // If the update is successful, set covariance and
         auto updateRes = m_updater(state.options.geoContext, trackState);
-        printf("updater\n");
         if (!updateRes) {
           printf("Update step failed:\n");
           return false;
@@ -330,7 +329,7 @@ private:
 
         // Get the filtered parameters and update the stepping state
         const auto &filtered = trackState.parameter.filtered;
-	printf("Filtered parameter position = (%f, %f, %f)\n", filtered.position().x(), filtered.position().y(), filtered.position().z());
+	//printf("Filtered parameter position = (%f, %f, %f)\n", filtered.position().x(), filtered.position().y(), filtered.position().z());
         stepper.update(state.stepping, filtered.position(),
                        filtered.momentum().normalized(),
                        filtered.momentum().norm(), filtered.time());
