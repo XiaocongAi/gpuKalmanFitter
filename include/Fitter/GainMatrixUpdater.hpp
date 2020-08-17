@@ -76,7 +76,7 @@ public:
 
     // Create new filtered parameters and covariance
     parameters_t filtered(gctx, std::move(filtered_covariance),
-                          filtered_parameters, &predicted.referenceSurface());
+                          filtered_parameters, &sl.referenceSurface());
 
     // calculate the chi2
     // chi2 = r^T * R^-1 * r

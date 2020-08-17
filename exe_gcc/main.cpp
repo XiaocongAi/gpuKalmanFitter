@@ -292,7 +292,7 @@ int main(int argc, char *argv[]) {
     std::cout << "writing propagation results" << std::endl;
     // Write all of the created tracks to one obj file
     std::ofstream obj_track;
-    std::string fileName = "cpu_output/Tracks-propagation.obj";
+    std::string fileName = "Tracks-propagation-gcc.obj";
     obj_track.open(fileName.c_str());
 
     // Initialize the vertex counter
@@ -374,7 +374,7 @@ int main(int argc, char *argv[]) {
     std::cout << "writing KF results" << std::endl;
     // Write all of the created tracks to one obj file
     std::ofstream obj_ftrack;
-    std::string fileName_ = "cpu_output/Tracks-fitted.obj";
+    std::string fileName_ = "Tracks-fitted-gcc.obj";
     obj_ftrack.open(fileName_.c_str());
 
     // Initialize the vertex counter
