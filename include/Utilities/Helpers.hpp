@@ -382,4 +382,17 @@ auto matrixToBitset(const Eigen::PlainObjectBase<Derived> &m) {
   return res;
 }
 
+template<typename S>
+ACTS_DEVICE_FUNC ActsMatrix<S, 2, 2> get2DMatrixInverse( const ActsMatrix<S, 2, 2>& cov){
+double det = cov(0,0)*cov(1,1) - cov(0,1)*cov(1,0);
+ActsMatrix<S, 2, 2> inverse = ActsMatrix<S, 2, 2>::Zero();
+
+inverse(0,0) = cov(1,1)/det;
+inverse(0,1) = -cov(0,1)/det;
+inverse(1,0) = -cov(1,0)/det;
+inverse(1,1) = cov(0,0)/det;
+
+return inverse;
+}	
+
 } // namespace Acts
