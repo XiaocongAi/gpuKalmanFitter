@@ -103,7 +103,7 @@ protected:
   ///
   /// @param center is the center position of the surface
   /// @param normal is thenormal vector of the plane surface
-  Surface(const Vector3D &center, const Vector3D &normal);
+  ACTS_DEVICE_FUNC Surface(const Vector3D &center, const Vector3D &normal);
 
 public:
   /// Destructor
@@ -383,7 +383,8 @@ public:
 protected:
   /// Transform3D definition that positions
   /// (translation, rotation) the surface in global space
-  Transform3D m_transform = s_idTransform;
+  //Transform3D m_transform = s_idTransform;
+  Transform3D m_transform = Transform3D::Identity();
 };
 
 #include "Surfaces/detail/Surface.ipp"

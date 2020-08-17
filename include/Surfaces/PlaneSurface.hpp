@@ -57,7 +57,7 @@ public:
   ///
   /// @param center is the center position of the surface
   /// @param normal is thenormal vector of the plane surface
-  PlaneSurface(const Vector3D &center, const Vector3D &normal);
+  ACTS_DEVICE_FUNC PlaneSurface(const Vector3D &center, const Vector3D &normal);
 
   /// Constructor for Planes with bounds object
   ///

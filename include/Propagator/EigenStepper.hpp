@@ -3,11 +3,13 @@
 #include "EventData/TrackParameters.hpp"
 #include "Propagator/ConstrainedStep.hpp"
 #include "Propagator/detail/SteppingHelper.hpp"
+#include "Propagator/detail/CovarianceEngine.hpp"
 #include "Surfaces/Surface.hpp"
 #include "Utilities/Definitions.hpp"
 #include "Utilities/Helpers.hpp"
 #include "Utilities/Intersection.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
+
 
 #include <iostream>
 #include <numeric>
@@ -17,8 +19,6 @@ template <typename bfield_t> struct EigenStepper {
   /// Jacobian and Covariance defintions
   using Jacobian = BoundMatrix;
   using Covariance = BoundSymMatrix;
-  using BoundState = std::tuple<BoundParameters, Jacobian, double>;
-  using CurvilinearState = std::tuple<CurvilinearParameters, Jacobian, double>;
   using BField = bfield_t;
 
   /// @brief State for track parameter propagation

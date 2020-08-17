@@ -17,12 +17,23 @@
 #include <functional>
 
 namespace Acts {
+
+struct BoundState{
+  BoundParameters boundParams;
+  BoundMatrix jacobian;
+  double path;	 
+};
+
+struct CurvilinearState{
+  CurvilinearParameters curvParams;
+  BoundMatrix jacobian;
+  double path;
+};	
+	
 namespace {
 /// Some type defs
 using Jacobian = BoundMatrix;
 using Covariance = BoundSymMatrix;
-using BoundState = std::tuple<BoundParameters, Jacobian, double>;
-using CurvilinearState = std::tuple<CurvilinearParameters, Jacobian, double>;
 
 /// @brief Evaluate the projection Jacobian from free to curvilinear parameters
 ///
@@ -330,7 +341,7 @@ covarianceTransport(BoundSymMatrix &covarianceMatrix, BoundMatrix &jacobian,
 ///   - the parameters at the surface
 ///   - the stepwise jacobian towards it (from last bound)
 ///   - and the path length (from start - for ordering)
-std::tuple<BoundParameters, BoundMatrix, double> ACTS_DEVICE_FUNC
+BoundState ACTS_DEVICE_FUNC
 boundState(const GeometryContext &geoContext, BoundSymMatrix &covarianceMatrix,
            BoundMatrix &jacobian, FreeMatrix &transportJacobian,
            FreeVector &derivatives, BoundToFreeMatrix &jacobianLocalToGlobal,
@@ -356,7 +367,7 @@ boundState(const GeometryContext &geoContext, BoundSymMatrix &covarianceMatrix,
                                   time, &surface);
   printf("bound position: (%f, \n", boundParameters.position()[0]);
   // Create the bound state
-  return std::make_tuple(std::move(boundParameters), jacobian, accumulatedPath);
+  return BoundState{std::move(boundParameters), jacobian, accumulatedPath};
 }
 
 
@@ -380,7 +391,7 @@ boundState(const GeometryContext &geoContext, BoundSymMatrix &covarianceMatrix,
 ///   - the curvilinear parameters at given position
 ///   - the stepweise jacobian towards it (from last bound)
 ///   - and the path length (from start - for ordering)
-std::tuple<CurvilinearParameters, BoundMatrix, double> ACTS_DEVICE_FUNC
+CurvilinearState ACTS_DEVICE_FUNC
 curvilinearState(BoundSymMatrix &covarianceMatrix, BoundMatrix &jacobian,
                  FreeMatrix &transportJacobian, FreeVector &derivatives,
                  BoundToFreeMatrix &jacobianLocalToGlobal,
@@ -403,8 +414,8 @@ curvilinearState(BoundSymMatrix &covarianceMatrix, BoundMatrix &jacobian,
   CurvilinearParameters curvilinearParameters(cov, position, momentum, charge,
                                               time);
   // Create the curvilinear state
-  return std::make_tuple(std::move(curvilinearParameters), jacobian,
-                         accumulatedPath);
+  return CurvilinearState{std::move(curvilinearParameters), jacobian,
+                         accumulatedPath};
 }
 } // namespace detail
 } // namespace Acts
