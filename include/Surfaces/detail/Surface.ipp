@@ -8,7 +8,10 @@
 
 inline const Vector3D Surface::center(const GeometryContext &gctx) const {
   // fast access via tranform matrix (and not translation())
-  auto tMatrix = transform(gctx).matrix();
+  auto tMatrix = m_transform.matrix();
+  printf("tMatrix(0, 3) = %f\n", tMatrix(0, 3));
+  printf("tMatrix(1, 3) = %f\n", tMatrix(1, 3));
+  printf("tMatrix(2, 3) = %f\n", tMatrix(2, 3));
   return Vector3D(tMatrix(0, 3), tMatrix(1, 3), tMatrix(2, 3));
 }
 
@@ -24,7 +27,8 @@ Surface::transform(const GeometryContext &gctx) const {
 
 inline bool Surface::insideBounds(const Vector2D &lposition,
                                   const BoundaryCheck &bcheck) const {
-  return bounds().inside(lposition, bcheck);
+  //return bounds().inside(lposition, bcheck);
+  return true;
 }
 
 inline const RotationMatrix3D

@@ -19,7 +19,7 @@
 // works properly on the device side
 #include <cuda_runtime.h>
 #else
-#define ACTS_DEVICE_FUNC
+#define ACTS_DEVICE_FUNC 
 #endif
 
 #include "Geometry/GeometryContext.hpp"
@@ -76,7 +76,7 @@ protected:
   ///
   /// @param tform Transform3D positions the surface in 3D global space
   /// @note also acts as default constructor
-  ACTS_DEVICE_FUNC Surface(const Transform3D &tform);
+  Surface(const Transform3D &tform);
 
   /// Copy constructor
   ///
@@ -84,7 +84,7 @@ protected:
   /// to detector element and layer
   ///
   /// @param other Source surface for copy.
-  ACTS_DEVICE_FUNC Surface(const Surface &other);
+  Surface(const Surface &other);
 
   /// Copy constructor with optional shift
   ///
@@ -94,12 +94,19 @@ protected:
   /// @param gctx The current geometry context object, e.g. alignment
   /// @param other Source surface for copy
   /// @param shift Additional transform applied after copying from the source
-  ACTS_DEVICE_FUNC Surface(const GeometryContext &gctx, const Surface &other,
+  Surface(const GeometryContext &gctx, const Surface &other,
                            const Transform3D &shift);
+
+  /// Dedicated Constructor with normal vector
+  /// This is for curvilinear surfaces which are by definition boundless
+  ///
+  /// @param center is the center position of the surface
+  /// @param normal is thenormal vector of the plane surface
+  Surface(const Vector3D &center, const Vector3D &normal);
 
 public:
   /// Destructor
-  ACTS_DEVICE_FUNC virtual ~Surface();
+  virtual ~Surface() = default;
 
   /// Assignment operator
   /// @note copy construction invalidates the association
@@ -144,7 +151,8 @@ public:
   /// @param gctx The current geometry context object, e.g. alignment
   ///
   /// @return center position by value
-  ACTS_DEVICE_FUNC  const Vector3D
+  ACTS_DEVICE_FUNC 
+	  const Vector3D
   center(const GeometryContext &gctx) const;
 
   /// Return method for the normal vector of the surface
@@ -186,7 +194,7 @@ public:
 
   /// Return method for SurfaceBounds
   /// @return SurfaceBounds by reference
-  ACTS_DEVICE_FUNC virtual const SurfaceBounds &bounds() const = 0;
+  //ACTS_DEVICE_FUNC virtual const SurfaceBounds &bounds() const = 0;
 
   /// The geometric onSurface method
   ///
@@ -369,7 +377,7 @@ public:
                        const BoundaryCheck &bcheck) const = 0;
 
   /// Return properly formatted class name
-  ACTS_DEVICE_FUNC virtual std::string name() const = 0;
+  //virtual std::string name() const = 0;
 
 protected:
   /// Transform3D definition that positions

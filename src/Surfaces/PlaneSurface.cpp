@@ -29,25 +29,25 @@ Acts::PlaneSurface::PlaneSurface(const GeometryContext &gctx,
 Acts::PlaneSurface::PlaneSurface(const Vector3D &center, const Vector3D &normal)
     //: Surface(), m_bounds(RectangleBounds(std::numeric_limits<double>::max(),
     // std::numeric_limits<double>::max())) {
-    : Surface(), m_bounds(nullptr) {
+    : Surface(center, normal), m_bounds(nullptr) {
   /// the right-handed coordinate system is defined as
   /// T = normal
   /// U = Z x T if T not parallel to Z otherwise U = X x T
   /// V = T x U
-  Vector3D T = normal.normalized();
-  Vector3D U = std::abs(T.dot(Vector3D::UnitZ())) < s_curvilinearProjTolerance
-                   ? Vector3D::UnitZ().cross(T).normalized()
-                   : Vector3D::UnitX().cross(T).normalized();
-  Vector3D V = T.cross(U);
-  RotationMatrix3D curvilinearRotation;
-  curvilinearRotation.col(0) = U;
-  curvilinearRotation.col(1) = V;
-  curvilinearRotation.col(2) = T;
-
-  // curvilinear surfaces are boundless
-  Transform3D transform{curvilinearRotation};
-  transform.pretranslate(center);
-  Surface::m_transform = transform;
+//  Vector3D T = normal.normalized();
+//  Vector3D U = std::abs(T.dot(Vector3D::UnitZ())) < s_curvilinearProjTolerance
+//                   ? Vector3D::UnitZ().cross(T).normalized()
+//                   : Vector3D::UnitX().cross(T).normalized();
+//  Vector3D V = T.cross(U);
+//  RotationMatrix3D curvilinearRotation;
+//  curvilinearRotation.col(0) = U;
+//  curvilinearRotation.col(1) = V;
+//  curvilinearRotation.col(2) = T;
+//
+//  // curvilinear surfaces are boundless
+//  Transform3D transform{curvilinearRotation};
+//  transform.pretranslate(center);
+//  Surface::m_transform = transform;
 }
 
 Acts::PlaneSurface::PlaneSurface(const Transform3D &htrans,
@@ -88,11 +88,11 @@ bool Acts::PlaneSurface::globalToLocal(const GeometryContext &gctx,
               : true);
 }
 
-std::string Acts::PlaneSurface::name() const { return "Acts::PlaneSurface"; }
+//std::string Acts::PlaneSurface::name() const { return "Acts::PlaneSurface"; }
 
-const Acts::SurfaceBounds &Acts::PlaneSurface::bounds() const {
-  if (m_bounds) {
-    return *m_bounds;
-  }
-  return s_noBounds;
-}
+//const Acts::SurfaceBounds &Acts::PlaneSurface::bounds() const {
+//  if (m_bounds) {
+//    return *m_bounds;
+//  }
+//  return s_noBounds;
+//}

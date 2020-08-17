@@ -72,7 +72,7 @@ public:
   /// Assignment operator
   ///
   /// @param other The source PlaneSurface for assignment
-  PlaneSurface &operator=(const PlaneSurface &other);
+  ACTS_DEVICE_FUNC PlaneSurface &operator=(const PlaneSurface &other);
 
   /// Normal vector return
   ///
@@ -82,9 +82,6 @@ public:
   /// return a Vector3D by value
   ACTS_DEVICE_FUNC const Vector3D normal(const GeometryContext &gctx,
                                          const Vector2D &lposition) const final;
-
-  /// Normal vector return without argument
-  using Surface::normal;
 
   /// The binning position is the position calcualted
   /// for a certain binning type
@@ -100,7 +97,7 @@ public:
   ACTS_DEVICE_FUNC SurfaceType type() const override;
 
   /// Return method for bounds object of this surfrace
-  ACTS_DEVICE_FUNC const SurfaceBounds &bounds() const override;
+  //ACTS_DEVICE_FUNC const SurfaceBounds &bounds() const override;
 
   /// Local to global transformation
   /// For planar surfaces the momentum is ignroed in the local to global
@@ -178,7 +175,7 @@ public:
                        const BoundaryCheck &bcheck = false) const final;
 
   /// Return properly formatted class name for screen output
-  ACTS_DEVICE_FUNC std::string name() const override;
+  //std::string name() const override;
 
 protected:
   /// the bounds of this surface
