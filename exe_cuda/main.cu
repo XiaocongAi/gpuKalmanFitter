@@ -371,7 +371,7 @@ int main(int argc, char *argv[]) {
 
     // Copy result from device to host
     GPUERRCHK(cudaMemcpy(fittedTracks.data(), d_fittedTracks,
-                         sizeof(TSType) * nSurfaces, cudaMemcpyDeviceToHost));
+                         sizeof(TSType) * nSurfaces*nTracks, cudaMemcpyDeviceToHost));
 
     // Free the memory on device
     GPUERRCHK(cudaFree(d_sourcelinks));
