@@ -1,6 +1,7 @@
 #include "Propagator/detail/CovarianceEngine.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
 
+namespace Acts {
 namespace detail {
 
 /// @brief Storage of magnetic field and the sub steps during a RKN4 step
@@ -116,6 +117,7 @@ ACTS_DEVICE_FUNC auto transportMatrix(const propagator_state_t &state,
 }
 
 } // namespace detail
+} // namespace Acts
 
 template <typename B>
 template <typename propagator_state_t>
@@ -130,7 +132,7 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
 
   // First Runge-Kutta point (at current position)
   sd.B_first = getField(state.stepping, state.stepping.pos);
-  sd.k1 = evaluatek(B_first, 0);
+  sd.k1 = detail::evaluatek(state, sd.B_first, 0);
 
   // The following functor starts to perform a Runge-Kutta step of a certain
   // size, going up to the point where it can return an estimate of the local
@@ -145,16 +147,16 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
     const Vector3D pos1 =
         state.stepping.pos + half_h * state.stepping.dir + h2 * 0.125 * sd.k1;
     sd.B_middle = getField(state.stepping, pos1);
-    sd.k2 = evaluatek(sd.B_middle, 1, half_h, sd.k1);
+    sd.k2 = detail::evaluatek(state, sd.B_middle, 1, half_h, sd.k1);
 
     // Third Runge-Kutta point
-    sd.k3 = evaluatek(sd.B_middle, 2, half_h, sd.k2);
+    sd.k3 = detail::evaluatek(state, sd.B_middle, 2, half_h, sd.k2);
 
     // Last Runge-Kutta point
     const Vector3D pos2 =
         state.stepping.pos + h * state.stepping.dir + h2 * 0.5 * sd.k3;
     sd.B_last = getField(state.stepping, pos2);
-    sd.k4 = evaluatek(sd.B_last, 3, h, sd.k3);
+    sd.k4 = detail::evaluatek(state, sd.B_last, 3, h, sd.k3);
 
     // Compute and check the local integration error estimate
     // @Todo
