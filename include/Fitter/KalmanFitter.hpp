@@ -467,7 +467,6 @@ public:
     const auto propRes =
         m_propagator.template propagate(sParameters, kalmanOptions, kfResult);
 
-
     POP_RANGE();
 
     if (!kfResult.result) {

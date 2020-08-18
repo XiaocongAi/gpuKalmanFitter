@@ -3,118 +3,118 @@
 
 namespace detail {
 
-    /// @brief Storage of magnetic field and the sub steps during a RKN4 step
-    struct StepData {
-      /// Magnetic field evaulations
-      Vector3D B_first, B_middle, B_last;
-      /// k_i of the RKN4 algorithm
-      WKK Vector3D k1, k2, k3, k4;
-    };
+/// @brief Storage of magnetic field and the sub steps during a RKN4 step
+struct StepData {
+  /// Magnetic field evaulations
+  Vector3D B_first, B_middle, B_last;
+  /// k_i of the RKN4 algorithm
+  Vector3D k1, k2, k3, k4;
+};
 
-  // place functions in order of invocation
+// place functions in order of invocation
 
-  // 1) The following functor evaluates k_i of RKN4
-  template <typename propagator_state_t>
-  ACTS_DEVICE_FUNC
-  auto evaluatek (const propagator_state_t& state,
-  	   	  const Vector3D &bField, const int i = 0,
-                  const double h = 0.,
-                  const Vector3D &kprev = Vector3D(0, 0, 0)) -> Vector3D {
-    Vector3D knew;
-    auto qop = state.stepping.q / state.stepping.p;
-    // First step does not rely on previous data
-    if (i == 0) {
-      knew = qop * (state.stepping.dir).cross(bField);
-    } else {
-      knew = qop * ((state.stepping.dir) + h * kprev).cross(bField);
-    }
-    return knew;
+// 1) The following functor evaluates k_i of RKN4
+template <typename propagator_state_t>
+ACTS_DEVICE_FUNC auto evaluatek(const propagator_state_t &state,
+                                const Vector3D &bField, const int i = 0,
+                                const double h = 0.,
+                                const Vector3D &kprev = Vector3D(0, 0, 0))
+    -> Vector3D {
+  Vector3D knew;
+  auto qop = state.stepping.q / state.stepping.p;
+  // First step does not rely on previous data
+  if (i == 0) {
+    knew = qop * (state.stepping.dir).cross(bField);
+  } else {
+    knew = qop * ((state.stepping.dir) + h * kprev).cross(bField);
   }
-  
-  // 2) The propagation function for time coordinate
-  template <typename propagator_state_t>
-  ACTS_DEVICE_FUNC
-  void propagationTime( propagator_state_t& state, const double& mass, const double& h) {
-    /// This evaluation is based on dt/ds = 1/v = 1/(beta * c) with the velocity
-    /// v, the speed of light c and beta = v/c. This can be re-written as dt/ds
-    /// = sqrt(m^2/p^2 + c^{-2}) with the mass m and the momentum p.
-    auto derivative = std::hypot(1, mass / state.stepping.p);
-    state.stepping.t += h * derivative;
-    if (state.stepping.covTransport) {
-      state.stepping.derivative(3) = derivative;
-    }
+  return knew;
+}
+
+// 2) The propagation function for time coordinate
+template <typename propagator_state_t>
+ACTS_DEVICE_FUNC void propagationTime(propagator_state_t &state,
+                                      const double &h) {
+  /// This evaluation is based on dt/ds = 1/v = 1/(beta * c) with the velocity
+  /// v, the speed of light c and beta = v/c. This can be re-written as dt/ds
+  /// = sqrt(m^2/p^2 + c^{-2}) with the mass m and the momentum p.
+  auto derivative = std::hypot(1, state.options.mass / state.stepping.p);
+  state.stepping.t += h * derivative;
+  if (state.stepping.covTransport) {
+    state.stepping.derivative(3) = derivative;
   }
+}
 
-  // 3) The following functor calculates the transport matrix D for the jacobian
-  template <typename propagator_state_t>
-  ACTS_DEVICE_FUNC
-  auto transportMatrix = (const propagator_state_t& state,  const StepData& sd, const double& h) -> FreeMatrix {
-    FreeMatrix D = FreeMatrix::Identity();
-    auto &sd = state.stepping.stepData;
-    auto dir = state.stepping.dir;
-    auto qop = state.stepping.q / state.stepping.p;
+// 3) The following functor calculates the transport matrix D for the jacobian
+template <typename propagator_state_t>
+ACTS_DEVICE_FUNC auto transportMatrix = (const propagator_state_t &state,
+                                         const StepData &sd, const double &h)
+                                            -> FreeMatrix {
+  FreeMatrix D = FreeMatrix::Identity();
+  auto &sd = state.stepping.stepData;
+  auto dir = state.stepping.dir;
+  auto qop = state.stepping.q / state.stepping.p;
 
-    double half_h = h * 0.5;
-    // This sets the reference to the sub matrices
-    // dFdx is already initialised as (3x3) idendity
-    auto dFdT = D.block<3, 3>(0, 4);
-    auto dFdL = D.block<3, 1>(0, 7);
-    // dGdx is already initialised as (3x3) zero
-    auto dGdT = D.block<3, 3>(4, 4);
-    auto dGdL = D.block<3, 1>(4, 7);
+  double half_h = h * 0.5;
+  // This sets the reference to the sub matrices
+  // dFdx is already initialised as (3x3) idendity
+  auto dFdT = D.block<3, 3>(0, 4);
+  auto dFdL = D.block<3, 1>(0, 7);
+  // dGdx is already initialised as (3x3) zero
+  auto dGdT = D.block<3, 3>(4, 4);
+  auto dGdL = D.block<3, 1>(4, 7);
 
-    ActsMatrixD<3, 3> dk1dT = ActsMatrixD<3, 3>::Zero();
-    ActsMatrixD<3, 3> dk2dT = ActsMatrixD<3, 3>::Identity();
-    ActsMatrixD<3, 3> dk3dT = ActsMatrixD<3, 3>::Identity();
-    ActsMatrixD<3, 3> dk4dT = ActsMatrixD<3, 3>::Identity();
+  ActsMatrixD<3, 3> dk1dT = ActsMatrixD<3, 3>::Zero();
+  ActsMatrixD<3, 3> dk2dT = ActsMatrixD<3, 3>::Identity();
+  ActsMatrixD<3, 3> dk3dT = ActsMatrixD<3, 3>::Identity();
+  ActsMatrixD<3, 3> dk4dT = ActsMatrixD<3, 3>::Identity();
 
-    ActsVectorD<3> dk1dL = ActsVectorD<3>::Zero();
-    ActsVectorD<3> dk2dL = ActsVectorD<3>::Zero();
-    ActsVectorD<3> dk3dL = ActsVectorD<3>::Zero();
-    ActsVectorD<3> dk4dL = ActsVectorD<3>::Zero();
+  ActsVectorD<3> dk1dL = ActsVectorD<3>::Zero();
+  ActsVectorD<3> dk2dL = ActsVectorD<3>::Zero();
+  ActsVectorD<3> dk3dL = ActsVectorD<3>::Zero();
+  ActsVectorD<3> dk4dL = ActsVectorD<3>::Zero();
 
-    // For the case without energy loss
-    dk1dL = dir.cross(sd.B_first);
-    dk2dL = (dir + half_h * sd.k1).cross(sd.B_middle) +
-            qop * half_h * dk1dL.cross(sd.B_middle);
-    dk3dL = (dir + half_h * sd.k2).cross(sd.B_middle) +
-            qop * half_h * dk2dL.cross(sd.B_middle);
-    dk4dL =
-        (dir + h * sd.k3).cross(sd.B_last) + qop * h * dk3dL.cross(sd.B_last);
+  // For the case without energy loss
+  dk1dL = dir.cross(sd.B_first);
+  dk2dL = (dir + half_h * sd.k1).cross(sd.B_middle) +
+          qop * half_h * dk1dL.cross(sd.B_middle);
+  dk3dL = (dir + half_h * sd.k2).cross(sd.B_middle) +
+          qop * half_h * dk2dL.cross(sd.B_middle);
+  dk4dL = (dir + h * sd.k3).cross(sd.B_last) + qop * h * dk3dL.cross(sd.B_last);
 
-    dk1dT(0, 1) = sd.B_first.z();
-    dk1dT(0, 2) = -sd.B_first.y();
-    dk1dT(1, 0) = -sd.B_first.z();
-    dk1dT(1, 2) = sd.B_first.x();
-    dk1dT(2, 0) = sd.B_first.y();
-    dk1dT(2, 1) = -sd.B_first.x();
-    dk1dT *= qop;
+  dk1dT(0, 1) = sd.B_first.z();
+  dk1dT(0, 2) = -sd.B_first.y();
+  dk1dT(1, 0) = -sd.B_first.z();
+  dk1dT(1, 2) = sd.B_first.x();
+  dk1dT(2, 0) = sd.B_first.y();
+  dk1dT(2, 1) = -sd.B_first.x();
+  dk1dT *= qop;
 
-    dk2dT += half_h * dk1dT;
-    dk2dT = qop * VectorHelpers::cross(dk2dT, sd.B_middle);
+  dk2dT += half_h * dk1dT;
+  dk2dT = qop * VectorHelpers::cross(dk2dT, sd.B_middle);
 
-    dk3dT += half_h * dk2dT;
-    dk3dT = qop * VectorHelpers::cross(dk3dT, sd.B_middle);
+  dk3dT += half_h * dk2dT;
+  dk3dT = qop * VectorHelpers::cross(dk3dT, sd.B_middle);
 
-    dk4dT += h * dk3dT;
-    dk4dT = qop * VectorHelpers::cross(dk4dT, sd.B_last);
+  dk4dT += h * dk3dT;
+  dk4dT = qop * VectorHelpers::cross(dk4dT, sd.B_last);
 
-    dFdT.setIdentity();
-    dFdT += h / 6. * (dk1dT + dk2dT + dk3dT);
-    dFdT *= h;
+  dFdT.setIdentity();
+  dFdT += h / 6. * (dk1dT + dk2dT + dk3dT);
+  dFdT *= h;
 
-    dFdL = (h * h) / 6. * (dk1dL + dk2dL + dk3dL);
+  dFdL = (h * h) / 6. * (dk1dL + dk2dL + dk3dL);
 
-    dGdT += h / 6. * (dk1dT + 2. * (dk2dT + dk3dT) + dk4dT);
+  dGdT += h / 6. * (dk1dT + 2. * (dk2dT + dk3dT) + dk4dT);
 
-    dGdL = h / 6. * (dk1dL + 2. * (dk2dL + dk3dL) + dk4dL);
+  dGdL = h / 6. * (dk1dL + 2. * (dk2dL + dk3dL) + dk4dL);
 
-    D(3, 7) = h * state.options.mass * state.options.mass * state.stepping.q /
-              (state.stepping.p *
-               std::hypot(1., state.options.mass / state.stepping.p));
+  D(3, 7) = h * state.options.mass * state.options.mass * state.stepping.q /
+            (state.stepping.p *
+             std::hypot(1., state.options.mass / state.stepping.p));
 
-    return D;
-  }
+  return D;
+}
 
 } // namespace detail
 
@@ -122,17 +122,16 @@ template <typename B>
 template <typename propagator_state_t>
 ACTS_DEVICE_FUNC bool
 Acts::EigenStepper<B>::step(propagator_state_t &state) const {
- 
+
   detail::StepData sd;
- 
+
   sd.B_first = getField(state.stepping, state.stepping.pos);
   sd.k1 = evaluatek(B_first, 0);
-		       
+
   // Default constructor will result in wrong value on GPU
   double error_estimate = 0.;
   double h2, half_h;
 
-  
   // The following functor starts to perform a Runge-Kutta step of a certain
   // size, going up to the point where it can return an estimate of the local
   // integration error. The results are stated in the local variables above,
@@ -202,14 +201,14 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
 
   // Propagate the time
   detail::propagationTime(state, h);
-  
+
   // When doing error propagation, update the associated Jacobian matrix
   // The step transport matrix in global coordinates
   if (state.stepping.covTransport) {
     // for moment, only update the transport part
     state.stepping.jacTransport =
         detail::transportMatrix(state, sd, h) * state.stepping.jacTransport;
-  } 
+  }
 
   // Update the track parameters according to the equations of motion
   state.stepping.pos +=

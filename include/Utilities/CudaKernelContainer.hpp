@@ -15,14 +15,13 @@
 namespace Acts {
 
 // Template structure to pass to kernel
-template <typename T>
-struct CudaKernelContainer {
+template <typename T> struct CudaKernelContainer {
 
   using value_type = T;
-  using pointer = T*;
-  using const_pointer = T const*;
-  using reference = T&;
-  using const_reference = T const&;
+  using pointer = T *;
+  using const_pointer = T const *;
+  using reference = T &;
+  using const_reference = T const &;
   using iterator_category = std::random_access_iterator_tag;
   using iterator = pointer;
   using const_iterator = const_pointer;
@@ -38,7 +37,7 @@ struct CudaKernelContainer {
       }
     }
   }
-  
+
   ACTS_DEVICE_FUNC pointer array() { return _array; }
   ACTS_DEVICE_FUNC pointer data() { return _array; }
   ACTS_DEVICE_FUNC const_pointer array() const { return _array; }
@@ -46,13 +45,9 @@ struct CudaKernelContainer {
 
   ACTS_DEVICE_FUNC size_t size() const { return _size; }
 
-  ACTS_DEVICE_FUNC T &operator[](int i) {
-    return _array[i];
-  }
-  ACTS_DEVICE_FUNC T const &operator[](int i) const {
-    return _array[i];
-  }
-  
+  ACTS_DEVICE_FUNC T &operator[](int i) { return _array[i]; }
+  ACTS_DEVICE_FUNC T const &operator[](int i) const { return _array[i]; }
+
   ACTS_DEVICE_FUNC iterator begin() { return _array; }
   ACTS_DEVICE_FUNC const_iterator begin() const { return _array; }
   ACTS_DEVICE_FUNC iterator end() { return _array + _size; }
@@ -62,12 +57,12 @@ struct CudaKernelContainer {
   ACTS_DEVICE_FUNC const_iterator find_if(visitor_t &&visitor) const {
     for (auto i = begin(); i != end(); ++i) {
       if (visitor(*i)) {
-	return i;
+        return i;
       }
     }
     return end();
   }
-  
+
   // thrust::find_if
 
 private:
