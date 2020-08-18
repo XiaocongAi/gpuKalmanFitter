@@ -12,6 +12,8 @@
 #include "Utilities/Units.hpp"
 #include "Test/TestHelper.hpp"
 
+#include "Utilities/Profiling.hpp"
+
 #include <chrono>
 #include <cmath>
 #include <fstream>
@@ -176,13 +178,20 @@ int main(int argc, char *argv[]) {
   double resLoc2 = 0.1 * Acts::units::_mm;
   double resPhi = 0.01;
   double resTheta = 0.01;
-  for (int i = 0; i < nTracks; i++) {
+  
+  const BoundSymMatrix cov = [=] () {
     BoundSymMatrix cov = BoundSymMatrix::Zero();
-    cov << resLoc1 * resLoc1, 0., 0., 0., 0., 0., 0., resLoc2 * resLoc2, 0., 0.,
-        0., 0., 0., 0., resPhi * resPhi, 0., 0., 0., 0., 0., 0.,
-        resTheta * resTheta, 0., 0., 0., 0., 0., 0., 0.0001, 0., 0., 0., 0., 0.,
-        0., 1.;
-
+    cov << resLoc1 * resLoc1, 0.,                0.,              0.,                  0.,     0.,
+           0.,                resLoc2 * resLoc2, 0.,              0.,                  0.,     0.,
+           0.,                0.,                resPhi * resPhi, 0.,                  0.,     0.,
+           0.,                0.,                0.,              resTheta * resTheta, 0.,     0.,
+           0.,                0.,                0.,              0.,                  0.0001, 0.,
+           0.,                0.,                0.,              0.,                  0.,     1.;
+    return cov;
+  }();
+	
+  for (int i = 0; i < nTracks; i++) {
+    
     double q = 1;
     double time = 0;
     double phi = gauss(generator) * resPhi;
@@ -258,8 +267,7 @@ int main(int argc, char *argv[]) {
 
   // Allocate memory for KF fitted tracks
   TSType* fittedTracks;
-  GPUERRCHK(
-        cudaMallocManaged(&fittedTracks, sizeof(TSType) * nSurfaces * nTracks));
+  GPUERRCHK(cudaMallocManaged(&fittedTracks, sizeof(TSType) * nSurfaces * nTracks));
 
   auto start_fit = std::chrono::high_resolution_clock::now();
 
@@ -289,19 +297,24 @@ int main(int argc, char *argv[]) {
     int threadsPerBlock = 256;
     int blocksPerGrid = (nTracks + threadsPerBlock - 1) / threadsPerBlock;
     // Pass kfOptions by value
+
+    for (int _ : {1, 2, 3, 4, 5}) {
+    
     fitKernel<<<blocksPerGrid, threadsPerBlock>>>(
         d_kFitter, d_sourcelinks, d_pars, kfOptions, fittedTracks,
         surfacePtrs, nSurfaces, nTracks);
-
+		
+    }
     GPUERRCHK(cudaPeekAtLastError());
     GPUERRCHK(cudaDeviceSynchronize());
-
+    
     // Free the memory on device
     GPUERRCHK(cudaFree(d_sourcelinks));
     GPUERRCHK(cudaFree(d_pars));
     GPUERRCHK(cudaFree(d_kFitter));
     GPUERRCHK(cudaFree(surfacePtrs));
     GPUERRCHK(cudaFree(surfaces));
+    
   } else {
 //// Run on host
 #pragma omp parallel for

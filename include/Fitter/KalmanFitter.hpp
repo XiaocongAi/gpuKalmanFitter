@@ -20,6 +20,7 @@
 #include "Propagator/detail/CovarianceEngine.hpp"
 #include "Utilities/CudaKernelContainer.hpp"
 #include "Utilities/Definitions.hpp"
+#include "Utilities/Profiling.hpp"
 
 #include <functional>
 #include <memory>
@@ -439,6 +440,8 @@ public:
       const Surface **surfaceSequence = nullptr,
       size_t surfaceSequenceSize = 0) const {
 
+    PUSH_RANGE("fit", 0);
+
     // printf("Preparing %lu input measurements\n", sourcelinks.size());
 
     // Create the ActionList and AbortList
@@ -463,6 +466,9 @@ public:
     // Run the fitter
     const auto propRes =
         m_propagator.template propagate(sParameters, kalmanOptions, kfResult);
+
+
+    POP_RANGE();
 
     if (!kfResult.result) {
       printf("KalmanFilter failed: \n");

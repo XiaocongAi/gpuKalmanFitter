@@ -1,3 +1,5 @@
+#include "Utilities/Profiling.hpp"
+
 using namespace Acts;
 
 template <typename S, typename N>
@@ -7,6 +9,8 @@ ACTS_DEVICE_FUNC PropagatorResult Acts::Propagator<S, N>::propagate(
     const parameters_t &start, const propagator_options_t &options,
     typename propagator_options_t::action_type::result_type &actorResult)
     const {
+  PUSH_RANGE("propagate", 1);
+
   PropagatorResult result;
 
   using StateType = State<propagator_options_t>;
@@ -31,8 +35,13 @@ ACTS_DEVICE_FUNC PropagatorResult Acts::Propagator<S, N>::propagate(
     // Pre-Stepping: target setting
     m_navigator.target(state, m_stepper);
     // Propagation loop : stepping
+
+    PUSH_RANGE ("for-loop", 2);
+
     for (; result.steps < state.options.maxSteps; ++result.steps) {
       // Perform a propagation step - it takes the propagation state
+      
+      PUSH_RANGE ("step", 3);
       bool res = m_stepper.step(state);
       // How to handle the error here
       // if (not res) {
@@ -41,8 +50,12 @@ ACTS_DEVICE_FUNC PropagatorResult Acts::Propagator<S, N>::propagate(
       // double s = *res;
       // result.pathLength += s;
 
+      POP_RANGE();
+
       // Post-stepping:
       // navigator status call - action list - aborter list - target call
+
+      PUSH_RANGE ("status + action", 4);
       m_navigator.status(state, m_stepper);
       state.options.action(state, m_stepper, actorResult);
 
@@ -51,9 +64,15 @@ ACTS_DEVICE_FUNC PropagatorResult Acts::Propagator<S, N>::propagate(
         terminatedNormally = true;
         break;
       }
+
+      POP_RANGE();
+
       m_navigator.target(state, m_stepper);
     }
+
+    POP_RANGE();
   }
+
 
   // if we didn't terminate normally (via aborters) set navigation break.
   // this will trigger error output in the lines below
@@ -73,6 +92,8 @@ ACTS_DEVICE_FUNC PropagatorResult Acts::Propagator<S, N>::propagate(
   //  if (state.stepping.covTransport) {
   //    result.transportJacobian = std::get<Jacobian>(curvState);
   //  }
+
+  POP_RANGE()
 
   return result;
 }
