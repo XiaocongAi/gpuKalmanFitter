@@ -63,7 +63,7 @@ using KalmanFitterResultType =
 using TSType = typename KalmanFitterResultType::TrackStateType;
 
 // Device code
-__global__ void propKernel(KalmanFitterType *kFitter,
+__global__ void fitKernel(KalmanFitterType *kFitter,
                            PixelSourceLink *sourcelinks,
                            CurvilinearParameters *tpars,
                            KalmanFitterOptions<VoidOutlierFinder> kfOptions,
@@ -293,7 +293,7 @@ int main(int argc, char *argv[]) {
     int threadsPerBlock = 256;
     int blocksPerGrid = (nTracks + threadsPerBlock - 1) / threadsPerBlock;
     // Pass kfOptions by value
-    propKernel<<<blocksPerGrid, threadsPerBlock>>>(
+    fitKernel<<<blocksPerGrid, threadsPerBlock>>>(
         d_kFitter, d_sourcelinks, d_pars, kfOptions, d_fittedTracks,
         surfacePtrs, nSurfaces, nTracks);
 
