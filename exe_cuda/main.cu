@@ -161,10 +161,6 @@ int main(int argc, char *argv[]) {
             << " tracks on " << device << std::endl;
 
   // InterpolatedBFieldMap3D bField = Options::readBField(bFieldFileName);
-  // std::cout
-  //    << "Reading BField and creating a 3D InterpolatedBFieldMap instance
-  //    done"
-  //    << std::endl;
 
   // Construct a stepper with the bField
   Stepper stepper;
@@ -208,6 +204,7 @@ int main(int argc, char *argv[]) {
 
   // Run propagation to create the measurements
   for (int it = 0; it < nTracks; it++) {
+#pragma omp parallel for
     propagator.propagate(startPars[it], propOptions, ress[it]);
   }
 
