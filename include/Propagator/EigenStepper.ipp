@@ -1,25 +1,43 @@
 #include "Propagator/detail/CovarianceEngine.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
 
+namespace detail {
+
+  // place functions in order of invocation
+
+  template <typename StateSteppingT>
+  ACTS_DEVICE_FUNC
+  auto evaluatek (StateSteppingT& stateStepping,
+  	   	  const Vector3D &bField, const int i = 0,
+                  const double h = 0.,
+                  const Vector3D &kprev = Vector3D(0, 0, 0)) -> Vector3D {
+    Vector3D knew;
+    auto qop = stateStepping.q / stateStepping.p;
+    // First step does not rely on previous data
+    if (i == 0) {
+      knew = qop * (stateStepping.dir).cross(bField);
+    } else {
+      knew = qop * ((stateStepping.dir) + h * kprev).cross(bField);
+    }
+    return knew;
+  }
+}
+
 template <typename B>
 template <typename propagator_state_t>
 ACTS_DEVICE_FUNC bool
 Acts::EigenStepper<B>::step(propagator_state_t &state) const {
-
+  
+  B_first = getField(state.stepping, state.stepping.pos);
+  Vector3D k1 = evaluatek(B_first, 0);
+  Vector3D k2, k3, k4;
+		       
   // The following functor evaluates k_i of RKN4
-  auto evaluatek = [&](const Vector3D &bField, const int i = 0,
-                       const double h = 0.,
-                       const Vector3D &kprev = Vector3D(0, 0, 0)) -> Vector3D {
-    Vector3D knew;
-    auto qop = state.stepping.q / state.stepping.p;
-    // First step does not rely on previous data
-    if (i == 0) {
-      knew = qop * (state.stepping.dir).cross(bField);
-    } else {
-      knew = qop * ((state.stepping.dir) + h * kprev).cross(bField);
-    }
-    return knew;
-  };
+  // auto evaluatek = [&](const Vector3D &bField, const int i = 0,
+  //                      const double h = 0.,
+  //                      const Vector3D &kprev = Vector3D(0, 0, 0)) -> Vector3D {
+  //   
+  // };
 
   // The propagation function for time coordinate
   auto propagationTime = [&](const double h) {
@@ -108,10 +126,7 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
   double error_estimate = 0.;
   double h2, half_h;
 
-  // First Runge-Kutta point (at current position)
-  sd.B_first = getField(state.stepping, state.stepping.pos);
-  sd.k1 = evaluatek(sd.B_first, 0);
-
+  
   // The following functor starts to perform a Runge-Kutta step of a certain
   // size, going up to the point where it can return an estimate of the local
   // integration error. The results are stated in the local variables above,
@@ -123,23 +138,23 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
 
     // Second Runge-Kutta point
     const Vector3D pos1 =
-        state.stepping.pos + half_h * state.stepping.dir + h2 * 0.125 * sd.k1;
-    sd.B_middle = getField(state.stepping, pos1);
-    sd.k2 = evaluatek(sd.B_middle, 1, half_h, sd.k1);
+        state.stepping.pos + half_h * state.stepping.dir + h2 * 0.125 * k1;
+    B_middle = getField(state.stepping, pos1);
+    k2 = detail::evaluatek(state.stepping, B_middle, 1, half_h, k1);
 
     // Third Runge-Kutta point
-    sd.k3 = evaluatek(sd.B_middle, 2, half_h, sd.k2);
+    k3 = detail::evaluatek(state.stepping, B_middle, 2, half_h, k2);
 
     // Last Runge-Kutta point
     const Vector3D pos2 =
-        state.stepping.pos + h * state.stepping.dir + h2 * 0.5 * sd.k3;
-    sd.B_last = getField(state.stepping, pos2);
-    sd.k4 = evaluatek(sd.B_last, 3, h, sd.k3);
+        state.stepping.pos + h * state.stepping.dir + h2 * 0.5 * k3;
+    B_last = getField(state.stepping, pos2);
+    k4 = detail::evaluatek(state.stepping, B_last, 3, h, k3);
 
     // Compute and check the local integration error estimate
     // @Todo
     error_estimate = std::max(
-        h2 * (sd.k1 - sd.k2 - sd.k3 + sd.k4).template lpNorm<1>(), 1e-20);
+        h2 * (k1 - k2 - k3 + k4).template lpNorm<1>(), 1e-20);
     return (error_estimate <= state.options.tolerance);
   };
 
@@ -192,12 +207,12 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
 
   // Update the track parameters according to the equations of motion
   state.stepping.pos +=
-      h * state.stepping.dir + h2 / 6. * (sd.k1 + sd.k2 + sd.k3);
-  state.stepping.dir += h / 6. * (sd.k1 + 2. * (sd.k2 + sd.k3) + sd.k4);
+      h * state.stepping.dir + h2 / 6. * (k1 + k2 + k3);
+  state.stepping.dir += h / 6. * (k1 + 2. * (k2 + k3) + k4);
   state.stepping.dir /= state.stepping.dir.norm();
   if (state.stepping.covTransport) {
     state.stepping.derivative.template head<3>() = state.stepping.dir;
-    state.stepping.derivative.template segment<3>(4) = sd.k4;
+    state.stepping.derivative.template segment<3>(4) = k4;
   }
   state.stepping.pathAccumulated += h;
   // return h;

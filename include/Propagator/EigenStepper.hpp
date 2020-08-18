@@ -114,7 +114,7 @@ template <typename bfield_t> struct EigenStepper {
       /// Magnetic field evaulations
       Vector3D B_first, B_middle, B_last;
       /// k_i of the RKN4 algorithm
-      Vector3D k1, k2, k3, k4;
+      // WKK Vector3D k1, k2, k3, k4;
     } stepData;
   };
 
