@@ -309,9 +309,9 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaFree(d_sourcelinks));
     GPUERRCHK(cudaFree(d_pars));
     GPUERRCHK(cudaFree(d_fittedTracks));
-    GPUERRCHK(cudaFree(surfaces));
-    GPUERRCHK(cudaFree(surfacePtrs));
     GPUERRCHK(cudaFree(d_kFitter));
+    GPUERRCHK(cudaFree(surfacePtrs));
+    GPUERRCHK(cudaFree(surfaces));
   } else {
 //// Run on host
 #pragma omp parallel for
