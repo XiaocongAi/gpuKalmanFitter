@@ -197,14 +197,14 @@ int main(int argc, char *argv[]) {
   std::cout << "Finish creating starting parameters" << std::endl;
 
   // Propagation result
-  MeasurementCreator::result_type ress[nTracks];
+  std::vector<MeasurementCreator::result_type> ress(nTracks);
 
   std::cout << "Start to run propagation to create measurements" << std::endl;
   auto start_propagate = std::chrono::high_resolution_clock::now();
 
   // Run propagation to create the measurements
+  #pragma omp parallel for
   for (int it = 0; it < nTracks; it++) {
-#pragma omp parallel for
     propagator.propagate(startPars[it], propOptions, ress[it]);
   }
 
@@ -257,7 +257,9 @@ int main(int argc, char *argv[]) {
   KalmanFitterOptions<VoidOutlierFinder> kfOptions(gctx, mctx);
 
   // Allocate memory for KF fitted tracks
-  std::vector<TSType> fittedTracks(nTracks * nSurfaces);
+  TSType* fittedTracks;
+  GPUERRCHK(
+        cudaMallocManaged(&fittedTracks, sizeof(TSType) * nSurfaces * nTracks));
 
   auto start_fit = std::chrono::high_resolution_clock::now();
 
@@ -267,13 +269,10 @@ int main(int argc, char *argv[]) {
     // Allocate memory on device
     PixelSourceLink *d_sourcelinks;
     CurvilinearParameters *d_pars;
-    TSType *d_fittedTracks;
     KalmanFitterType *d_kFitter;
     GPUERRCHK(cudaMalloc(&d_sourcelinks,
                          sizeof(PixelSourceLink) * nSurfaces * nTracks));
     GPUERRCHK(cudaMalloc(&d_pars, sizeof(CurvilinearParameters) * nTracks));
-    GPUERRCHK(
-        cudaMalloc(&d_fittedTracks, sizeof(TSType) * nSurfaces * nTracks));
     GPUERRCHK(cudaMalloc(&d_kFitter, sizeof(KalmanFitterType)));
 
     // Copy from host to device
@@ -291,21 +290,15 @@ int main(int argc, char *argv[]) {
     int blocksPerGrid = (nTracks + threadsPerBlock - 1) / threadsPerBlock;
     // Pass kfOptions by value
     fitKernel<<<blocksPerGrid, threadsPerBlock>>>(
-        d_kFitter, d_sourcelinks, d_pars, kfOptions, d_fittedTracks,
+        d_kFitter, d_sourcelinks, d_pars, kfOptions, fittedTracks,
         surfacePtrs, nSurfaces, nTracks);
 
     GPUERRCHK(cudaPeekAtLastError());
     GPUERRCHK(cudaDeviceSynchronize());
 
-    // Copy result from device to host
-    GPUERRCHK(cudaMemcpy(fittedTracks.data(), d_fittedTracks,
-                         sizeof(TSType) * nSurfaces * nTracks,
-                         cudaMemcpyDeviceToHost));
-
     // Free the memory on device
     GPUERRCHK(cudaFree(d_sourcelinks));
     GPUERRCHK(cudaFree(d_pars));
-    GPUERRCHK(cudaFree(d_fittedTracks));
     GPUERRCHK(cudaFree(d_kFitter));
     GPUERRCHK(cudaFree(surfacePtrs));
     GPUERRCHK(cudaFree(surfaces));
@@ -330,7 +323,7 @@ int main(int argc, char *argv[]) {
       // Dynamically allocating memory for the fitted states here
       KalmanFitterResultType kfResult;
       kfResult.fittedStates = CudaKernelContainer<TSType>(
-          fittedTracks.data() + it * nSurfaces, nSurfaces);
+          &fittedTracks[it * nSurfaces], nSurfaces);
 
       auto sourcelinkTrack = CudaKernelContainer<PixelSourceLink>(
           ress[it].sourcelinks.data(), ress[it].sourcelinks.size());
@@ -378,6 +371,8 @@ int main(int argc, char *argv[]) {
 
   std::cout << "------------------------  ending  -----------------------"
             << std::endl;
+
+  GPUERRCHK(cudaFree(fittedTracks));
 
   return 0;
 }
