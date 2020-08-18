@@ -109,13 +109,13 @@ template <typename bfield_t> struct EigenStepper {
     /// The geometry context
     const GeometryContext geoContext;
 
-    /// @brief Storage of magnetic field and the sub steps during a RKN4 step
-    struct {
-      /// Magnetic field evaulations
-      Vector3D B_first, B_middle, B_last;
-      /// k_i of the RKN4 algorithm
-      // WKK Vector3D k1, k2, k3, k4;
-    } stepData;
+   // /// @brief Storage of magnetic field and the sub steps during a RKN4 step
+   // struct {
+   //   /// Magnetic field evaulations
+   //   Vector3D B_first, B_middle, B_last;
+   //   /// k_i of the RKN4 algorithm
+   //   // WKK Vector3D k1, k2, k3, k4;
+   // } stepData;
   };
 
   /// Constructor requires knowledge of the detector's magnetic field

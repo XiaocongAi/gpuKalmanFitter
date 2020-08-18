@@ -3,56 +3,52 @@
 
 namespace detail {
 
+    /// @brief Storage of magnetic field and the sub steps during a RKN4 step
+    struct StepData {
+      /// Magnetic field evaulations
+      Vector3D B_first, B_middle, B_last;
+      /// k_i of the RKN4 algorithm
+      WKK Vector3D k1, k2, k3, k4;
+    };
+
   // place functions in order of invocation
 
-  template <typename StateSteppingT>
+  // 1) The following functor evaluates k_i of RKN4
+  template <typename propagator_state_t>
   ACTS_DEVICE_FUNC
-  auto evaluatek (StateSteppingT& stateStepping,
+  auto evaluatek (const propagator_state_t& state,
   	   	  const Vector3D &bField, const int i = 0,
                   const double h = 0.,
                   const Vector3D &kprev = Vector3D(0, 0, 0)) -> Vector3D {
     Vector3D knew;
-    auto qop = stateStepping.q / stateStepping.p;
+    auto qop = state.stepping.q / state.stepping.p;
     // First step does not rely on previous data
     if (i == 0) {
-      knew = qop * (stateStepping.dir).cross(bField);
+      knew = qop * (state.stepping.dir).cross(bField);
     } else {
-      knew = qop * ((stateStepping.dir) + h * kprev).cross(bField);
+      knew = qop * ((state.stepping.dir) + h * kprev).cross(bField);
     }
     return knew;
   }
-}
-
-template <typename B>
-template <typename propagator_state_t>
-ACTS_DEVICE_FUNC bool
-Acts::EigenStepper<B>::step(propagator_state_t &state) const {
   
-  B_first = getField(state.stepping, state.stepping.pos);
-  Vector3D k1 = evaluatek(B_first, 0);
-  Vector3D k2, k3, k4;
-		       
-  // The following functor evaluates k_i of RKN4
-  // auto evaluatek = [&](const Vector3D &bField, const int i = 0,
-  //                      const double h = 0.,
-  //                      const Vector3D &kprev = Vector3D(0, 0, 0)) -> Vector3D {
-  //   
-  // };
-
-  // The propagation function for time coordinate
-  auto propagationTime = [&](const double h) {
+  // 2) The propagation function for time coordinate
+  template <typename propagator_state_t>
+  ACTS_DEVICE_FUNC
+  void propagationTime( propagator_state_t& state, const double& mass, const double& h) {
     /// This evaluation is based on dt/ds = 1/v = 1/(beta * c) with the velocity
     /// v, the speed of light c and beta = v/c. This can be re-written as dt/ds
     /// = sqrt(m^2/p^2 + c^{-2}) with the mass m and the momentum p.
-    auto derivative = std::hypot(1, state.options.mass / state.stepping.p);
+    auto derivative = std::hypot(1, mass / state.stepping.p);
     state.stepping.t += h * derivative;
     if (state.stepping.covTransport) {
       state.stepping.derivative(3) = derivative;
     }
-  };
+  }
 
-  // The following functor calculates the transport matrix D for the jacobian
-  auto transportMatrix = [&](const double h) -> FreeMatrix {
+  // 3) The following functor calculates the transport matrix D for the jacobian
+  template <typename propagator_state_t>
+  ACTS_DEVICE_FUNC
+  auto transportMatrix = (const propagator_state_t& state,  const StepData& sd, const double& h) -> FreeMatrix {
     FreeMatrix D = FreeMatrix::Identity();
     auto &sd = state.stepping.stepData;
     auto dir = state.stepping.dir;
@@ -118,10 +114,20 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
                std::hypot(1., state.options.mass / state.stepping.p));
 
     return D;
-  };
+  }
 
-  // Runge-Kutta integrator state
-  auto &sd = state.stepping.stepData;
+} // namespace detail
+
+template <typename B>
+template <typename propagator_state_t>
+ACTS_DEVICE_FUNC bool
+Acts::EigenStepper<B>::step(propagator_state_t &state) const {
+ 
+  detail::StepData sd;
+ 
+  sd.B_first = getField(state.stepping, state.stepping.pos);
+  sd.k1 = evaluatek(B_first, 0);
+		       
   // Default constructor will result in wrong value on GPU
   double error_estimate = 0.;
   double h2, half_h;
@@ -138,23 +144,23 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
 
     // Second Runge-Kutta point
     const Vector3D pos1 =
-        state.stepping.pos + half_h * state.stepping.dir + h2 * 0.125 * k1;
-    B_middle = getField(state.stepping, pos1);
-    k2 = detail::evaluatek(state.stepping, B_middle, 1, half_h, k1);
+        state.stepping.pos + half_h * state.stepping.dir + h2 * 0.125 * sd.k1;
+    sd.B_middle = getField(state.stepping, pos1);
+    sd.k2 = detail::evaluatek(state.stepping, sd.B_middle, 1, half_h, sd.k1);
 
     // Third Runge-Kutta point
-    k3 = detail::evaluatek(state.stepping, B_middle, 2, half_h, k2);
+    sd.k3 = detail::evaluatek(state.stepping, sd.B_middle, 2, half_h, sd.k2);
 
     // Last Runge-Kutta point
     const Vector3D pos2 =
-        state.stepping.pos + h * state.stepping.dir + h2 * 0.5 * k3;
-    B_last = getField(state.stepping, pos2);
-    k4 = detail::evaluatek(state.stepping, B_last, 3, h, k3);
+        state.stepping.pos + h * state.stepping.dir + h2 * 0.5 * sd.k3;
+    sd.B_last = getField(state.stepping, pos2);
+    sd.k4 = detail::evaluatek(state.stepping, sd.B_last, 3, h, sd.k3);
 
     // Compute and check the local integration error estimate
     // @Todo
     error_estimate = std::max(
-        h2 * (k1 - k2 - k3 + k4).template lpNorm<1>(), 1e-20);
+        h2 * (sd.k1 - sd.k2 - sd.k3 + sd.k4).template lpNorm<1>(), 1e-20);
     return (error_estimate <= state.options.tolerance);
   };
 
@@ -194,25 +200,25 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
   // use the adjusted step size
   const double h = state.stepping.stepSize;
 
+  // Propagate the time
+  detail::propagationTime(state, h);
+  
   // When doing error propagation, update the associated Jacobian matrix
+  // The step transport matrix in global coordinates
   if (state.stepping.covTransport) {
-    // The step transport matrix in global coordinates
-    propagationTime(h);
     // for moment, only update the transport part
     state.stepping.jacTransport =
-        transportMatrix(h) * state.stepping.jacTransport;
-  } else {
-    propagationTime(h);
-  }
+        detail::transportMatrix(state, sd, h) * state.stepping.jacTransport;
+  } 
 
   // Update the track parameters according to the equations of motion
   state.stepping.pos +=
-      h * state.stepping.dir + h2 / 6. * (k1 + k2 + k3);
-  state.stepping.dir += h / 6. * (k1 + 2. * (k2 + k3) + k4);
+      h * state.stepping.dir + h2 / 6. * (sd.k1 + sd.k2 + sd.k3);
+  state.stepping.dir += h / 6. * (sd.k1 + 2. * (sd.k2 + sd.k3) + sd.k4);
   state.stepping.dir /= state.stepping.dir.norm();
   if (state.stepping.covTransport) {
     state.stepping.derivative.template head<3>() = state.stepping.dir;
-    state.stepping.derivative.template segment<3>(4) = k4;
+    state.stepping.derivative.template segment<3>(4) = sd.k4;
   }
   state.stepping.pathAccumulated += h;
   // return h;
