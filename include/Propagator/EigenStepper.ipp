@@ -55,7 +55,7 @@ ACTS_DEVICE_FUNC auto transportMatrix(const propagator_state_t &state,
   auto dir = state.stepping.dir;
   auto qop = state.stepping.q / state.stepping.p;
 
-  double half_h = h * 0.5;
+  const double half_h = h * 0.5;
   // This sets the reference to the sub matrices
   // dFdx is already initialised as (3x3) idendity
   auto dFdT = D.block<3, 3>(0, 4);
@@ -128,7 +128,6 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
   detail::StepData sd;
   // Default constructor will result in wrong value on GPU
   double error_estimate = 0.;
-  double h2, half_h;
 
   // First Runge-Kutta point (at current position)
   sd.B_first = getField(state.stepping, state.stepping.pos);
@@ -140,8 +139,8 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
   // allowing integration to continue once the error is deemed satisfactory
   const auto tryRungeKuttaStep = [&](const ConstrainedStep &h) -> bool {
     // State the square and half of the step size
-    h2 = h * h;
-    half_h = h * 0.5;
+    const double h2 = h * h;
+    const double half_h = h * 0.5;
 
     // Second Runge-Kutta point
     const Vector3D pos1 =
@@ -214,7 +213,7 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
 
   // Update the track parameters according to the equations of motion
   state.stepping.pos +=
-      h * state.stepping.dir + h2 / 6. * (sd.k1 + sd.k2 + sd.k3);
+      h * state.stepping.dir + h * h / 6. * (sd.k1 + sd.k2 + sd.k3);
   state.stepping.dir += h / 6. * (sd.k1 + 2. * (sd.k2 + sd.k3) + sd.k4);
   state.stepping.dir /= state.stepping.dir.norm();
   if (state.stepping.covTransport) {

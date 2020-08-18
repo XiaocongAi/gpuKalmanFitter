@@ -69,7 +69,7 @@ __global__ void fitKernel(KalmanFitterType *kFitter,
                            PixelSourceLink *sourcelinks,
                            CurvilinearParameters *tpars,
                            KalmanFitterOptions<VoidOutlierFinder> kfOptions,
-                           TSType *fittedTracks, const Surface **surfacePtrs,
+                           TSType *fittedTracks, const Surface *surfacePtrs,
                            int nSurfaces, int N) {
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if (i < N) {
@@ -140,18 +140,6 @@ int main(int argc, char *argv[]) {
   std::cout << "Creating " << nSurfaces << " boundless plane surfaces"
             << std::endl;
 
-  // Unified memory allocation for pointers to the surfaces
-  // It's more convenient to explicity to pass the surface ptrs to the
-  // propagator; Otherwide, dynamic cast is needed which is not possible on GPU
-  // kernel
-  // const Acts::Surface *surfacePtrs[nSurfaces];
-  const Acts::Surface **surfacePtrs;
-  GPUERRCHK(cudaMallocManaged(&surfacePtrs,
-                              sizeof(const Acts::Surface *) * nSurfaces));
-  for (unsigned int isur = 0; isur < nSurfaces; isur++) {
-    surfacePtrs[isur] = surfaces + isur;
-  }
-
   // Test the pointers to surfaces
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
     auto surface = surfaces[isur];
@@ -161,6 +149,8 @@ int main(int argc, char *argv[]) {
 
   std::cout << "----- Starting Kalman fitter test of " << nTracks
             << " tracks on " << device << std::endl;
+
+  Acts::Surface* surfacePtrs = surfaces;
 
   // InterpolatedBFieldMap3D bField = Options::readBField(bFieldFileName);
 
@@ -312,7 +302,7 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaFree(d_sourcelinks));
     GPUERRCHK(cudaFree(d_pars));
     GPUERRCHK(cudaFree(d_kFitter));
-    GPUERRCHK(cudaFree(surfacePtrs));
+    // GPUERRCHK(cudaFree(surfacePtrs));
     GPUERRCHK(cudaFree(surfaces));
     
   } else {

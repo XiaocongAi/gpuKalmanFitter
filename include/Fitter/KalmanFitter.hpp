@@ -437,7 +437,7 @@ public:
       const start_parameters_t &sParameters,
       const KalmanFitterOptions<outlier_finder_t> &kfOptions,
       KalmanFitterResult<source_link_t, parameters_t> &kfResult,
-      const Surface **surfaceSequence = nullptr,
+      const Surface *surfaceSequence = nullptr,
       size_t surfaceSequenceSize = 0) const {
 
     PUSH_RANGE("fit", 0);

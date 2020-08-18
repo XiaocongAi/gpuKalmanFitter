@@ -11,21 +11,28 @@
 ///////////////////////////////////////////////////////////////////
 
 inline PlaneSurface::PlaneSurface(const PlaneSurface &other)
-    : GeometryObject(), Surface(other), m_bounds(other.m_bounds) {}
+    : GeometryObject(), Surface(other), m_bounds(other.m_bounds) {
+    m_type = Surface::Plane;
+}
 
 inline PlaneSurface::PlaneSurface(const GeometryContext &gctx,
                                   const PlaneSurface &other,
                                   const Transform3D &transf)
     : GeometryObject(), Surface(gctx, other, transf), m_bounds(other.m_bounds) {
+    m_type = Surface::Plane;
 }
 
 inline PlaneSurface::PlaneSurface(const Vector3D &center,
                                   const Vector3D &normal)
-    : Surface(center, normal), m_bounds(nullptr) {}
+    : Surface(center, normal), m_bounds(nullptr) {
+    m_type = Surface::Plane;
+}
 
 inline PlaneSurface::PlaneSurface(const Transform3D &htrans,
                                   const PlanarBounds *pbounds)
-    : Surface(std::move(htrans)), m_bounds(std::move(pbounds)) {}
+    : Surface(std::move(htrans)), m_bounds(std::move(pbounds)) {
+    m_type = Surface::Plane;
+}
 
 inline PlaneSurface &Acts::PlaneSurface::operator=(const PlaneSurface &other) {
   if (this != &other) {

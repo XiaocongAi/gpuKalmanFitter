@@ -66,7 +66,8 @@ public:
     Plane = 4,
     Straw = 5,
     Curvilinear = 6,
-    Other = 7
+    Other = 7,
+    Undefined = 8
   };
 
 protected:
@@ -133,7 +134,9 @@ public:
 
 public:
   /// Return method for the Surface type to avoid dynamic casts
-  virtual SurfaceType type() const = 0;
+  ACTS_DEVICE_FUNC SurfaceType type() const {
+    return m_type;
+  }
 
   /// Return method for the surface Transform3D by reference
   /// In case a detector element is associated the surface transform
@@ -381,6 +384,7 @@ protected:
   /// (translation, rotation) the surface in global space
   // Transform3D m_transform = s_idTransform;
   Transform3D m_transform = Transform3D::Identity();
+  SurfaceType m_type = Undefined;
 };
 
 #include "Surfaces/detail/Surface.ipp"

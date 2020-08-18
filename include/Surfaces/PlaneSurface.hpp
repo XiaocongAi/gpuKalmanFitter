@@ -35,6 +35,8 @@ namespace Acts {
 class PlaneSurface : public Surface {
   friend Surface;
 
+  
+
 public:
   //// Default Constructor
   PlaneSurface() = default;
@@ -95,7 +97,7 @@ public:
   binningPosition(const GeometryContext &gctx, BinningValue bValue) const final;
 
   /// Return the surface type
-  SurfaceType type() const override;
+  ACTS_DEVICE_FUNC SurfaceType type() const;
 
   /// Return method for bounds object of this surfrace
   // ACTS_DEVICE_FUNC const SurfaceBounds &bounds() const override;
