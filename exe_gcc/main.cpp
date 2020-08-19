@@ -94,10 +94,7 @@ int main(int argc, char *argv[]) {
         Acts::PlaneSurface(translations[isur], Acts::Vector3D(1, 0, 0)));
   }
 
-  const Acts::Surface *surfacePtrs[nSurfaces];
-  for (unsigned int isur = 0; isur < nSurfaces; isur++) {
-    surfacePtrs[isur] = &surfaces[isur];
-  }
+  const Acts::Surface *surfacePtrs = surfaces.data();
 
   Acts::PlaneSurface surfaceArrs[nSurfaces];
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
