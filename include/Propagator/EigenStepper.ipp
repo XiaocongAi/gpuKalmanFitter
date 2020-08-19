@@ -48,40 +48,28 @@ ACTS_DEVICE_FUNC void propagationTime(propagator_state_t &state,
 
 // 3) The following functor calculates the transport matrix D for the jacobian
 template <typename propagator_state_t>
-ACTS_DEVICE_FUNC auto transportMatrix(const propagator_state_t &state,
-                                      const StepData &sd, const double &h)
-    -> FreeMatrix {
-  FreeMatrix D = FreeMatrix::Identity();
+ACTS_DEVICE_FUNC void transportMatrix(const propagator_state_t &state,
+                                      const StepData &sd, const double &h,
+				      FreeMatrix& D)
+{
+  D = FreeMatrix::Identity();
   auto dir = state.stepping.dir;
   auto qop = state.stepping.q / state.stepping.p;
 
   const double half_h = h * 0.5;
   // This sets the reference to the sub matrices
   // dFdx is already initialised as (3x3) idendity
-  auto dFdT = D.block<3, 3>(0, 4);
-  auto dFdL = D.block<3, 1>(0, 7);
-  // dGdx is already initialised as (3x3) zero
-  auto dGdT = D.block<3, 3>(4, 4);
-  auto dGdL = D.block<3, 1>(4, 7);
-
-  ActsMatrixD<3, 3> dk1dT = ActsMatrixD<3, 3>::Zero();
-  ActsMatrixD<3, 3> dk2dT = ActsMatrixD<3, 3>::Identity();
-  ActsMatrixD<3, 3> dk3dT = ActsMatrixD<3, 3>::Identity();
-  ActsMatrixD<3, 3> dk4dT = ActsMatrixD<3, 3>::Identity();
-
-  ActsVectorD<3> dk1dL = ActsVectorD<3>::Zero();
-  ActsVectorD<3> dk2dL = ActsVectorD<3>::Zero();
-  ActsVectorD<3> dk3dL = ActsVectorD<3>::Zero();
-  ActsVectorD<3> dk4dL = ActsVectorD<3>::Zero();
 
   // For the case without energy loss
-  dk1dL = dir.cross(sd.B_first);
-  dk2dL = (dir + half_h * sd.k1).cross(sd.B_middle) +
+  ActsVectorD<3> dk1dL = dir.cross(sd.B_first);
+  ActsVectorD<3> dk2dL = (dir + half_h * sd.k1).cross(sd.B_middle) +
           qop * half_h * dk1dL.cross(sd.B_middle);
-  dk3dL = (dir + half_h * sd.k2).cross(sd.B_middle) +
+  ActsVectorD<3> dk3dL = (dir + half_h * sd.k2).cross(sd.B_middle) +
           qop * half_h * dk2dL.cross(sd.B_middle);
-  dk4dL = (dir + h * sd.k3).cross(sd.B_last) + qop * h * dk3dL.cross(sd.B_last);
+  ActsVectorD<3> dk4dL = (dir + h * sd.k3).cross(sd.B_last) + qop * h * dk3dL.cross(sd.B_last);
 
+  ActsMatrixD<3, 3> dk1dT = ActsMatrixD<3, 3>::Zero();
+{
   dk1dT(0, 1) = sd.B_first.z();
   dk1dT(0, 2) = -sd.B_first.y();
   dk1dT(1, 0) = -sd.B_first.z();
@@ -89,31 +77,45 @@ ACTS_DEVICE_FUNC auto transportMatrix(const propagator_state_t &state,
   dk1dT(2, 0) = sd.B_first.y();
   dk1dT(2, 1) = -sd.B_first.x();
   dk1dT *= qop;
+}
 
+  ActsMatrixD<3, 3> dk2dT = ActsMatrixD<3, 3>::Identity();
+{
   dk2dT += half_h * dk1dT;
   dk2dT = qop * VectorHelpers::cross(dk2dT, sd.B_middle);
-
+}
+  ActsMatrixD<3, 3> dk3dT = ActsMatrixD<3, 3>::Identity();
+{
   dk3dT += half_h * dk2dT;
   dk3dT = qop * VectorHelpers::cross(dk3dT, sd.B_middle);
-
+}
+  ActsMatrixD<3, 3> dk4dT = ActsMatrixD<3, 3>::Identity();
+{
   dk4dT += h * dk3dT;
   dk4dT = qop * VectorHelpers::cross(dk4dT, sd.B_last);
-
+}
+{
+  auto dFdT = D.block<3, 3>(0, 4);
   dFdT.setIdentity();
   dFdT += h / 6. * (dk1dT + dk2dT + dk3dT);
   dFdT *= h;
-
+}
+{
+  auto dFdL = D.block<3, 1>(0, 7);
   dFdL = (h * h) / 6. * (dk1dL + dk2dL + dk3dL);
-
+}
+{
+  // dGdx is already initialised as (3x3) zero
+  auto dGdT = D.block<3, 3>(4, 4);
   dGdT += h / 6. * (dk1dT + 2. * (dk2dT + dk3dT) + dk4dT);
-
+}
+{
+  auto dGdL = D.block<3, 1>(4, 7);
   dGdL = h / 6. * (dk1dL + 2. * (dk2dL + dk3dL) + dk4dL);
-
+}
   D(3, 7) = h * state.options.mass * state.options.mass * state.stepping.q /
             (state.stepping.p *
              std::hypot(1., state.options.mass / state.stepping.p));
-
-  return D;
 }
 
 } // namespace detail
@@ -124,14 +126,19 @@ template <typename propagator_state_t>
 ACTS_DEVICE_FUNC bool
 Acts::EigenStepper<B>::step(propagator_state_t &state) const {
 
+  const bool IS_MAIN_THREAD = threadIdx.x == 0 && threadIdx.y == 0;
+
   // Construt a stepping data here
-  detail::StepData sd;
+  __shared__ detail::StepData sd;
   // Default constructor will result in wrong value on GPU
   double error_estimate = 0.;
 
   // First Runge-Kutta point (at current position)
-  sd.B_first = getField(state.stepping, state.stepping.pos);
-  sd.k1 = detail::evaluatek(state, sd.B_first, 0);
+  if (IS_MAIN_THREAD) {
+    sd.B_first = getField(state.stepping, state.stepping.pos);
+    sd.k1 = detail::evaluatek(state, sd.B_first, 0);
+  }
+  __syncthreads();
 
   // The following functor starts to perform a Runge-Kutta step of a certain
   // size, going up to the point where it can return an estimate of the local
@@ -164,63 +171,91 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
     return (error_estimate <= state.options.tolerance);
   };
 
-  double stepSizeScaling = 1.;
-  size_t nStepTrials = 0;
-  // Select and adjust the appropriate Runge-Kutta step size as given
-  // ATL-SOFT-PUB-2009-001
-  while (!tryRungeKuttaStep(state.stepping.stepSize)) {
-    stepSizeScaling =
+
+  __shared__ bool earlyExit;
+
+  if (IS_MAIN_THREAD) {
+    double stepSizeScaling = 1.;
+    size_t nStepTrials = 0;
+
+    earlyExit = false;
+    // Select and adjust the appropriate Runge-Kutta step size as given
+    // ATL-SOFT-PUB-2009-001
+    while (!tryRungeKuttaStep(state.stepping.stepSize)) {
+      stepSizeScaling =
         std::min(std::max(0.25, std::pow((state.options.tolerance /
                                           std::abs(2. * error_estimate)),
                                          0.25)),
                  4.);
-    // if (stepSizeScaling == 1.) {
-    // break;
-    //}
-    state.stepping.stepSize = state.stepping.stepSize * stepSizeScaling;
-
-    // Todo: adapted error handling on GPU?
-    // If step size becomes too small the particle remains at the initial
-    // place
-    if (state.stepping.stepSize * state.stepping.stepSize <
-        state.options.stepSizeCutOff * state.options.stepSizeCutOff) {
-      // Not moving due to too low momentum needs an aborter
-      return false;
+      // if (stepSizeScaling == 1.) {
+      // break;
+      //}
+      state.stepping.stepSize = state.stepping.stepSize * stepSizeScaling;
+      
+      // Todo: adapted error handling on GPU?
+      // If step size becomes too small the particle remains at the initial
+      // place
+      if (state.stepping.stepSize * state.stepping.stepSize <
+	  state.options.stepSizeCutOff * state.options.stepSizeCutOff) {
+	// Not moving due to too low momentum needs an aborter
+	earlyExit = true;
+	break;
+      }
+      
+      // If the parameter is off track too much or given stepSize is not
+      // appropriate
+      if (nStepTrials > state.options.maxRungeKuttaStepTrials) {
+	// Too many trials, have to abort
+	earlyExit = true;
+	break;
+      }
+      nStepTrials++;
     }
-
-    // If the parameter is off track too much or given stepSize is not
-    // appropriate
-    if (nStepTrials > state.options.maxRungeKuttaStepTrials) {
-      // Too many trials, have to abort
-      return false;
-    }
-    nStepTrials++;
   }
-
+  __syncthreads();
+  
+  if (earlyExit) {
+    return false;
+  }
+  
   // use the adjusted step size
   const double h = state.stepping.stepSize;
 
-  // Propagate the time
-  detail::propagationTime(state, h);
-
+  if (IS_MAIN_THREAD) {
+    // Propagate the time
+    detail::propagationTime(state, h);
+  }
+  __syncthreads();
+  
+  __shared__ FreeMatrix jacTransport;
   // When doing error propagation, update the associated Jacobian matrix
   // The step transport matrix in global coordinates
   if (state.stepping.covTransport) {
+    jacTransport(threadIdx.x, threadIdx.y) = state.stepping.jacTransport(threadIdx.x, threadIdx.y);
+
     // for moment, only update the transport part
-    state.stepping.jacTransport =
-        detail::transportMatrix(state, sd, h) * state.stepping.jacTransport;
+    detail::transportMatrix(state, sd, h, jacTransport);
+    
+    double acc = 0.0;
+    for (int i = 0; i < 8; ++i) {
+      acc += jacTransport(threadIdx.x, i) * state.stepping.jacTransport(i, threadIdx.y);
+    }
+    state.stepping.jacTransport(threadIdx.x, threadIdx.y) = acc;
   }
 
-  // Update the track parameters according to the equations of motion
-  state.stepping.pos +=
+  if (IS_MAIN_THREAD) {
+    // Update the track parameters according to the equations of motion
+    state.stepping.pos +=
       h * state.stepping.dir + h * h / 6. * (sd.k1 + sd.k2 + sd.k3);
-  state.stepping.dir += h / 6. * (sd.k1 + 2. * (sd.k2 + sd.k3) + sd.k4);
-  state.stepping.dir /= state.stepping.dir.norm();
-  if (state.stepping.covTransport) {
-    state.stepping.derivative.template head<3>() = state.stepping.dir;
-    state.stepping.derivative.template segment<3>(4) = sd.k4;
+    state.stepping.dir += h / 6. * (sd.k1 + 2. * (sd.k2 + sd.k3) + sd.k4);
+    state.stepping.dir /= state.stepping.dir.norm();
+    if (state.stepping.covTransport) {
+      state.stepping.derivative.template head<3>() = state.stepping.dir;
+      state.stepping.derivative.template segment<3>(4) = sd.k4;
+    }
+    state.stepping.pathAccumulated += h;
   }
-  state.stepping.pathAccumulated += h;
+  __syncthreads();
   // return h;
   return true;
 }

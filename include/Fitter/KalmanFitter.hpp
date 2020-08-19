@@ -54,7 +54,7 @@ struct KalmanFitterOptions {
   using OutlierFinder = outlier_finder_t;
 
   /// Deleted default constructor
-  KalmanFitterOptions() = delete;
+  // KalmanFitterOptions() = delete;
 
   /// PropagatorOptions with context
   ///
@@ -70,20 +70,20 @@ struct KalmanFitterOptions {
   KalmanFitterOptions(const GeometryContext &gctx,
                       const MagneticFieldContext &mctx,
                       const OutlierFinder &outlierFinder_ = VoidOutlierFinder(),
-                      const Surface *rSurface = nullptr)
+                      Surface *rSurface = nullptr)
       : geoContext(gctx), magFieldContext(mctx), outlierFinder(outlierFinder_),
         referenceSurface(rSurface) {}
 
   /// Context object for the geometry
-  const GeometryContext geoContext;
+  GeometryContext geoContext;
   /// Context object for the magnetic field
-  const MagneticFieldContext magFieldContext;
+  MagneticFieldContext magFieldContext;
 
   /// The config for the outlier finder
   OutlierFinder outlierFinder;
 
   /// The reference Surface
-  const Surface *referenceSurface = nullptr;
+  Surface *referenceSurface = nullptr;
 };
 
 template <typename source_link_t, typename parameters_t>
@@ -311,9 +311,9 @@ private:
         auto bState = stepper.boundState(state.stepping, *surface);
 
         // Fill the track state
-        trackState.parameter.predicted = bState.boundParams;
-        trackState.parameter.jacobian = bState.jacobian;
-        trackState.parameter.pathLength = bState.path;
+        trackState.parameter.predicted = std::move(bState.boundParams);
+        trackState.parameter.jacobian = std::move(bState.jacobian);
+        trackState.parameter.pathLength = std::move(bState.path);
         auto prePos = trackState.parameter.predicted.position();
         // printf("Predicted parameter position = (%f, %f, %f)\n", prePos.x(),
         // prePos.y(), prePos.z());
@@ -440,7 +440,7 @@ public:
       const Surface *surfaceSequence = nullptr,
       size_t surfaceSequenceSize = 0) const {
 
-    PUSH_RANGE("fit", 0);
+    const bool IS_MAIN_THREAD = threadIdx.x == 0 && threadIdx.y == 0;
 
     // printf("Preparing %lu input measurements\n", sourcelinks.size());
 
@@ -450,25 +450,29 @@ public:
     using KalmanResult = typename KalmanActor::result_type;
 
     // Create relevant options for the propagation options
-    PropagatorOptions<KalmanActor, KalmanAborter> kalmanOptions(
+    __shared__ PropagatorOptions<KalmanActor, KalmanAborter> kalmanOptions;
+    __shared__ KalmanActor* kalmanActorPtr;
+    __shared__ PropagatorResult propRes;
+    
+    if (IS_MAIN_THREAD) { 
+      kalmanOptions = PropagatorOptions<KalmanActor, KalmanAborter>(
         kfOptions.geoContext, kfOptions.magFieldContext);
-    kalmanOptions.initializer.surfaceSequence = surfaceSequence;
-    kalmanOptions.initializer.surfaceSequenceSize = surfaceSequenceSize;
-
-    // Catch the actor and set the measurements
-    auto &kalmanActor = kalmanOptions.action;
-    kalmanActor.inputMeasurements = std::move(sourcelinks);
-    kalmanActor.targetSurface = kfOptions.referenceSurface;
-
-    // Set config for outlier finder
-    kalmanActor.m_outlierFinder = kfOptions.outlierFinder;
-
+      kalmanOptions.initializer.surfaceSequence = surfaceSequence;
+      kalmanOptions.initializer.surfaceSequenceSize = surfaceSequenceSize;
+      
+      // Catch the actor and set the measurements
+      kalmanActorPtr = &kalmanOptions.action;
+      kalmanActorPtr->inputMeasurements = std::move(sourcelinks);
+      kalmanActorPtr->targetSurface = kfOptions.referenceSurface;
+      
+      // Set config for outlier finder
+      kalmanActorPtr->m_outlierFinder = kfOptions.outlierFinder;
+    }
+    __syncthreads();
+    
     // Run the fitter
-    const auto propRes =
-        m_propagator.template propagate(sParameters, kalmanOptions, kfResult);
-
-    POP_RANGE();
-
+    m_propagator.template propagate(sParameters, kalmanOptions, kfResult, propRes);
+    
     if (!kfResult.result) {
       printf("KalmanFilter failed: \n");
       return false;

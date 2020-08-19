@@ -56,7 +56,9 @@ using TSType = typename KalmanFitterResultType::TrackStateType;
 using PlaneSurfaceType = PlaneSurface<InfiniteBounds>;
 
 // Device code
-__global__ void fitKernel(KalmanFitterType *kFitter,
+__global__ void 
+__launch_bounds__(256, 2)
+fitKernel(KalmanFitterType *kFitter,
                            PixelSourceLink *sourcelinks,
                            CurvilinearParameters *tpars,
                            KalmanFitterOptions<VoidOutlierFinder> kfOptions,

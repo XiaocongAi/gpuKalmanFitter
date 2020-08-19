@@ -53,7 +53,7 @@ template <typename action_t, typename aborter_t> struct PropagatorOptions {
   using action_type = action_t;
 
   /// Delete default constructor
-  PropagatorOptions() = delete;
+  // PropagatorOptions() = delete;
 
   /// PropagatorOptions copy constructor
   PropagatorOptions(const PropagatorOptions<action_t, aborter_t> &po) = default;
@@ -104,10 +104,10 @@ template <typename action_t, typename aborter_t> struct PropagatorOptions {
   DirectNavigatorInitializer initializer;
 
   /// The context object for the geometry
-  const GeometryContext geoContext;
+  GeometryContext geoContext;
 
   /// The context object for the magnetic field
-  const MagneticFieldContext magFieldContext;
+  MagneticFieldContext magFieldContext;
 };
 
 /// @brief Propagator for particles (optionally in a magnetic field)
@@ -117,8 +117,6 @@ template <typename stepper_t,
 class Propagator final {
 public:
   using Jacobian = BoundMatrix;
-  using BoundState = std::tuple<BoundParameters, Jacobian, double>;
-  using CurvilinearState = std::tuple<CurvilinearParameters, Jacobian, double>;
 
   /// Type of state object used by the propagation implementation
   using StepperState = typename stepper_t::State;
@@ -165,6 +163,16 @@ public:
   ACTS_DEVICE_FUNC explicit Propagator(stepper_t stepper,
                                        navigator_t navigator = navigator_t())
       : m_stepper(std::move(stepper)), m_navigator(std::move(navigator)) {}
+
+  /// @brief Propagate track parameters
+  ///
+  template <typename parameters_t, typename propagator_options_t,
+            typename path_aborter_t = PathLimitReached>
+  ACTS_DEVICE_FUNC void propagate(
+      const parameters_t &start, const propagator_options_t &options,
+      typename propagator_options_t::action_type::result_type &actorResult,
+					      PropagatorResult& result)
+      const;
 
   /// @brief Propagate track parameters
   ///
