@@ -134,9 +134,7 @@ public:
 
 public:
   /// Return method for the Surface type to avoid dynamic casts
-  ACTS_DEVICE_FUNC SurfaceType type() const {
-    return m_type;
-  }
+  ACTS_DEVICE_FUNC SurfaceType type() const { return m_type; }
 
   /// Return method for the surface Transform3D by reference
   /// In case a detector element is associated the surface transform

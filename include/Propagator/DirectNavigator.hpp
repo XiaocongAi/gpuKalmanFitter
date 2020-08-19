@@ -111,30 +111,30 @@ public:
     /// Navigation state - external interface: a break has been detected
     bool navigationBreak = false;
   };
-  
+
   template <typename T>
-  static ACTS_DEVICE_FUNC void* advanceByDatatype(void* addr) {
+  static ACTS_DEVICE_FUNC void *advanceByDatatype(void *addr) {
     return addr + sizeof(T);
   }
 
   template <typename T>
-  static ACTS_DEVICE_FUNC const void* advanceByDatatype(const void* addr) {
+  static ACTS_DEVICE_FUNC const void *advanceByDatatype(const void *addr) {
     return addr + sizeof(T);
   }
 
-  static ACTS_DEVICE_FUNC Surface* advanceSurfacePtr(Surface* ptr) {
+  static ACTS_DEVICE_FUNC Surface *advanceSurfacePtr(Surface *ptr) {
     switch (ptr->type()) {
     case Surface::Plane:
-      return (Surface*)advanceByDatatype<PlaneSurface>(ptr);
+      return (Surface *)advanceByDatatype<PlaneSurface>(ptr);
     default:
       return ptr + 1;
     }
   }
 
-  static ACTS_DEVICE_FUNC const Surface* advanceSurfacePtr(const Surface* ptr) {
+  static ACTS_DEVICE_FUNC const Surface *advanceSurfacePtr(const Surface *ptr) {
     switch (ptr->type()) {
     case Surface::Plane:
-      return (Surface const*)advanceByDatatype<PlaneSurface>(ptr);
+      return (Surface const *)advanceByDatatype<PlaneSurface>(ptr);
     default:
       return ptr + 1;
     }
@@ -156,9 +156,9 @@ public:
     // Check if we are on surface
     if (state.navigation.nextSurfaceIter !=
         state.navigation.surfaceSequenceSize) {
-      auto* surfacePtr = state.navigation.surfaceSequence;      
+      auto *surfacePtr = state.navigation.surfaceSequence;
       for (int i = 0; i < state.navigation.nextSurfaceIter; ++i) {
-	surfacePtr = advanceSurfacePtr(surfacePtr);
+        surfacePtr = advanceSurfacePtr(surfacePtr);
       }
       // Establish the surface status
       auto surfaceStatus =
@@ -193,12 +193,13 @@ public:
     state.navigation.currentSurface = nullptr;
     if (state.navigation.nextSurfaceIter !=
         state.navigation.surfaceSequenceSize) {
-      auto* surfacePtr = state.navigation.surfaceSequence;      
+      auto *surfacePtr = state.navigation.surfaceSequence;
       for (int i = 0; i < state.navigation.nextSurfaceIter; ++i) {
-	surfacePtr = advanceSurfacePtr(surfacePtr);
+        surfacePtr = advanceSurfacePtr(surfacePtr);
       }
       // Establish & update the surface status
-      auto surfaceStatus = stepper.updateSurfaceStatus(state.stepping, *surfacePtr, false);
+      auto surfaceStatus =
+          stepper.updateSurfaceStatus(state.stepping, *surfacePtr, false);
       if (surfaceStatus == Intersection::Status::unreachable) {
         // Move the sequence to the next surface
         ++state.navigation.nextSurfaceIter;
