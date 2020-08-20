@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
   MagneticFieldContext mctx;
 
   // Create the geometry
-  size_t nSurfaces = 15;
+  size_t nSurfaces = 10;
 
   // Set translation vectors
   std::vector<Acts::Vector3D> translations;
@@ -160,7 +160,8 @@ int main(int argc, char *argv[]) {
 
   auto start = std::chrono::high_resolution_clock::now();
 
-  // Creating the tracks
+// Creating the tracks
+#pragma omp parallel for
   for (int it = 0; it < nTracks; it++) {
     propagator.propagate(startPars[it], propOptions, ress[it]);
   }
@@ -235,19 +236,22 @@ int main(int argc, char *argv[]) {
 
   std::vector<TrackState> fittedTracks(nSurfaces * nTracks);
 
+  auto start_fit = std::chrono::high_resolution_clock::now();
+  // #pragma omp parallel for
   for (int it = 0; it < nTracks; it++) {
-    BoundSymMatrix cov = BoundSymMatrix::Zero();
-    cov << resLoc1 * resLoc1, 0., 0., 0., 0., 0., 0., resLoc2 * resLoc2, 0., 0.,
-        0., 0., 0., 0., resPhi * resPhi, 0., 0., 0., 0., 0., 0.,
-        resTheta * resTheta, 0., 0., 0., 0., 0., 0., 0.0001, 0., 0., 0., 0., 0.,
-        0., 1.;
+    //   BoundSymMatrix cov = BoundSymMatrix::Zero();
+    //   cov << resLoc1 * resLoc1, 0., 0., 0., 0., 0., 0., resLoc2 * resLoc2,
+    //   0., 0.,
+    //       0., 0., 0., 0., resPhi * resPhi, 0., 0., 0., 0., 0., 0.,
+    //       resTheta * resTheta, 0., 0., 0., 0., 0., 0., 0.0001, 0., 0., 0.,
+    //       0., 0., 0., 1.;
 
-    double q = 1;
-    double time = 0;
-    Vector3D pos(0, 0, 0); // Units: mm
-    Vector3D mom(p, 0, 0); // Units: GeV
+    //   double q = 1;
+    //   double time = 0;
+    //   Vector3D pos(0, 0, 0); // Units: mm
+    //   Vector3D mom(p, 0, 0); // Units: GeV
 
-    CurvilinearParameters rStart(cov, pos, mom, q, time);
+    //   CurvilinearParameters rStart(cov, pos, mom, q, time);
 
     KalmanFitterResult kfResult;
     kfResult.fittedStates = CudaKernelContainer<TrackState>(
@@ -256,15 +260,15 @@ int main(int argc, char *argv[]) {
     auto sourcelinkTrack = CudaKernelContainer<PixelSourceLink>(
         ress[it].sourcelinks.data(), ress[it].sourcelinks.size());
     // The fittedTracks will be changed here
-    auto fitStatus = kFitter.fit(sourcelinkTrack, rStart, kfOptions, kfResult,
-                                 surfacePtrs, nSurfaces);
+    auto fitStatus = kFitter.fit(sourcelinkTrack, startPars[it], kfOptions,
+                                 kfResult, surfacePtrs, nSurfaces);
     if (not fitStatus) {
       std::cout << "fit failure for track " << it << std::endl;
     }
   }
 
   auto end_fit = std::chrono::high_resolution_clock::now();
-  elapsed_seconds = end_fit - end_propagate;
+  elapsed_seconds = end_fit - start_fit;
   std::cout << "Time (sec) to run KalmanFitter for " << nTracks << " : "
             << elapsed_seconds.count() << std::endl;
 
