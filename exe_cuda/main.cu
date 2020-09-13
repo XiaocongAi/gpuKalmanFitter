@@ -64,6 +64,8 @@ using KalmanFitterResultType =
     KalmanFitterResult<PixelSourceLink, BoundParameters>;
 using TSType = typename KalmanFitterResultType::TrackStateType;
 
+using PlaneSurfaceType = PlaneSurface<InfiniteBounds>;
+
 // Device code
 __global__ void fitKernel(KalmanFitterType *kFitter,
                            PixelSourceLink *sourcelinks,
@@ -82,6 +84,19 @@ __global__ void fitKernel(KalmanFitterType *kFitter,
                  tpars[i], kfOptions, kfResult, surfacePtrs, nSurfaces);
   }
 }
+
+/*
+__global__ void intersect(Vector3D position,
+                          Vector3D direction,
+                          BoundaryCheck bcheck, 
+			  const Surface* surfacePtrs, 
+			  SurfaceIntersections*){
+  int i = blockDim.x * blockIdx.x + threadIdx.x;
+  if (i < N) {
+    surfacePtrs[i]->intersect(position, direction, bcheck, SurfaceIntersections[i]);
+  }
+}	
+*/
 
 int main(int argc, char *argv[]) {
   if (argc < 5) {
@@ -127,15 +142,15 @@ int main(int argc, char *argv[]) {
     translations.push_back({(isur * 30. + 19) * Acts::units::_mm, 0., 0.});
   }
 
-  // Acts::PlaneSurface surfaces[nSurfaces];
-  Acts::PlaneSurface *surfaces;
+  // PlaneSurfaceType surfaces[nSurfaces];
+  PlaneSurfaceType *surfaces;
   // Unifited memory allocation for geometry
   GPUERRCHK(
-      cudaMallocManaged(&surfaces, sizeof(Acts::PlaneSurface) * nSurfaces));
+      cudaMallocManaged(&surfaces, sizeof(PlaneSurfaceType) * nSurfaces));
   std::cout << "Allocating the memory for the surfaces" << std::endl;
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
     surfaces[isur] =
-        Acts::PlaneSurface(translations[isur], Acts::Vector3D(1, 0, 0));
+        PlaneSurfaceType(translations[isur], Acts::Vector3D(1, 0, 0));
   }
   std::cout << "Creating " << nSurfaces << " boundless plane surfaces"
             << std::endl;

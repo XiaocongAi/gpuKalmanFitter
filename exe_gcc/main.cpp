@@ -40,6 +40,7 @@ using Stepper = EigenStepper<ConstantBField>;
 using PropagatorType = Propagator<Stepper>;
 using PropResultType = PropagatorResult;
 using PropOptionsType = PropagatorOptions<MeasurementCreator, VoidAborter>;
+using PlaneSurfaceType = PlaneSurface<InfiniteBounds>;
 
 int main(int argc, char *argv[]) {
   if (argc < 5) {
@@ -88,18 +89,18 @@ int main(int argc, char *argv[]) {
   }
 
   // Create plane surfaces without boundaries
-  std::vector<Acts::PlaneSurface> surfaces;
+  std::vector<PlaneSurfaceType> surfaces;
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
     surfaces.push_back(
-        Acts::PlaneSurface(translations[isur], Acts::Vector3D(1, 0, 0)));
+        PlaneSurfaceType(translations[isur], Acts::Vector3D(1, 0, 0)));
   }
 
   const Acts::Surface *surfacePtrs = surfaces.data();
 
-  Acts::PlaneSurface surfaceArrs[nSurfaces];
+  PlaneSurfaceType surfaceArrs[nSurfaces];
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
     surfaceArrs[isur] =
-        Acts::PlaneSurface(translations[isur], Acts::Vector3D(1, 0, 0));
+        PlaneSurfaceType(translations[isur], Acts::Vector3D(1, 0, 0));
     const Acts::Surface *surface = &surfaceArrs[isur];
     std::cout << (*surface).center(gctx) << std::endl;
   }
@@ -108,7 +109,7 @@ int main(int argc, char *argv[]) {
             << std::endl;
 
   //  // Test the pointers to surfaces
-  //  const PlaneSurface *surfacePtr = surfaces.data();
+  //  const PlaneSurfaceType *surfacePtr = surfaces.data();
   //  for (unsigned int isur = 0; isur < nSurfaces; isur++) {
   //     std::cout<<"surface " << isur <<  " has center at: \n"
   //     <<(*surfacePtr).center(gctx)<<std::endl;
