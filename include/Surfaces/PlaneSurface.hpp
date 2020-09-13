@@ -16,6 +16,7 @@
 #include "Geometry/GeometryStatics.hpp"
 #include <limits>
 
+#include "Surfaces/InfiniteBounds.hpp"
 #include "Surfaces/PlanarBounds.hpp"
 #include "Surfaces/Surface.hpp"
 #include "Surfaces/detail/PlanarHelper.hpp"
@@ -32,10 +33,13 @@ namespace Acts {
 ///
 /// @image html PlaneSurface.png
 ///
+template <typename surface_bounds_t = InfiniteBounds>
 class PlaneSurface : public Surface {
   friend Surface;
 
 public:
+  using SurfaceBoundsType = surface_bounds_t;
+
   //// Default Constructor
   PlaneSurface() = default;
 
@@ -63,11 +67,14 @@ public:
   ///
   /// @param htrans transform in 3D that positions this surface
   /// @param pbounds bounds object to describe the actual surface area
-  PlaneSurface(const Transform3D &htrans, const PlanarBounds *pbounds);
+  template <
+      typename T = surface_bounds_t,
+      std::enable_if_t<not std::is_same<T, InfiniteBounds>::value, int> = 0>
+  PlaneSurface(const Transform3D &htrans, const surface_bounds_t *pbounds);
 
 public:
   /// Destructor - defaulted
-  ~PlaneSurface() override = default;
+  ~PlaneSurface() = default;
 
   /// Assignment operator
   ///
@@ -91,14 +98,14 @@ public:
   /// @param bValue is the binning type to be used
   ///
   /// @return position that can beused for this binning
-  ACTS_DEVICE_FUNC const Vector3D
-  binningPosition(const GeometryContext &gctx, BinningValue bValue) const final;
+  const Vector3D binningPosition(const GeometryContext &gctx,
+                                 BinningValue bValue) const final;
 
   /// Return the surface type
   ACTS_DEVICE_FUNC SurfaceType type() const;
 
   /// Return method for bounds object of this surfrace
-  // ACTS_DEVICE_FUNC const SurfaceBounds &bounds() const override;
+  ACTS_DEVICE_FUNC const surface_bounds_t *bounds() const;
 
   /// Local to global transformation
   /// For planar surfaces the momentum is ignroed in the local to global
@@ -182,7 +189,7 @@ public:
 
 protected:
   /// the bounds of this surface
-  const PlanarBounds *m_bounds = nullptr;
+  const surface_bounds_t *m_bounds = nullptr;
 };
 
 #include "Surfaces/detail/PlaneSurface.ipp"

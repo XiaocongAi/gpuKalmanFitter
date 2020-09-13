@@ -11,7 +11,6 @@
 ///////////////////////////////////////////////////////////////////
 
 #pragma once
-#include <vector>
 
 #include "Surfaces/SurfaceBounds.hpp"
 namespace Acts {
@@ -24,13 +23,65 @@ class RectangleBounds;
 /// common base class for all bounds that are in a local x/y cartesian frame
 ///  - simply introduced to avoid wrong bound assigments to surfaces
 ///
-class PlanarBounds : public SurfaceBounds {
+template <typename Derived, unsigned int VerticeSize, unsigned int ValueSize>
+class PlanarBounds
+    : public SurfaceBounds<PlanarBounds<Derived, VerticeSize, ValueSize>,
+                           ValueSize> {
 public:
   /// Return the vertices - or, the points of the extremas
-  virtual std::vector<Vector2D> vertices() const = 0;
+  ActsMatrix<double, VerticeSize, 2> vertices() const;
 
   // Bounding box parameters
-  virtual const RectangleBounds &boundingBox() const = 0;
+  //  const RectangleBounds &boundingBox() const;
+
+  /// Return the bounds type - for persistency optimization
+  ///
+  /// @return is a BoundsType enum
+  ACTS_DEVICE_FUNC BoundsType type() const;
+
+  /// Access method for bound variable store
+  ///
+  /// @return of the stored values for the boundary object
+  ACTS_DEVICE_FUNC ActsVector<double, ValueSize> values() const;
+
+  /// Inside check for the bounds object driven by the boundary check directive
+  /// Each Bounds has a method inside, which checks if a LocalPosition is inside
+  /// the bounds  Inside can be called without/with tolerances.
+  ///
+  /// @param lposition Local position (assumed to be in right surface frame)
+  /// @param bcheck boundary check directive
+  /// @return boolean indicator for the success of this operation
+  ACTS_DEVICE_FUNC bool inside(const Vector2D &lposition,
+                               const BoundaryCheck &bcheck) const;
 };
+
+template <typename Derived, unsigned int VerticeSize, unsigned int ValueSize>
+inline ActsMatrix<double, VerticeSize, 2>
+PlanarBounds<Derived, VerticeSize, ValueSize>::vertices() const {
+  return static_cast<Derived &>(*this).vertices();
+}
+
+template <typename Derived, unsigned int VerticeSize, unsigned int ValueSize>
+inline BoundsType PlanarBounds<Derived, VerticeSize, ValueSize>::type() const {
+  return static_cast<Derived &>(*this).type();
+}
+
+template <typename Derived, unsigned int VerticeSize, unsigned int ValueSize>
+inline ActsVector<double, ValueSize>
+PlanarBounds<Derived, VerticeSize, ValueSize>::values() const {
+  return static_cast<Derived &>(*this).values();
+}
+
+template <typename Derived, unsigned int VerticeSize, unsigned int ValueSize>
+inline bool PlanarBounds<Derived, VerticeSize, ValueSize>::inside(
+    const Vector2D &lposition, const BoundaryCheck &bcheck) const {
+  return static_cast<Derived &>(*this).inside(lposition, bcheck);
+}
+
+// typename<typename Derived, unsigned int VerticeSize, unsigned int ValueSize>
+// const RectangleBounds& PlanarBounds<Derived, VerticeSize,
+// ValueSize>::boundingBox() const{ return
+// static_cast<Derived&>(*this).boundingBox();
+//}
 
 } // namespace Acts

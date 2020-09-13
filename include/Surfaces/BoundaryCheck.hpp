@@ -173,13 +173,13 @@ private:
   Type m_type;
 
   // To acces the m_type
-  friend class CylinderBounds;
+  //  friend class CylinderBounds;
   friend class RectangleBounds;
   // To be able to use `transformed`
-  friend class CylinderBounds;
-  friend class DiscTrapezoidalBounds;
-  // EllipseBounds needs a custom implementation
-  friend class EllipseBounds;
+  //  friend class CylinderBounds;
+  //  friend class DiscTrapezoidalBounds;
+  //  // EllipseBounds needs a custom implementation
+  //  friend class EllipseBounds;
 };
 
 } // namespace Acts
@@ -272,20 +272,19 @@ Acts::BoundaryCheck::isInsidePolygon(const Vector2D &point,
     return std::signbit((normal[0] * delta[1]) - (normal[1] * delta[0]));
   };
 
-  auto iv = std::begin(vertices);
-  Vector2D l0 = *iv;
-  Vector2D l1 = *(++iv);
+  Vector2D l0 = vertices.row(0).transpose();
+  Vector2D l1 = vertices.row(1).transpose();
   // use vertex0 to vertex1 to define reference sign and compare w/ all edges
   auto reference = lineSide(l0, l1);
-  for (++iv; iv != std::end(vertices); ++iv) {
+  for (int iRow = 2; iRow != vertices.rows(); iRow++) {
     l0 = l1;
-    l1 = *iv;
+    l1 = vertices.row(iRow).transpose();
     if (lineSide(l0, l1) != reference) {
       return false;
     }
   }
   // manual check for last edge from last vertex back to the first vertex
-  if (lineSide(l1, *std::begin(vertices)) != reference) {
+  if (lineSide(l1, vertices.row(0).transpose()) != reference) {
     return false;
   }
   // point was always on the same side. point must be inside.
@@ -315,10 +314,9 @@ inline bool Acts::BoundaryCheck::isInside(const Vector2D &point,
 
     } else /* Type::eChi2 */ {
       // need to calculate by projection and squarednorm
-      Vector2D vertices[] = {{lowerLeft[0], lowerLeft[1]},
-                             {upperRight[0], lowerLeft[1]},
-                             {upperRight[0], upperRight[1]},
-                             {lowerLeft[0], upperRight[1]}};
+      ActsMatrix<double, 4, 2> vertices = ActsMatrix<double, 4, 2>::Zero();
+      vertices << lowerLeft[0], lowerLeft[1], upperRight[0], lowerLeft[1],
+          upperRight[0], upperRight[1], lowerLeft[0], upperRight[1];
       closestPoint = computeClosestPointOnPolygon(point, vertices);
     }
 
@@ -347,10 +345,9 @@ inline double Acts::BoundaryCheck::distance(const Acts::Vector2D &point,
     return isInsideRectangle(point, lowerLeft, upperRight) ? -d : d;
 
   } else /* Type::eChi2 */ {
-    Vector2D vertices[] = {{lowerLeft[0], lowerLeft[1]},
-                           {upperRight[0], lowerLeft[1]},
-                           {upperRight[0], upperRight[1]},
-                           {lowerLeft[0], upperRight[1]}};
+    ActsMatrix<double, 4, 2> vertices = ActsMatrix<double, 4, 2>::Zero();
+    vertices << lowerLeft[0], lowerLeft[1], upperRight[0], lowerLeft[1],
+        upperRight[0], upperRight[1], lowerLeft[0], upperRight[1];
     return distance(point, vertices);
   }
 }
@@ -389,15 +386,14 @@ inline Acts::Vector2D Acts::BoundaryCheck::computeClosestPointOnPolygon(
     return ll0 + v * n;
   };
 
-  auto iv = std::begin(vertices);
-  Vector2D l0 = *iv;
-  Vector2D l1 = *(++iv);
+  Vector2D l0 = vertices.row(0).transpose();
+  Vector2D l1 = vertices.row(1).transpose();
   Vector2D closest = closestOnSegment(l0, l1);
   auto closestDist = squaredNorm(closest - point);
   // Calculate the closest point on other connecting lines and compare distances
-  for (++iv; iv != std::end(vertices); ++iv) {
+  for (int iRow = 2; iRow != vertices.rows(); iRow++) {
     l0 = l1;
-    l1 = *iv;
+    l1 = vertices.row(iRow).transpose();
     Vector2D current = closestOnSegment(l0, l1);
     auto currentDist = squaredNorm(current - point);
     if (currentDist < closestDist) {
@@ -406,7 +402,7 @@ inline Acts::Vector2D Acts::BoundaryCheck::computeClosestPointOnPolygon(
     }
   }
   // final edge from last vertex back to the first vertex
-  Vector2D last = closestOnSegment(l1, *std::begin(vertices));
+  Vector2D last = closestOnSegment(l1, vertices.row(0).transpose());
   if (squaredNorm(last - point) < closestDist) {
     closest = last;
   }

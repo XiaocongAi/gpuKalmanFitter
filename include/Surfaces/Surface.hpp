@@ -26,7 +26,6 @@
 #include "Geometry/GeometryObject.hpp"
 #include "Geometry/GeometryStatics.hpp"
 #include "Surfaces/BoundaryCheck.hpp"
-#include "Surfaces/SurfaceBounds.hpp"
 #include "Surfaces/detail/PlanarHelper.hpp"
 #include "Utilities/Definitions.hpp"
 #include "Utilities/Intersection.hpp"
@@ -36,7 +35,6 @@
 namespace Acts {
 
 class Surface;
-class SurfaceBounds;
 
 /// Typedef of the surface intersection
 using SurfaceIntersection = ObjectIntersection<Surface>;
@@ -54,6 +52,7 @@ using SurfaceIntersection = ObjectIntersection<Surface>;
 ///
 class Surface : public virtual GeometryObject {
 public:
+protected:
   /// @enum SurfaceType
   ///
   /// This enumerator simplifies the persistency & calculations,
@@ -67,10 +66,8 @@ public:
     Straw = 5,
     Curvilinear = 6,
     Other = 7,
-    Undefined = 8
   };
 
-protected:
   /// Default constructor
   Surface() = default;
 
@@ -108,7 +105,7 @@ protected:
 
 public:
   /// Destructor
-  virtual ~Surface() = default;
+  ~Surface() = default;
 
   /// Assignment operator
   /// @note copy construction invalidates the association
@@ -133,8 +130,8 @@ public:
   ACTS_DEVICE_FUNC bool operator!=(const Surface &sf) const;
 
 public:
-  /// Return method for the Surface type to avoid dynamic casts
-  ACTS_DEVICE_FUNC SurfaceType type() const { return m_type; }
+  /// Return method for the Surface type
+  template <typename Derived> ACTS_DEVICE_FUNC SurfaceType type() const;
 
   /// Return method for the surface Transform3D by reference
   /// In case a detector element is associated the surface transform
@@ -194,7 +191,8 @@ public:
 
   /// Return method for SurfaceBounds
   /// @return SurfaceBounds by reference
-  // ACTS_DEVICE_FUNC virtual const SurfaceBounds &bounds() const = 0;
+  template <typename Derived>
+  ACTS_DEVICE_FUNC const typename Derived::SurfaceBoundsType *bounds() const;
 
   /// The geometric onSurface method
   ///
@@ -206,6 +204,7 @@ public:
   /// @param bcheck BoundaryCheck directive for this onSurface check
   ///
   /// @return boolean indication if operation was successful
+  template <typename Derived>
   ACTS_DEVICE_FUNC bool isOnSurface(const GeometryContext &gctx,
                                     const Vector3D &position,
                                     const Vector3D &momentum,
@@ -216,6 +215,7 @@ public:
   /// @param lposition The local position to check
   /// @param bcheck BoundaryCheck directive for this onSurface check
   /// @return boolean indication if operation was successful
+  template <typename Derived>
   ACTS_DEVICE_FUNC bool insideBounds(const Vector2D &lposition,
                                      const BoundaryCheck &bcheck = true) const;
 
@@ -348,14 +348,13 @@ public:
   /// @param bcheck the Boundary Check
   ///
   /// @return SurfaceIntersection object (contains intersection & surface)
+  template <typename Derived>
   ACTS_DEVICE_FUNC SurfaceIntersection
   intersect(const GeometryContext &gctx, const Vector3D &position,
-            const Vector3D &direction, const BoundaryCheck &bcheck) const
-
-  {
+            const Vector3D &direction, const BoundaryCheck &bcheck) const {
     // Get the intersection with the surface
     Intersection sIntersection =
-        intersectionEstimate(gctx, position, direction, bcheck);
+        intersectionEstimate<Derived>(gctx, position, direction, bcheck);
     // return a surface intersection with result direction
     return SurfaceIntersection(sIntersection, this);
   }
@@ -370,6 +369,7 @@ public:
   /// @param bcheck boundary check directive for this operation
   ///
   /// @return Intersection object
+  template <typename Derived>
   ACTS_DEVICE_FUNC Intersection intersectionEstimate(
       const GeometryContext &gctx, const Vector3D &position,
       const Vector3D &direction, const BoundaryCheck &bcheck) const;
@@ -380,9 +380,7 @@ public:
 protected:
   /// Transform3D definition that positions
   /// (translation, rotation) the surface in global space
-  // Transform3D m_transform = s_idTransform;
   Transform3D m_transform = Transform3D::Identity();
-  SurfaceType m_type = Undefined;
 };
 
 #include "Surfaces/detail/Surface.ipp"

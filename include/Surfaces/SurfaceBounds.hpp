@@ -17,6 +17,28 @@
 #include "Utilities/Definitions.hpp"
 
 namespace Acts {
+/// @enum BoundsType
+///
+/// This enumerator simplifies the persistency,
+/// by saving a dynamic_cast to happen.
+///
+enum BoundsType {
+  Cone = 0,
+  Cylinder = 1,
+  Diamond = 2,
+  Disc = 3,
+  Ellipse = 5,
+  Line = 6,
+  Rectangle = 7,
+  RotatedTrapezoid = 8,
+  Trapezoid = 9,
+  Triangle = 10,
+  DiscTrapezoidal = 11,
+  ConvexPolygon = 12,
+  Annulus = 13,
+  Boundless = 14,
+  Other = 15
+};
 
 /// @class SurfaceBounds
 ///
@@ -24,45 +46,21 @@ namespace Acts {
 ///
 /// Surface bounds provide:
 /// - inside() checks
-/// - distance to boundary calculations
 /// - the BoundsType and a set of parameters to simplify persistency
 ///
-class SurfaceBounds {
+template <typename Derived, unsigned int ValueSize> class SurfaceBounds {
 public:
-  /// @enum BoundsType
-  ///
-  /// This enumerator simplifies the persistency,
-  /// by saving a dynamic_cast to happen.
-  ///
-  enum BoundsType {
-    Cone = 0,
-    Cylinder = 1,
-    Diamond = 2,
-    Disc = 3,
-    Ellipse = 5,
-    Line = 6,
-    Rectangle = 7,
-    RotatedTrapezoid = 8,
-    Trapezoid = 9,
-    Triangle = 10,
-    DiscTrapezoidal = 11,
-    ConvexPolygon = 12,
-    Annulus = 13,
-    Boundless = 14,
-    Other = 15
-  };
-
-  virtual ~SurfaceBounds() = default;
+  ~SurfaceBounds() = default;
 
   /// Return the bounds type - for persistency optimization
   ///
   /// @return is a BoundsType enum
-  ACTS_DEVICE_FUNC virtual BoundsType type() const = 0;
+  ACTS_DEVICE_FUNC BoundsType type() const;
 
   /// Access method for bound variable store
   ///
   /// @return of the stored values for the boundary object
-  ACTS_DEVICE_FUNC virtual std::vector<TDD_real_t> valueStore() const = 0;
+  ACTS_DEVICE_FUNC ActsVector<double, ValueSize> values() const;
 
   /// Inside check for the bounds object driven by the boundary check directive
   /// Each Bounds has a method inside, which checks if a LocalPosition is inside
@@ -71,26 +69,43 @@ public:
   /// @param lposition Local position (assumed to be in right surface frame)
   /// @param bcheck boundary check directive
   /// @return boolean indicator for the success of this operation
-  ACTS_DEVICE_FUNC virtual bool inside(const Vector2D &lposition,
-                                       const BoundaryCheck &bcheck) const = 0;
-
-  /// Minimal distance to boundary ( > 0 if outside and <=0 if inside)
-  ///
-  /// @param lposition is the local position to check for the distance
-  /// @return is a signed distance parameter
-  ACTS_DEVICE_FUNC virtual double
-  distanceToBoundary(const Vector2D &lposition) const = 0;
+  ACTS_DEVICE_FUNC bool inside(const Vector2D &lposition,
+                               const BoundaryCheck &bcheck) const;
 };
 
-inline bool operator==(const SurfaceBounds &lhs, const SurfaceBounds &rhs) {
+template <typename Derived, unsigned int ValueSize>
+ACTS_DEVICE_FUNC inline bool
+operator==(const SurfaceBounds<Derived, ValueSize> &lhs,
+           const SurfaceBounds<Derived, ValueSize> &rhs) {
   if (&lhs == &rhs) {
     return true;
   }
-  return (lhs.type() == rhs.type()) && (lhs.valueStore() == rhs.valueStore());
+  return (lhs.type() == rhs.type()) && (lhs.values() == rhs.values());
 }
 
-inline bool operator!=(const SurfaceBounds &lhs, const SurfaceBounds &rhs) {
+template <typename Derived, unsigned int ValueSize>
+ACTS_DEVICE_FUNC inline bool
+operator!=(const SurfaceBounds<Derived, ValueSize> &lhs,
+           const SurfaceBounds<Derived, ValueSize> &rhs) {
   return !(lhs == rhs);
+}
+
+template <typename Derived, unsigned int ValueSize>
+inline BoundsType SurfaceBounds<Derived, ValueSize>::type() const {
+  return static_cast<Derived &>(*this).type();
+}
+
+template <typename Derived, unsigned int ValueSize>
+inline ActsVector<double, ValueSize>
+SurfaceBounds<Derived, ValueSize>::values() const {
+  return static_cast<Derived &>(*this).values();
+}
+
+template <typename Derived, unsigned int ValueSize>
+inline bool
+SurfaceBounds<Derived, ValueSize>::inside(const Vector2D &lposition,
+                                          const BoundaryCheck &bcheck) const {
+  return static_cast<Derived &>(*this).inside(lposition, bcheck);
 }
 
 } // namespace Acts

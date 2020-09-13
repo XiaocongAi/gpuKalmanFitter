@@ -38,6 +38,11 @@ inline Surface::Surface(const Vector3D &center, const Vector3D &normal) {
   m_transform = transform;
 }
 
+template <typename Derived> inline Surface::SurfaceType Surface::type() const {
+  return static_cast<const Derived *>(this)->type();
+}
+
+template <typename Derived>
 inline bool Surface::isOnSurface(const GeometryContext &gctx,
                                  const Vector3D &position,
                                  const Vector3D &momentum,
@@ -47,11 +52,19 @@ inline bool Surface::isOnSurface(const GeometryContext &gctx,
   // global to local transformation
   bool gtlSuccess = globalToLocal(gctx, position, momentum, lposition);
   if (gtlSuccess) {
-    // return bcheck ? bounds().inside(lposition, bcheck) : true;
-    return true;
+    // No bounds
+    if (bounds<Derived>() == nullptr) {
+      return true;
+    }
+    return bcheck ? bounds<Derived>()->inside(lposition, bcheck) : true;
   }
   // did not succeed
   return false;
+}
+
+template <typename Derived>
+inline const typename Derived::SurfaceBoundsType *Surface::bounds() const {
+  return static_cast<const Derived *>(this)->bounds();
 }
 
 inline Surface &Surface::operator=(const Surface &other) {
@@ -69,14 +82,14 @@ inline bool Surface::operator==(const Surface &other) const {
   if (&other == this) {
     return true;
   }
-  // (b) fast exit for type
-  //  if (other.type() != type()) {
-  //    return false;
-  //  }
+  //  // (b) fast exit for type
+  //    if (other.type<Derived>() != type<Derived>()) {
+  //      return false;
+  //    }
   //  // (c) fast exit for bounds
-  //  if (other.bounds() != bounds()) {
-  //    return false;
-  //  }
+  //    if (*other.bounds<Derived>() != *bounds<Derived>()) {
+  //      return false;
+  //    }
   // (e) compare transform values
   if (!m_transform.isApprox(other.m_transform, 1e-9)) {
     return false;
@@ -106,10 +119,13 @@ Surface::transform(const GeometryContext &gctx) const {
   return m_transform;
 }
 
+template <typename Derived>
 inline bool Surface::insideBounds(const Vector2D &lposition,
                                   const BoundaryCheck &bcheck) const {
-  // return bounds().inside(lposition, bcheck);
-  return true;
+  if (bounds<Derived>() == nullptr) {
+    return true;
+  }
+  return bounds<Derived>()->inside(lposition, bcheck);
 }
 
 inline const RotationMatrix3D
@@ -232,9 +248,10 @@ inline double Surface::pathCorrection(const GeometryContext &gctx,
                                       const Vector3D &position,
                                       const Vector3D &direction) const {
   // We can ignore the global position here
-  return 1. / std::abs(Surface::normal(gctx, position).dot(direction));
+  return 1. / std::abs(normal(gctx, position).dot(direction));
 }
 
+template <typename Derived>
 inline Intersection Surface::intersectionEstimate(
     const GeometryContext &gctx, const Vector3D &position,
     const Vector3D &direction, const BoundaryCheck &bcheck) const {
@@ -249,8 +266,8 @@ inline Intersection Surface::intersectionEstimate(
     const auto &tMatrix = gctxTransform.matrix();
     // Create the reference vector in local
     const Vector3D vecLocal(intersection.position - tMatrix.block<3, 1>(0, 3));
-    if (not insideBounds(tMatrix.block<3, 2>(0, 0).transpose() * vecLocal,
-                         bcheck)) {
+    if (not insideBounds<Derived>(
+            tMatrix.block<3, 2>(0, 0).transpose() * vecLocal, bcheck)) {
       intersection.status = Intersection::Status::missed;
     }
   }

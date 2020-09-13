@@ -26,11 +26,8 @@ namespace Acts {
 ///
 /// @image html RectangularBounds.gif
 
-class RectangleBounds : public SurfaceBounds {
+class RectangleBounds : public PlanarBounds<RectangleBounds, 4, 4> {
 public:
-  /// @enum BoundValues for readability
-  enum BoundValues { bv_halfX = 0, bv_halfY = 1, bv_length = 2 };
-
   RectangleBounds() = delete;
 
   /// Constructor with halflength in x and y
@@ -45,11 +42,11 @@ public:
   /// @param vmax Maximum vertex
   ACTS_DEVICE_FUNC RectangleBounds(const Vector2D &vmin, const Vector2D &vmax);
 
-  ~RectangleBounds() override = default;
+  ~RectangleBounds() = default;
 
-  ACTS_DEVICE_FUNC BoundsType type() const final;
+  ACTS_DEVICE_FUNC BoundsType type() const;
 
-  std::vector<TDD_real_t> valueStore() const final;
+  ActsVector<double, 4> values() const;
 
   /// Inside check for the bounds object driven by the boundary check directive
   /// Each Bounds has a method inside, which checks if a LocalPosition is inside
@@ -59,20 +56,13 @@ public:
   /// @param bcheck boundary check directive
   /// @return boolean indicator for the success of this operation
   ACTS_DEVICE_FUNC bool inside(const Vector2D &lposition,
-                               const BoundaryCheck &bcheck) const final;
-
-  /// Minimal distance to boundary ( > 0 if outside and <=0 if inside)
-  ///
-  /// @param lposition is the local position to check for the distance
-  /// @return is a signed distance parameter
-  ACTS_DEVICE_FUNC double
-  distanceToBoundary(const Vector2D &lposition) const final;
+                               const BoundaryCheck &bcheck) const;
 
   /// Return the vertices - or, the points of the extremas
-  std::vector<Vector2D> vertices() const;
+  ActsMatrix<double, 4, 2> vertices() const;
 
   // Bounding box representation
-  ACTS_DEVICE_FUNC const RectangleBounds &boundingBox() const;
+  //  ACTS_DEVICE_FUNC const RectangleBounds &boundingBox() const;
 
   /// Return method for the half length in X
   ACTS_DEVICE_FUNC double halflengthX() const;
@@ -101,12 +91,43 @@ inline double RectangleBounds::halflengthY() const {
   return std::abs(m_max.y() - m_min.y()) * 0.5;
 }
 
-inline SurfaceBounds::BoundsType RectangleBounds::type() const {
-  return SurfaceBounds::Rectangle;
+inline BoundsType RectangleBounds::type() const {
+  return BoundsType::Rectangle;
 }
 
 inline const Vector2D &RectangleBounds::min() const { return m_min; }
 
 inline const Vector2D &RectangleBounds::max() const { return m_max; }
+
+// The following definitions are initially in the cpp file
+inline RectangleBounds::RectangleBounds(double halex, double haley)
+    : m_min(-halex, -haley), m_max(halex, haley) {}
+
+inline RectangleBounds::RectangleBounds(const Vector2D &vmin,
+                                        const Vector2D &vmax)
+    : m_min(vmin), m_max(vmax) {}
+
+inline ActsVector<double, 4> RectangleBounds::values() const {
+  ActsVector<double, 4> values;
+  values << m_min.x(), m_min.y(), m_max.x(), m_max.y();
+  return values;
+}
+
+inline bool RectangleBounds::inside(const Vector2D &lposition,
+                                    const BoundaryCheck &bcheck) const {
+  return bcheck.isInside(lposition, m_min, m_max);
+}
+
+inline ActsMatrix<double, 4, 2> RectangleBounds::vertices() const {
+  // counter-clockwise starting from bottom-right corner
+  ActsMatrix<double, 4, 2> vertices = ActsMatrix<double, 4, 2>::Zero();
+  vertices << m_min.x(), m_min.y(), m_max.x(), m_min.y(), m_max.x(), m_max.y(),
+      m_min.x(), m_max.y();
+  return vertices;
+}
+
+// inline const RectangleBounds &RectangleBounds::boundingBox() const {
+//  return (*this);
+//}
 
 } // namespace Acts

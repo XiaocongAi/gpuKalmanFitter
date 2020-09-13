@@ -10,31 +10,33 @@
 // PlaneSurface.ipp, Acts project
 ///////////////////////////////////////////////////////////////////
 
-inline PlaneSurface::PlaneSurface(const PlaneSurface &other)
-    : GeometryObject(), Surface(other), m_bounds(other.m_bounds) {
-  m_type = Surface::Plane;
-}
+template <typename surface_bounds_t>
+inline PlaneSurface<surface_bounds_t>::PlaneSurface(
+    const PlaneSurface<surface_bounds_t> &other)
+    : GeometryObject(), Surface(other), m_bounds(other.m_bounds) {}
 
-inline PlaneSurface::PlaneSurface(const GeometryContext &gctx,
-                                  const PlaneSurface &other,
-                                  const Transform3D &transf)
+template <typename surface_bounds_t>
+inline PlaneSurface<surface_bounds_t>::PlaneSurface(
+    const GeometryContext &gctx, const PlaneSurface<surface_bounds_t> &other,
+    const Transform3D &transf)
     : GeometryObject(), Surface(gctx, other, transf), m_bounds(other.m_bounds) {
-  m_type = Surface::Plane;
 }
 
-inline PlaneSurface::PlaneSurface(const Vector3D &center,
-                                  const Vector3D &normal)
-    : Surface(center, normal), m_bounds(nullptr) {
-  m_type = Surface::Plane;
-}
+template <typename surface_bounds_t>
+inline PlaneSurface<surface_bounds_t>::PlaneSurface(const Vector3D &center,
+                                                    const Vector3D &normal)
+    : Surface(center, normal), m_bounds(nullptr) {}
 
-inline PlaneSurface::PlaneSurface(const Transform3D &htrans,
-                                  const PlanarBounds *pbounds)
-    : Surface(std::move(htrans)), m_bounds(std::move(pbounds)) {
-  m_type = Surface::Plane;
-}
+template <typename surface_bounds_t>
+template <typename T,
+          std::enable_if_t<not std::is_same<T, InfiniteBounds>::value, int>>
+inline PlaneSurface<surface_bounds_t>::PlaneSurface(
+    const Transform3D &htrans, const surface_bounds_t *pbounds)
+    : Surface(std::move(htrans)), m_bounds(std::move(pbounds)) {}
 
-inline PlaneSurface &Acts::PlaneSurface::operator=(const PlaneSurface &other) {
+template <typename surface_bounds_t>
+inline PlaneSurface<surface_bounds_t> &Acts::PlaneSurface<surface_bounds_t>::
+operator=(const PlaneSurface<surface_bounds_t> &other) {
   if (this != &other) {
     Surface::operator=(other);
     m_bounds = other.m_bounds;
@@ -42,8 +44,14 @@ inline PlaneSurface &Acts::PlaneSurface::operator=(const PlaneSurface &other) {
   return *this;
 }
 
-inline Surface::SurfaceType PlaneSurface::type() const {
+template <typename surface_bounds_t>
+inline Surface::SurfaceType PlaneSurface<surface_bounds_t>::type() const {
   return Surface::Plane;
+}
+
+template <typename surface_bounds_t>
+const surface_bounds_t *PlaneSurface<surface_bounds_t>::bounds() const {
+  return m_bounds;
 }
 
 // inline void PlaneSurface::localToGlobal(const GeometryContext &gctx,
@@ -75,9 +83,10 @@ inline Surface::SurfaceType PlaneSurface::type() const {
 //  return Vector3D(tMatrix(0, 2), tMatrix(1, 2), tMatrix(2, 2));
 //}
 
+template <typename surface_bounds_t>
 inline const Vector3D
-PlaneSurface::binningPosition(const GeometryContext &gctx,
-                              BinningValue /*bValue*/) const {
+PlaneSurface<surface_bounds_t>::binningPosition(const GeometryContext &gctx,
+                                                BinningValue /*bValue*/) const {
   return center(gctx);
 }
 

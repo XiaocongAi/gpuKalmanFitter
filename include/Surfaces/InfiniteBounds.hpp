@@ -21,32 +21,23 @@ namespace Acts {
 /// templated boundless extension to forward the interface
 /// Returns all inside checks to true and can templated for all bounds
 
-class InfiniteBounds : public SurfaceBounds {
+class InfiniteBounds : public SurfaceBounds<InfiniteBounds, 0> {
 public:
   InfiniteBounds() = default;
-  ~InfiniteBounds() override = default;
+  ~InfiniteBounds() = default;
 
-  SurfaceBounds::BoundsType type() const final {
-    return SurfaceBounds::Boundless;
-  }
+  ACTS_DEVICE_FUNC BoundsType type() const { return BoundsType::Boundless; }
 
-  std::vector<TDD_real_t> valueStore() const final { return {}; }
+  ACTS_DEVICE_FUNC ActsVector<double, 0> values() const { return ActsVector<double, 0>::Zero(); }
 
   /// Method inside() returns true for any case
   ///
   /// ignores input parameters
   ///
   /// @return always true
-  bool inside(const Vector2D & /*lposition*/,
-              const BoundaryCheck & /*bcheck*/) const final {
+  ACTS_DEVICE_FUNC bool inside(const Vector2D & /*lposition*/,
+                               const BoundaryCheck & /*bcheck*/) const {
     return true;
-  }
-
-  /// Minimal distance calculation
-  /// ignores input parameter
-  /// @return always 0. (should be -NaN)
-  double distanceToBoundary(const Vector2D & /*position*/) const final {
-    return 0;
   }
 };
 
