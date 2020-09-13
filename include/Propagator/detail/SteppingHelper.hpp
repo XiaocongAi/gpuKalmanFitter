@@ -28,14 +28,14 @@ namespace detail {
 /// @param state [in,out] The stepping state (thread-local cache)
 /// @param surface [in] The surface provided
 /// @param bcheck [in] The boundary check for this status update
-template <typename stepper_t>
+template <typename stepper_t, typename surface_derived_t>
 ACTS_DEVICE_FUNC Acts::Intersection::Status
 updateSingleSurfaceStatus(const stepper_t &stepper,
                           typename stepper_t::State &state,
                           const Surface &surface, const BoundaryCheck &bcheck) {
-  auto sIntersection =
-      surface.intersect(state.geoContext, stepper.position(state),
-                        state.navDir * stepper.direction(state), bcheck);
+  auto sIntersection = surface.intersect<surface_derived_t>(
+      state.geoContext, stepper.position(state),
+      state.navDir * stepper.direction(state), bcheck);
 
   // The intersection is on surface already
   if (sIntersection.intersection.status == Intersection::Status::onSurface) {

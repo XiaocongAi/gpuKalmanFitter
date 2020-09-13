@@ -189,11 +189,12 @@ template <typename bfield_t> struct EigenStepper {
   /// @param state [in,out] The stepping state (thread-local cache)
   /// @param surface [in] The surface provided
   /// @param bcheck [in] The boundary check for this status update
+  template <typename surface_derived_t>
   ACTS_DEVICE_FUNC Intersection::Status
   updateSurfaceStatus(State &state, const Surface &surface,
                       const BoundaryCheck &bcheck) const {
-    return detail::updateSingleSurfaceStatus<EigenStepper>(*this, state,
-                                                           surface, bcheck);
+    return detail::updateSingleSurfaceStatus<EigenStepper, surface_derived_t>(
+        *this, state, surface, bcheck);
   }
 
   /// Update step size

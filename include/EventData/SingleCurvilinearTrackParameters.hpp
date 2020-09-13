@@ -52,7 +52,7 @@ public:
             detail::coordinate_transformation::global2curvilinear(
                 position, momentum, dCharge, dTime),
             position, momentum),
-        m_upSurface(PlaneSurface(position, momentum)) {}
+        m_upSurface(PlaneSurface<InfiniteBounds>(position, momentum)) {}
 
   /// @brief constructor for curvilienear representation
   /// This is the constructor from global parameters, enabled only
@@ -72,7 +72,7 @@ public:
             detail::coordinate_transformation::global2curvilinear(
                 position, momentum, 0, dTime),
             position, momentum),
-        m_upSurface(PlaneSurface(position, momentum)) {}
+        m_upSurface(PlaneSurface<InfiniteBounds>(position, momentum)) {}
 
   /// @brief copy constructor - charged/neutral
   /// @param[in] copy The source parameters
@@ -98,7 +98,8 @@ public:
     // check for self-assignment
     if (this != &rhs) {
       SingleTrackParameters<ChargePolicy>::operator=(rhs);
-      m_upSurface = PlaneSurface(this->position(), this->momentum());
+      m_upSurface =
+          PlaneSurface<InfiniteBounds>(this->position(), this->momentum());
     }
     return *this;
   }
@@ -133,7 +134,8 @@ public:
     this->getParameterSet().template setParameter<par>(newValue);
     this->updateGlobalCoordinates(gctx, BoundParameterType<par>());
     // recreate the surface
-    m_upSurface = PlaneSurface(this->position(), this->momentum().normalized());
+    m_upSurface = PlaneSurface<InfiniteBounds>(this->position(),
+                                               this->momentum().normalized());
     // reset to (0,0)
     this->getParameterSet().template setParameter<par>(0.);
   }
@@ -156,7 +158,8 @@ public:
     this->getParameterSet().template setParameter<par>(newValue);
     this->updateGlobalCoordinates(gctx, BoundParameterType<par>());
     // recreate the surface
-    m_upSurface = PlaneSurface(this->position(), this->momentum().normalized());
+    m_upSurface = PlaneSurface<InfiniteBounds>(this->position(),
+                                               this->momentum().normalized());
   }
 
   /// @brief access to the reference surface
@@ -179,6 +182,6 @@ public:
   }
 
 private:
-  PlaneSurface m_upSurface;
+  PlaneSurface<InfiniteBounds> m_upSurface;
 };
 } // namespace Acts

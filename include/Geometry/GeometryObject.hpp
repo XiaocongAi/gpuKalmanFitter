@@ -58,8 +58,8 @@ public:
   /// @param bValue is the value in which you want to bin
   ///
   /// @return vector 3D used for the binning schema
-  ACTS_DEVICE_FUNC virtual const Vector3D
-  binningPosition(const GeometryContext &gctx, BinningValue bValue) const = 0;
+  virtual const Vector3D binningPosition(const GeometryContext &gctx,
+                                         BinningValue bValue) const = 0;
 
   /// Implement the binningValue
   ///
@@ -67,8 +67,8 @@ public:
   /// @param bValue is the dobule in which you want to bin
   ///
   /// @return float to be used for the binning schema
-  ACTS_DEVICE_FUNC virtual double
-  binningPositionValue(const GeometryContext &gctx, BinningValue bValue) const;
+  virtual double binningPositionValue(const GeometryContext &gctx,
+                                      BinningValue bValue) const;
 
   /// Set the value
   ///

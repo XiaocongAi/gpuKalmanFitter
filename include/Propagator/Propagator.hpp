@@ -34,7 +34,7 @@ struct PropagatorResult {
   PropagatorResult() = default;
 
   // The direct navigator initializer result
-  DirectNavigator::Initializer::result_type initializerResult;
+  DirectNavigatorInitializer::result_type initializerResult;
 
   // std::unique_ptr<const parameters_t> endParameters = nullptr;
 
@@ -101,7 +101,7 @@ template <typename action_t, typename aborter_t> struct PropagatorOptions {
   aborter_t aborter;
 
   /// The navigator initializer
-  DirectNavigator::Initializer initializer;
+  DirectNavigatorInitializer initializer;
 
   /// The context object for the geometry
   const GeometryContext geoContext;
@@ -112,7 +112,8 @@ template <typename action_t, typename aborter_t> struct PropagatorOptions {
 
 /// @brief Propagator for particles (optionally in a magnetic field)
 ///
-template <typename stepper_t, typename navigator_t = DirectNavigator>
+template <typename stepper_t,
+          typename navigator_t = DirectNavigator<PlaneSurface<InfiniteBounds>>>
 class Propagator final {
 public:
   using Jacobian = BoundMatrix;

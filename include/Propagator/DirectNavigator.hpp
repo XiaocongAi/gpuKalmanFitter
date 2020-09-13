@@ -17,6 +17,50 @@
 #include <string>
 
 namespace Acts {
+/// DirectNavigator Actor struct, called Initializer
+///
+/// This is needed for the initialization of the
+/// surface sequence
+struct DirectNavigatorInitializer {
+  /// The Surface sequence
+  const Surface *surfaceSequence = nullptr;
+
+  /// The surface sequence size
+  size_t surfaceSequenceSize = 0;
+
+  /// Actor result / state
+  struct this_result {
+    bool initialized = false;
+  };
+  using result_type = this_result;
+
+  /// Defaulting the constructor
+  DirectNavigatorInitializer() = default;
+
+  /// Actor operator call
+  /// @tparam statet Type of the full propagator state
+  /// @tparam stepper_t Type of the stepper
+  ///
+  /// @param state the entire propagator state
+  /// @param r the result of this Actor
+  template <typename propagator_state_t, typename stepper_t>
+  ACTS_DEVICE_FUNC void operator()(propagator_state_t &state,
+                                   const stepper_t & /*unused*/,
+                                   result_type &r) const {
+    // Only act once
+    if (not r.initialized) {
+      // Initialize the surface sequence
+      state.navigation.surfaceSequence = surfaceSequence;
+      state.navigation.surfaceSequenceSize = surfaceSequenceSize;
+      r.initialized = true;
+    }
+  }
+
+  /// Actor operator call - resultless, unused
+  template <typename propagator_state_t, typename stepper_t>
+  ACTS_DEVICE_FUNC void operator()(propagator_state_t & /*unused*/,
+                                   const stepper_t & /*unused*/) const {}
+};
 
 /// DirectNavigator class
 ///
@@ -25,6 +69,7 @@ namespace Acts {
 ///
 /// This can either be used as a validation tool, for truth
 /// tracking, or track refitting
+template <typename surface_derived_t = PlaneSurface<InfiniteBounds>>
 class DirectNavigator {
 public:
   /// The sequentially crossed surfaces
@@ -37,51 +82,6 @@ public:
 
   /// The tolerance used to define "surface reached"
   double tolerance = s_onSurfaceTolerance;
-
-  /// Nested Actor struct, called Initializer
-  ///
-  /// This is needed for the initialization of the
-  /// surface sequence
-  struct Initializer {
-    /// The Surface sequence
-    const Surface *surfaceSequence = nullptr;
-
-    /// The surface sequence size
-    size_t surfaceSequenceSize = 0;
-
-    /// Actor result / state
-    struct this_result {
-      bool initialized = false;
-    };
-    using result_type = this_result;
-
-    /// Defaulting the constructor
-    Initializer() = default;
-
-    /// Actor operator call
-    /// @tparam statet Type of the full propagator state
-    /// @tparam stepper_t Type of the stepper
-    ///
-    /// @param state the entire propagator state
-    /// @param r the result of this Actor
-    template <typename propagator_state_t, typename stepper_t>
-    ACTS_DEVICE_FUNC void operator()(propagator_state_t &state,
-                                     const stepper_t & /*unused*/,
-                                     result_type &r) const {
-      // Only act once
-      if (not r.initialized) {
-        // Initialize the surface sequence
-        state.navigation.surfaceSequence = surfaceSequence;
-        state.navigation.surfaceSequenceSize = surfaceSequenceSize;
-        r.initialized = true;
-      }
-    }
-
-    /// Actor operator call - resultless, unused
-    template <typename propagator_state_t, typename stepper_t>
-    ACTS_DEVICE_FUNC void operator()(propagator_state_t & /*unused*/,
-                                     const stepper_t & /*unused*/) const {}
-  };
 
   /// Nested State struct
   ///
@@ -114,30 +114,32 @@ public:
 
   template <typename T>
   static ACTS_DEVICE_FUNC void *advanceByDatatype(void *addr) {
+    // return static_cast<T*>(addr) + sizeof(T);
     return addr + sizeof(T);
   }
 
   template <typename T>
   static ACTS_DEVICE_FUNC const void *advanceByDatatype(const void *addr) {
+    // return static_cast<const T*>(addr) + sizeof(T);
     return addr + sizeof(T);
   }
 
   static ACTS_DEVICE_FUNC Surface *advanceSurfacePtr(Surface *ptr) {
-    switch (ptr->type()) {
-    case Surface::Plane:
-      return (Surface *)advanceByDatatype<PlaneSurface>(ptr);
-    default:
-      return ptr + 1;
-    }
+    //  switch (ptr->type()) {
+    //  case Surface::Plane:
+    return (Surface *)advanceByDatatype<surface_derived_t>(ptr);
+    //   default:
+    //    return ptr + 1;
+    //  }
   }
 
   static ACTS_DEVICE_FUNC const Surface *advanceSurfacePtr(const Surface *ptr) {
-    switch (ptr->type()) {
-    case Surface::Plane:
-      return (Surface const *)advanceByDatatype<PlaneSurface>(ptr);
-    default:
-      return ptr + 1;
-    }
+    //  switch (ptr->type()) {
+    //  case Surface::Plane:
+    return (Surface const *)advanceByDatatype<surface_derived_t>(ptr);
+    //  default:
+    //    return ptr + 1;
+    //  }
   }
 
   /// @brief Navigator status call
@@ -162,7 +164,8 @@ public:
       }
       // Establish the surface status
       auto surfaceStatus =
-          stepper.updateSurfaceStatus(state.stepping, *surfacePtr, false);
+          stepper.template updateSurfaceStatus<surface_derived_t>(
+              state.stepping, *surfacePtr, false);
       if (surfaceStatus == Intersection::Status::onSurface) {
         // Set the current surface
         state.navigation.currentSurface = surfacePtr;
@@ -199,7 +202,8 @@ public:
       }
       // Establish & update the surface status
       auto surfaceStatus =
-          stepper.updateSurfaceStatus(state.stepping, *surfacePtr, false);
+          stepper.template updateSurfaceStatus<surface_derived_t>(
+              state.stepping, *surfacePtr, false);
       if (surfaceStatus == Intersection::Status::unreachable) {
         // Move the sequence to the next surface
         ++state.navigation.nextSurfaceIter;
