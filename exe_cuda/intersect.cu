@@ -76,10 +76,6 @@ int main() {
     Acts::Vector3D center = (v1 + v2 + v3) / 3.;
     Acts::Vector3D normal = (v1 - v2).cross(v1 - v3);
     Vector3D T = normal.normalized();
-    std::cout << "v1 = \n" << v1 << std::endl;
-    std::cout << "v2 = \n" << v2 << std::endl;
-    std::cout << "v3 = \n" << v3 << std::endl;
-    std::cout << "T = \n" << T << std::endl;
     // Assume curvilinear frame as the local frame
     Vector3D U = std::abs(T.dot(Vector3D::UnitZ())) < s_curvilinearProjTolerance
                      ? Vector3D::UnitZ().cross(T).normalized()
@@ -142,7 +138,6 @@ int main() {
     if (intersections[i].intersection.status ==
             Intersection::Status::reachable and
         intersections[i].intersection.pathLength >= 0) {
-      std::cout << " Reachable intersection = \n"
                 << intersections[i].intersection.position << std::endl;
       reachableIntersections.push_back(intersections[i]);
       nReachable++;
