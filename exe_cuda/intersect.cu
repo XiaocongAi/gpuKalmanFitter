@@ -34,7 +34,7 @@ template<typename surface_derived_t>
 __global__ void intersectKernel(Vector3D position,
                           Vector3D direction,
                           BoundaryCheck bcheck, 
-                          const Surface* surfacePtrs, 
+                          const PlaneSurfaceType* surfacePtrs, 
                           SurfaceIntersection* intersections, int nSurfaces){
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if (i < nSurfaces) {
@@ -59,7 +59,7 @@ int main(){
   std::ifstream surface_file(surfaceMeshFile.c_str(), std::ios::in);
   std::string line;
   std::getline(surface_file, line);
-  std::cout<<"cvs header: "<<line<<std::endl;
+  std::cout<<"Input header: "<<line<<std::endl;
   double v1_x = 0., v1_y = 0., v1_z = 0., v2_x = 0., v2_y = 0., v2_z = 0., v3_x = 0., v3_y = 0., v3_z = 0.;
   unsigned int isur =0 ;
   while (std::getline(surface_file, line)) {
@@ -74,8 +74,12 @@ int main(){
     Acts::Vector3D v3(v3_x,v3_y,v3_z);
     // Assume the triangular centeroid is the center
     Acts::Vector3D center = (v1+v2+v3)/3.; 
-    Acts::Vector3D normal((v1-v2).cross(v1-v3)); 
+    Acts::Vector3D normal = (v1-v2).cross(v1-v3); 
     Vector3D T = normal.normalized();
+    std::cout<<"v1 = \n"<<v1<<std::endl;
+    std::cout<<"v2 = \n"<<v2<<std::endl;
+    std::cout<<"v3 = \n"<<v3<<std::endl;
+    std::cout<<"T = \n"<<T<<std::endl;
     // Assume curvilinear frame as the local frame
     Vector3D U = std::abs(T.dot(Vector3D::UnitZ())) < s_curvilinearProjTolerance
                    ? Vector3D::UnitZ().cross(T).normalized()
@@ -89,8 +93,8 @@ int main(){
     Transform3D transform{curvilinearRotation};
     transform.pretranslate(center);
  
-    transforms.push_back(std::move(transform)); 
-    
+     transforms.push_back(std::move(transform)); 
+
     Acts::Vector2D locV1((v1-center).dot(U), (v1-center).dot(V)); 
     Acts::Vector2D locV2((v2-center).dot(U), (v2-center).dot(V)); 
     Acts::Vector2D locV3((v3-center).dot(U), (v3-center).dot(V)); 
@@ -107,7 +111,7 @@ int main(){
   GPUERRCHK(
       cudaMallocManaged(&surfaces, sizeof(PlaneSurfaceType) * nSurfaces));
   for (unsigned int i = 0; i < nSurfaces; i++) {
-    surfaces[i] =
+	surfaces[i] =
         PlaneSurfaceType(transforms[i], &covexBounds[i]);
   }
   std::cout << "Creating " << nSurfaces << " ConvexBounds plane surfaces"
@@ -120,7 +124,7 @@ int main(){
 
     // 4) Pass position, direction, bcheck by value
     Vector3D position(0,0,0);  
-    Vector3D direction(1,0,0);  
+    Vector3D direction(1,0.1,0);  
     BoundaryCheck bcheck(true);
 
    // Run on device
@@ -133,12 +137,18 @@ int main(){
                           surfaces, 
                           intersections, 
 			  nSurfaces); 
+   
+    GPUERRCHK(cudaPeekAtLastError());
+    GPUERRCHK(cudaDeviceSynchronize());
 
+    unsigned int nReachable = 0;
     for(unsigned int i =0; i< nSurfaces; i++){
-     if(intersections[i].intersection.status == Intersection::Status::onSurface){
-      std::cout<<"On surface "<< i << std::endl; 
+     if(intersections[i].intersection.status == Intersection::Status::reachable){
+      std::cout<<" Reachable intersection = \n" << intersections[i].intersection.position<<std::endl;
+      nReachable++; 
      }  
     }
+    std::cout<<"There are " << nReachable<< " reachable surfaces"<<std::endl;
 
 return 0;
 }
