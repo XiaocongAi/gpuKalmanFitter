@@ -142,13 +142,63 @@ int main(){
     GPUERRCHK(cudaDeviceSynchronize());
 
     unsigned int nReachable = 0;
+    std::vector<SurfaceIntersection> reachableIntersections;
     for(unsigned int i =0; i< nSurfaces; i++){
-     if(intersections[i].intersection.status == Intersection::Status::reachable){
+     if(intersections[i].intersection.status == Intersection::Status::reachable and intersections[i].intersection.pathLength>=0){
       std::cout<<" Reachable intersection = \n" << intersections[i].intersection.position<<std::endl;
+      reachableIntersections.push_back(intersections[i]); 
       nReachable++; 
      }  
     }
     std::cout<<"There are " << nReachable<< " reachable surfaces"<<std::endl;
+
+    size_t vCounter = 1;
+   
+    { 
+    // write the reachable intersections
+    std::ofstream obj_intersections;
+    std::string fileName_ = "intersections.obj";
+    obj_intersections.open(fileName_.c_str());
+
+    // Initialize the vertex counter
+   for(const auto& intersection: reachableIntersections){   
+      const auto& pos = intersection.intersection.position;
+        obj_intersections << "v " << pos.x() << " " << pos.y() << " " << pos.z()
+                   << "\n";
+    }
+      // Write out the line - only if we have at least two points created
+      size_t vBreak = reachableIntersections.size();
+      for (; vCounter < vBreak; ++vCounter){
+        obj_intersections << "l " << vCounter << " " << vCounter + 1 << '\n';
+      }
+    obj_intersections.close();
+    }
+
+    {
+    // write the reachable surfaces 
+    std::ofstream obj_surfaces;
+    std::string fileName_s = "surfaces.obj";
+    obj_surfaces.open(fileName_s.c_str());
+
+    vCounter=1;
+    // Initialize the vertex counter
+   for(const auto& intersection: reachableIntersections){
+      const auto& surface = intersection.object;
+      const auto& bounds = surface->bounds<PlaneSurfaceType>();
+      const auto& vertices = bounds->vertices();
+      for(unsigned int i = 0; i< 3; i++){
+        Vector2D local = vertices.block<1,2>(i, 0).transpose();
+        Vector3D global;
+        surface->localToGlobal(GeometryContext(), local, Vector3D(1,1,1), global);
+         obj_surfaces << "v " << global.x() << " " << global.y() << " " << global.z()
+                   << "\n";
+      }
+   }
+   for(; vCounter <= reachableIntersections.size()*3; vCounter+=3)
+        obj_surfaces << "f " << vCounter << " " << vCounter + 1 << " "<< vCounter + 2 <<'\n';
+       
+    obj_surfaces.close();
+    }
 
 return 0;
 }
