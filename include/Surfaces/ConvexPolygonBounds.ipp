@@ -82,10 +82,10 @@ template <int N> Acts::BoundsType Acts::ConvexPolygonBounds<N>::type() const {
 }
 
 template <int N>
-ActsVector<double, ConvexPolygonBounds<N>::eSize>
+Acts::ActsVector<double, Acts::ConvexPolygonBounds<N>::eSize>
 Acts::ConvexPolygonBounds<N>::values() const {
-  ActsVector<double, ConvexPolygonBounds<N>::eSize> values =
-      ActsVector<double, ConvexPolygonBounds<N>::eSize>::Zero();
+  Acts::ActsVector<double, Acts::ConvexPolygonBounds<N>::eSize> values =
+      Acts::ActsVector<double, Acts::ConvexPolygonBounds<N>::eSize>::Zero();
   unsigned int iValue = 0;
   for (const auto &vtx : vertices()) {
     values[iValue] = vtx.x();
