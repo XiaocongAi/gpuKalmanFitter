@@ -23,7 +23,8 @@ namespace Acts {
 ///
 /// @tparam N Number of vertices
 template <int N>
-class ConvexPolygonBounds : public PlanarBounds<ConvexPolygonBounds, N, N * 2> {
+class ConvexPolygonBounds
+    : public PlanarBounds<ConvexPolygonBounds<N>, N, N * 2> {
 public:
   /// Expose number of vertices given as template parameter.
   ///
@@ -40,7 +41,8 @@ public:
 
   static_assert(N >= 3, "ConvexPolygonBounds needs at least 3 sides.");
 
-  ConvexPolygonBounds() = delete;
+  /// class must have default constructor
+  ConvexPolygonBounds() = default;
 
   /// Constructor from a fixed size array of vertices.
   /// This will throw if the vertices do not form a convex polygon.
@@ -59,7 +61,7 @@ public:
   /// Return the bound values as dynamically sized vector
   ///
   /// @return this returns a copy of the internal values
-  ACTS_DEVICE_FUNC ActsVector<double, VerticeSize * 2> values() const;
+  ACTS_DEVICE_FUNC ActsVector<double, eSize> values() const;
 
   /// Return whether a local 2D point lies inside of the bounds defined by this
   /// object.
@@ -77,7 +79,7 @@ public:
   //  const RectangleBounds& boundingBox() const ;
 
 private:
-  vertex_array m_vertices;
+  vertex_array m_vertices = vertex_array::Zero();
   // RectangleBounds m_boundingBox;
 
   /// Return whether this bounds class is in fact convex

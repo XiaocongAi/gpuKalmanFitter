@@ -7,8 +7,8 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 /*
-void Acts::ConvexPolygonBoundsBase<Derived, VerticeSize>::convex_impl(
-    const ActsMatrix<double, VerticeSize, 2>& vertices) noexcept(false) {
+void Acts::ConvexPolygonBoundsBase<Derived, N>::convex_impl(
+    const ActsMatrix<double, N, 2>& vertices) noexcept(false) {
   const size_t N = vertices.rows();
 
   for (size_t i = 0; i < N; i++) {
@@ -71,20 +71,21 @@ template <int N>
 Acts::ConvexPolygonBounds<N>::ConvexPolygonBounds(
     const value_array &values) noexcept(false) {
   for (size_t i = 0; i < N; i++) {
-    m_vertices[i, 0] = values[2 * i];
-    m_vertices[i, 0] = values[2 * i + 1];
+    m_vertices(i, 0) = values[2 * i];
+    m_vertices(i, 1) = values[2 * i + 1];
   }
   // checkConsistency();
 }
 
 template <int N> Acts::BoundsType Acts::ConvexPolygonBounds<N>::type() const {
-  return BoundsType::eConvexPolygon;
+  return BoundsType::ConvexPolygon;
 }
 
 template <int N>
-ActsVector<double, N * 2>
-Acts::ConvexPolygonBounds<VerticeSize>::values() const {
-  ActsVector<double, N * 2> values = ActsVector<double, N * 2>::Zero();
+ActsVector<double, ConvexPolygonBounds<N>::eSize>
+Acts::ConvexPolygonBounds<N>::values() const {
+  ActsVector<double, ConvexPolygonBounds<N>::eSize> values =
+      ActsVector<double, ConvexPolygonBounds<N>::eSize>::Zero();
   unsigned int iValue = 0;
   for (const auto &vtx : vertices()) {
     values[iValue] = vtx.x();
@@ -101,7 +102,8 @@ bool Acts::ConvexPolygonBounds<N>::inside(
 }
 
 template <int N>
-Acts::ActsMatrix<double, N, 2> Acts::ConvexPolygonBounds<N>::vertices() const {
+typename Acts::ConvexPolygonBounds<N>::vertex_array
+Acts::ConvexPolygonBounds<N>::vertices() const {
   return m_vertices;
 }
 
