@@ -33,8 +33,8 @@ template <typename surface_derived_t>
 __global__ void
 intersectKernel(Vector3D position, Vector3D direction, BoundaryCheck bcheck,
                 const PlaneSurfaceType *surfacePtrs,
-                SurfaceIntersection *intersections, int nSurfaces) {
-  int i = blockDim.x * blockIdx.x + threadIdx.x;
+                SurfaceIntersection *intersections, int nSurfaces, int offset) {
+  int i = blockDim.x * blockIdx.x + threadIdx.x + offset;
   if (i < nSurfaces) {
     intersections[i] = surfacePtrs[i].intersect<surface_derived_t>(
         GeometryContext(), position, direction, bcheck);
@@ -42,14 +42,29 @@ intersectKernel(Vector3D position, Vector3D direction, BoundaryCheck bcheck,
 }
 
 int main() {
+  int devId = 0;
+
+  cudaDeviceProp prop;
+  GPUERRCHK( cudaGetDeviceProperties(&prop, devId));
+  printf("Device : %s\n", prop.name);
+  GPUERRCHK( cudaSetDevice(devId) );
 
   size_t nSurfaces = 37456;
+
+  // Change the number of streams won't have too much impact
+  const int threadsPerBlock = 256, nStreams = 4;
+  const int streamSize = (nSurfaces + nStreams - 1) / nStreams;
+  const int streamBytes = sizeof(SurfaceBoundsType) * streamSize;
+  const int blocksPerGrid = (nSurfaces + threadsPerBlock - 1) / threadsPerBlock;
+  const int boundsBytes = sizeof(SurfaceBoundsType) * nSurfaces;
+  const int surfacesBytes = sizeof(PlaneSurfaceType) * nSurfaces;
+  const int intersectionsBytes = sizeof(SurfaceIntersection) * nSurfaces;
 
   // 1) malloc for ConvexBounds
   // ConvexBounds must have default constructor
   SurfaceBoundsType *covexBounds;
   GPUERRCHK(
-      cudaMallocManaged(&covexBounds, sizeof(SurfaceBoundsType) * nSurfaces));
+      cudaMallocManaged(&covexBounds, boundsBytes));
 
   std::vector<Transform3D> transforms;
 
@@ -106,7 +121,7 @@ int main() {
 
   // 2) malloc for surfaces
   PlaneSurfaceType *surfaces;
-  GPUERRCHK(cudaMallocManaged(&surfaces, sizeof(PlaneSurfaceType) * nSurfaces));
+  GPUERRCHK(cudaMallocManaged(&surfaces, surfacesBytes));
   for (unsigned int i = 0; i < nSurfaces; i++) {
     surfaces[i] = PlaneSurfaceType(transforms[i], &covexBounds[i]);
   }
@@ -114,9 +129,12 @@ int main() {
             << std::endl;
 
   // 3) malloc for intersections
-  SurfaceIntersection *intersections;
-  GPUERRCHK(cudaMallocManaged(&intersections,
-                              sizeof(SurfaceIntersection) * nSurfaces));
+  SurfaceIntersection *intersections, *d_intersections;
+  
+ // GPUERRCHK(cudaMallocManaged(&intersections,
+ //                             intersectionsBytes));
+  GPUERRCHK( cudaMallocHost((void**)&intersections, intersectionsBytes) );      // host pinned
+  GPUERRCHK( cudaMalloc((void**)&d_intersections, intersectionsBytes)); // device
 
   // 4) Pass position, direction, bcheck by value
   Vector3D position(0, 0, 0);
@@ -124,13 +142,68 @@ int main() {
   BoundaryCheck bcheck(true);
 
   // Run on device
-  int threadsPerBlock = 256;
-  int blocksPerGrid = (nSurfaces + threadsPerBlock - 1) / threadsPerBlock;
-  intersectKernel<PlaneSurfaceType><<<blocksPerGrid, threadsPerBlock>>>(
-      position, direction, bcheck, surfaces, intersections, nSurfaces);
+  float ms; // elapsed time in milliseconds
+  
+  // Create events and streams
+  cudaEvent_t startEvent, stopEvent, dummyEvent;
+  cudaStream_t stream[nStreams];
+  GPUERRCHK( cudaEventCreate(&startEvent) );
+  GPUERRCHK( cudaEventCreate(&stopEvent) );
+  GPUERRCHK( cudaEventCreate(&dummyEvent) );
+  for (int i = 0; i < nStreams; ++i){
+    GPUERRCHK( cudaStreamCreate(&stream[i]) );
+  } 
 
-  GPUERRCHK(cudaPeekAtLastError());
-  GPUERRCHK(cudaDeviceSynchronize());
+  // The baseline case - sequential transfer and execute
+  memset(intersections, 0, intersectionsBytes);
+  GPUERRCHK( cudaEventRecord(startEvent,0) );
+  intersectKernel<PlaneSurfaceType><<<blocksPerGrid, threadsPerBlock>>>(
+      position, direction, bcheck, surfaces, d_intersections, nSurfaces, 0);
+  GPUERRCHK( cudaMemcpy(intersections, d_intersections, intersectionsBytes, cudaMemcpyDeviceToHost)); 
+  GPUERRCHK( cudaEventRecord(stopEvent, 0) );
+  GPUERRCHK( cudaEventSynchronize(stopEvent) );
+  GPUERRCHK( cudaEventElapsedTime(&ms, startEvent, stopEvent) );
+  printf("Time for sequential transfer and execute (ms): %f\n", ms);
+
+  // asynchronous version 1: loop over {copy, kernel, copy}
+  memset(intersections, 0, intersectionsBytes);
+  GPUERRCHK( cudaEventRecord(startEvent,0) );
+  for (int i = 0; i < nStreams; ++i) {
+    int offset = i * streamSize;
+    intersectKernel<PlaneSurfaceType><<<streamSize/threadsPerBlock, threadsPerBlock, 0, stream[i]>>>(position, direction, bcheck, surfaces, d_intersections, nSurfaces, offset);
+    GPUERRCHK( cudaMemcpyAsync(&intersections[offset], &d_intersections[offset],
+                               streamBytes, cudaMemcpyDeviceToHost,
+                               stream[i]) );
+  }
+  GPUERRCHK( cudaEventRecord(stopEvent, 0) );
+  GPUERRCHK( cudaEventSynchronize(stopEvent) );
+  GPUERRCHK( cudaEventElapsedTime(&ms, startEvent, stopEvent) );
+  printf("Time for asynchronous V1 transfer and execute (ms): %f\n", ms);
+
+  // asynchronous version 2: 
+  // loop over copy, loop over kernel, loop over copy
+  memset(intersections, 0, intersectionsBytes);
+  GPUERRCHK( cudaEventRecord(startEvent,0) );
+  for (int i = 0; i < nStreams; ++i)
+  {
+    int offset = i * streamSize;
+    intersectKernel<PlaneSurfaceType><<<streamSize/threadsPerBlock, threadsPerBlock, 0, stream[i]>>>(position, direction, bcheck, surfaces, d_intersections, nSurfaces, offset);
+  }
+  for (int i = 0; i < nStreams; ++i)
+  {
+    int offset = i * streamSize;
+    GPUERRCHK( cudaMemcpyAsync(&intersections[offset], &d_intersections[offset],
+                               streamBytes, cudaMemcpyDeviceToHost,
+                               stream[i]) );
+  }
+  GPUERRCHK( cudaEventRecord(stopEvent, 0) );
+  GPUERRCHK( cudaEventSynchronize(stopEvent) );
+  GPUERRCHK( cudaEventElapsedTime(&ms, startEvent, stopEvent) );
+  printf("Time for asynchronous V2 transfer and execute (ms): %f\n", ms);
+ 
+
+  //GPUERRCHK(cudaPeekAtLastError());
+  //GPUERRCHK(cudaDeviceSynchronize());
 
   unsigned int nReachable = 0;
   std::vector<SurfaceIntersection> reachableIntersections;
@@ -138,7 +211,7 @@ int main() {
     if (intersections[i].intersection.status ==
             Intersection::Status::reachable and
         intersections[i].intersection.pathLength >= 0) {
-                << intersections[i].intersection.position << std::endl;
+      //std::cout<< "Intersection at " <<intersections[i].intersection.position << std::endl;
       reachableIntersections.push_back(intersections[i]);
       nReachable++;
     }
