@@ -10,6 +10,7 @@
 #include "Propagator/Propagator.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
 #include "Utilities/Units.hpp"
+#include "Utilities/CudaHelper.hpp"
 #include "Test/TestHelper.hpp"
 
 #include "Utilities/Profiling.hpp"
@@ -27,18 +28,6 @@
 // 1) Explicit calling of the propagation to create measurements on tracks ( a 'simulated' track could contain 10~100 measurements)
 // 2) Running the Kalmanfitter using the created measurements in 1) as one of the inputs
 // In princinple, both 1) and 2) could on offloaded to GPU. Right now, only 2) is put into a kernel
-
-#define GPUERRCHK(ans)                                                         \
-  { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cudaError_t code, const char *file, int line,
-                      bool abort = true) {
-  if (code != cudaSuccess) {
-    fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file,
-            line);
-    if (abort)
-      exit(code);
-  }
-}
 
 static void show_usage(std::string name) {
   std::cerr << "Usage: <option(s)> VALUES"

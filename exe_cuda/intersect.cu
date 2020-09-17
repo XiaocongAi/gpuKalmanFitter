@@ -4,6 +4,7 @@
 #include "Test/TestHelper.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
 #include "Utilities/Units.hpp"
+#include "Utilities/CudaHelper.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -12,18 +13,6 @@
 #include <random>
 #include <string>
 #include <vector>
-
-#define GPUERRCHK(ans)                                                         \
-  { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cudaError_t code, const char *file, int line,
-                      bool abort = true) {
-  if (code != cudaSuccess) {
-    fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file,
-            line);
-    if (abort)
-      exit(code);
-  }
-}
 
 using namespace Acts;
 using SurfaceBoundsType = ConvexPolygonBounds<3>;
@@ -55,14 +44,13 @@ int main() {
   // Change the number of streams won't have too much impact
   const int threadsPerBlock = 256, nStreams = 4;
   const int threadsPerStream = (nSurfaces + nStreams - 1) / nStreams;
-  const int streamBytes = sizeof(SurfaceIntersection) * threadsPerStream;
   const int blocksPerGrid_singleStream = (nSurfaces + threadsPerBlock - 1) / threadsPerBlock;
   const int blocksPerGrid_multiStream = (threadsPerStream + threadsPerBlock - 1) / threadsPerBlock;
 
-  const int transformsBytes = sizeof(Transform3D) * nSurfaces; 
   const int boundsBytes = sizeof(SurfaceBoundsType) * nSurfaces;
   const int surfacesBytes = sizeof(PlaneSurfaceType) * nSurfaces;
   const int intersectionsBytes = sizeof(SurfaceIntersection) * nSurfaces;
+  const int streamBytes = sizeof(SurfaceIntersection) * threadsPerStream;
 
   // 1) The transforms (they are used to construct the surfaces)
   std::vector<Transform3D> transforms(nSurfaces);
@@ -82,8 +70,6 @@ int main() {
 
    // 4) malloc for intersections (doesn't have to use unified memory)
   SurfaceIntersection *intersections, *d_intersections;
-  //GPUERRCHK(cudaMallocManaged(&intersections,
-  //                             intersectionsBytes)); // use unified memory
   GPUERRCHK(cudaMallocHost((void **)&intersections,
                            intersectionsBytes)); // host pinned
   GPUERRCHK(
