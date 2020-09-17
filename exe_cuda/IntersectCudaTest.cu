@@ -268,10 +268,11 @@ int main() {
     obj_surfaces.close();
   }
 
-  cudaFreeHost(convexBounds);
-  cudaFree(surfaces);
-  cudaFreeHost(intersections);
+  
   cudaFree(d_intersections);
+  cudaFreeHost(intersections);
+  cudaFree(surfaces);
+  cudaFree(convexBounds);
 
   return 0;
 }
