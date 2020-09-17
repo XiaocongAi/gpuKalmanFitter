@@ -15,8 +15,22 @@
 #include <vector>
 
 using namespace Acts;
+
+template< typename object_t>
+struct MinimalObjectIntersection{
+  /// The object that was (tried to be) intersected
+  const object_t* object{nullptr};
+  /// Position of the intersection
+  Vector3D position{0., 0., 0.};
+  /// Signed path length to the intersection (if valid)
+  double pathLength{std::numeric_limits<double>::infinity()};
+  /// The Status of the intersection
+  Intersection::Status status{Intersection::Status::unreachable};
+};
+
 using SurfaceBoundsType = ConvexPolygonBounds<3>;
 using PlaneSurfaceType = PlaneSurface<SurfaceBoundsType>;
+using MinimalSurfaceIntersection = MinimalObjectIntersection<PlaneSurfaceType>;
 
 template <typename surface_derived_t>
 __global__ void
@@ -51,6 +65,11 @@ int main() {
   const int surfacesBytes = sizeof(PlaneSurfaceType) * nSurfaces;
   const int intersectionsBytes = sizeof(SurfaceIntersection) * nSurfaces;
   const int streamBytes = sizeof(SurfaceIntersection) * threadsPerStream;
+  std::cout<<"Bounds bytes = "<< boundsBytes<<std::endl;
+  std::cout<<"surfaces bytes = "<< surfacesBytes<<std::endl;
+  std::cout<<"intersections bytes = "<< intersectionsBytes<<std::endl;
+  std::cout<<"MinimalIntersections bytes = "<< sizeof(MinimalSurfaceIntersection)*nSurfaces<<std::endl;
+
 
   // 1) The transforms (they are used to construct the surfaces)
   std::vector<Transform3D> transforms(nSurfaces);
