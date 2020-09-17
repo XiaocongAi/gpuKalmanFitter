@@ -1,7 +1,7 @@
-add_executable(main_cuda main.cu)
-target_link_libraries(main_cuda Actscore )
+add_executable(KalmanFitterCudaTest KalmanFitterCudaTest.cu)
+target_link_libraries(KalmanFitterCudaTest Actscore )
 
-install(TARGETS main_cuda
+install(TARGETS KalmanFitterCudaTest
   EXPORT ${PROJECT_NAME}Targets
   RUNTIME       DESTINATION bin      COMPONENT runtime
   LIBRARY       DESTINATION bin      COMPONENT runtime
@@ -10,10 +10,10 @@ install(TARGETS main_cuda
   RESOURCE      DESTINATION resource COMPONENT runtime
 )
 
-add_executable(intersect_cuda intersect.cu)
-target_link_libraries(intersect_cuda Actscore )
+add_executable(IntersectCudaTest IntersectCudaTest.cu)
+target_link_libraries(IntersectCudaTest Actscore )
 
-install(TARGETS intersect_cuda
+install(TARGETS IntersectCudaTest
   EXPORT ${PROJECT_NAME}Targets
   RUNTIME       DESTINATION bin      COMPONENT runtime
   LIBRARY       DESTINATION bin      COMPONENT runtime
