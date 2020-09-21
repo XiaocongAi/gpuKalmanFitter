@@ -171,11 +171,17 @@ int main() {
   }
 
   // Run on device
+  // Prefetch the surfaces and intersections to device 
+  cudaMemPrefetchAsync(surfaces, surfacesBytes, devId, NULL);
+  cudaMemPrefetchAsync(d_intersections, intersectionsBytes, devId, NULL);
+
   // The baseline case - sequential transfer and execute
   memset(intersections, 0, intersectionsBytes);
   GPUERRCHK(cudaEventRecord(startEvent, 0));
   intersectKernel<PlaneSurfaceType><<<blocksPerGrid_singleStream, threadsPerBlock>>>(
       position, direction, bcheck, surfaces, d_intersections, nSurfaces, 0);
+  GPUERRCHK(cudaEventRecord(stopEvent, 0));
+  GPUERRCHK(cudaEventSynchronize(stopEvent));
   GPUERRCHK(cudaMemcpy(intersections, d_intersections, intersectionsBytes,
                        cudaMemcpyDeviceToHost));
   GPUERRCHK(cudaEventRecord(stopEvent, 0));
@@ -192,6 +198,8 @@ int main() {
         <<<blocksPerGrid_multiStream, threadsPerBlock, 0, stream[i]>>>(
             position, direction, bcheck, surfaces, d_intersections, threadsPerStream,
             offset);
+    GPUERRCHK(cudaEventRecord(stopEvent, stream[i]));
+    GPUERRCHK(cudaEventSynchronize(stopEvent));
     GPUERRCHK(cudaMemcpyAsync(&intersections[offset], &d_intersections[offset],
                               streamBytes, cudaMemcpyDeviceToHost, stream[i]));
   }
