@@ -181,27 +181,46 @@ int main() {
   }
 
   // Run on device
-  // Prefetch the surfaces and intersections to device 
+  // Prefetch the surfaces and bounds to device (not to biase the first test) 
+  cudaMemPrefetchAsync(convexBounds, boundsBytes, devId, NULL);
   cudaMemPrefetchAsync(surfaces, surfacesBytes, devId, NULL);
-  cudaMemPrefetchAsync(d_intersections, intersectionsBytes, devId, NULL);
-  cudaMemPrefetchAsync(d_status, statusBytes, devId, NULL);
-
-  // Note: actually, we can't run those tests sequentially. Most page fault time is included in the first test which is unfair.
+  //@note does it help to prefetch non unified memory as well
+//  cudaMemPrefetchAsync(d_intersections, intersectionsBytes, devId, NULL);
+//  cudaMemPrefetchAsync(d_status, statusBytes, devId, NULL);
 
   // The baseline case - sequential transfer and execute
-//  memset(intersections, 0, intersectionsBytes);
-//  GPUERRCHK(cudaEventRecord(startEvent, 0));
-//  intersectKernel<PlaneSurfaceType><<<blocksPerGrid_singleStream, threadsPerBlock>>>(
-//      position, direction, bcheck, surfaces, d_intersections, d_status, nSurfaces, 0);
-//  GPUERRCHK(cudaMemcpy(intersections, d_intersections, intersectionsBytes,
-//                       cudaMemcpyDeviceToHost));
-//  GPUERRCHK(cudaEventRecord(stopEvent, 0));
-//  GPUERRCHK(cudaEventSynchronize(stopEvent));
-//  GPUERRCHK(cudaEventElapsedTime(&ms, startEvent, stopEvent));
-//  printf("Time for sequential transfer and execute (ms): %f\n", ms);
-
-  // asynchronous version 1: loop over {kernel, copy}
   memset(intersections, 0, intersectionsBytes);
+  GPUERRCHK(cudaEventRecord(startEvent, 0));
+  intersectKernel<PlaneSurfaceType><<<blocksPerGrid_singleStream, threadsPerBlock>>>(
+      position, direction, bcheck, surfaces, d_intersections, d_status, nSurfaces, 0);
+  GPUERRCHK(cudaMemcpy(intersections, d_intersections, intersectionsBytes,
+                       cudaMemcpyDeviceToHost));
+  GPUERRCHK(cudaEventRecord(stopEvent, 0));
+  GPUERRCHK(cudaEventSynchronize(stopEvent));
+  GPUERRCHK(cudaEventElapsedTime(&ms, startEvent, stopEvent));
+  printf("Time for sequential transfer and execute (ms): %f\n", ms);
+
+
+  // asynchronous version 1: copy all intersections
+  memset(intersections, 0, intersectionsBytes);
+  GPUERRCHK(cudaEventRecord(startEvent, 0));
+  for (int i = 0; i < nStreams; ++i) {
+    int offset = i * threadsPerStream;
+    intersectKernel<PlaneSurfaceType>
+        <<<blocksPerGrid_multiStream, threadsPerBlock, 0, stream[i]>>>(
+            position, direction, bcheck, surfaces, d_intersections, d_status, threadsPerStream,
+            offset);
+    GPUERRCHK(cudaEventRecord(stopEvent, stream[i]));
+    GPUERRCHK(cudaEventSynchronize(stopEvent));
+    GPUERRCHK(cudaMemcpyAsync(&intersections[offset], &d_intersections[offset],
+                              streamIntersectionBytes, cudaMemcpyDeviceToHost, stream[i]));
+  }
+  GPUERRCHK(cudaEventRecord(stopEvent, 0));
+  GPUERRCHK(cudaEventSynchronize(stopEvent));
+  GPUERRCHK(cudaEventElapsedTime(&ms, startEvent, stopEvent));
+  printf("Time for asynchronous V1 transfer and execute (ms): %f\n", ms);
+
+  // asynchronous version 2: copy selected intersections
   GPUERRCHK(cudaEventRecord(startEvent, 0));
   for (int i = 0; i < nStreams; ++i) {
     int offset = i * threadsPerStream;
@@ -216,7 +235,6 @@ int main() {
   }
   GPUERRCHK(cudaEventRecord(stopEvent, 0));
   GPUERRCHK(cudaEventSynchronize(stopEvent));
-
   // 7) allocate for the valid intersection indices
   std::vector<int> indices;
   for(unsigned int i=0; i< nSurfaces; i++){
@@ -228,7 +246,6 @@ int main() {
   GPUERRCHK(
       cudaMalloc((void **)&d_indices, indices.size()*sizeof(int))); // device
   GPUERRCHK(cudaMemcpy(d_indices, indices.data(), indices.size()*sizeof(int), cudaMemcpyHostToDevice)); 
-
   // 8) allocate for the valid intersections  
   SurfaceIntersection* validIntersections, *d_validIntersections;
   const int validIntersectionBytes = sizeof(SurfaceIntersection)*indices.size();
@@ -246,10 +263,10 @@ int main() {
   GPUERRCHK(cudaEventRecord(stopEvent, 0));
   GPUERRCHK(cudaEventSynchronize(stopEvent));
   GPUERRCHK(cudaEventElapsedTime(&ms, startEvent, stopEvent));
-  printf("Time for asynchronous V1 transfer and execute (ms): %f\n", ms);
+  printf("Time for asynchronous V2 transfer and execute (ms): %f\n", ms);
   std::cout << "There are " << indices.size() << " reachable surfaces" << std::endl;
 
-  // asynchronous version 2:
+  // asynchronous version 3:
 //  //loop over copy, loop over kernel, loop over copy
 //  memset(intersections, 0, intersectionsBytes);
 //  GPUERRCHK(cudaEventRecord(startEvent, 0));
