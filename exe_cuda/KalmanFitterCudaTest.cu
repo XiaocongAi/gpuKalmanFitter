@@ -113,17 +113,23 @@ int main(int argc, char *argv[]) {
   GPUERRCHK(cudaSetDevice(devId));
 
   const int threadsPerBlock = 256, nStreams = 4;
-  const int threadsPerStream = nTracks / nStreams;
+  // The last stream could could less threads
+  const int threadsPerStream = (nTracks + nStreams -1)/ nStreams;
+  const int overflowThreads = threadsPerStream * nStreams - nTracks; 
+  const int threadsLastStream = threadsPerStream - overflowThreads; 
   //const int blocksPerGrid_singleStream = (nTracks + threadsPerBlock - 1) / threadsPerBlock;
   const int blocksPerGrid_multiStream = (threadsPerStream + threadsPerBlock - 1) / threadsPerBlock;
-  std::cout<<"threadPerStream = "<<threadsPerStream << std::endl;
+  std::cout<<"threadsPerStream = "<< threadsPerStream << std::endl;
+  std::cout<<"threadsLastStream = "<< threadsLastStream << std::endl;
 
   // The number of test surfaces
   size_t nSurfaces = 10;
   const int sourcelinksBytes = sizeof(PixelSourceLink)*nSurfaces*nTracks;
   const int parsBytes = sizeof(CurvilinearParameters)*nTracks;
-  const int streamSourcelinksBytes = sizeof(PixelSourceLink)*nSurfaces*threadsPerStream; 
-  const int streamParsBytes = sizeof(CurvilinearParameters)*threadsPerStream; 
+  const int perStreamSourcelinksBytes = sizeof(PixelSourceLink)*nSurfaces*threadsPerStream; 
+  const int perStreamParsBytes = sizeof(CurvilinearParameters)*threadsPerStream; 
+  const int lastStreamSourcelinksBytes = sizeof(PixelSourceLink)*nSurfaces*threadsLastStream; 
+  const int lastStreamParsBytes = sizeof(CurvilinearParameters)*threadsLastStream; 
   const int tsBytes = sizeof(TSType)*nSurfaces*nTracks;
 
   // Create a test context
@@ -305,15 +311,18 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < nStreams; ++i) {
     int offset = i * threadsPerStream;
     //Note: need special handling here
+    const int threads = (i == (nStreams-1)? threadsLastStream : threadsPerStream);
+    const int sBytes = (i == (nStreams-1)? lastStreamSourcelinksBytes : perStreamSourcelinksBytes);
+    const int pBytes = (i == (nStreams-1)? lastStreamParsBytes : perStreamParsBytes);
     GPUERRCHK(cudaMemcpyAsync(&d_sourcelinks[offset*nSurfaces], &sourcelinks[offset*nSurfaces],
-                         streamSourcelinksBytes,
+                         sBytes,
                          cudaMemcpyHostToDevice, stream[i]));
     GPUERRCHK(cudaMemcpyAsync(&d_pars[offset], &startPars[offset],
-                         streamParsBytes,
+                         pBytes,
                          cudaMemcpyHostToDevice, stream[i]));
     fitKernel<<<blocksPerGrid_multiStream, threadsPerBlock, 0, stream[i]>>>(
         d_kFitter, d_sourcelinks, d_pars, kfOptions, fittedTracks,
-        surfacePtrs, nSurfaces, threadsPerStream, offset);
+        surfacePtrs, nSurfaces, threads, offset);
     }
 //    }
     GPUERRCHK(cudaPeekAtLastError());
