@@ -167,7 +167,9 @@ int main(int argc, char *argv[]) {
   propOptions.initializer.surfaceSequenceSize = nSurfaces;
 
   // Construct random starting track parameters
-  std::vector<CurvilinearParameters> startPars;
+  CurvilinearParameters *startPars;
+  const int parsBytes = sizeof(CurvilinearParameters)*nTracks;
+  GPUERRCHK(cudaMallocHost((void**)&startPars, parsBytes)); //use pinned memory 
   double resLoc1 = 0.1 * Acts::units::_mm;
   double resLoc2 = 0.1 * Acts::units::_mm;
   double resPhi = 0.01;
@@ -195,7 +197,7 @@ int main(int argc, char *argv[]) {
     Vector3D mom(p * sin(theta) * cos(phi), p * sin(theta) * sin(phi),
                  p * cos(theta)); // Units: GeV
 
-    startPars.emplace_back(cov, pos, mom, q, time);
+    startPars[i] = CurvilinearParameters(cov, pos, mom, q, time);
   }
   std::cout << "Finish creating starting parameters" << std::endl;
 
@@ -244,7 +246,9 @@ int main(int argc, char *argv[]) {
 
   // Prepare to perform fit to the created tracks
   // Restore the source links
-  std::vector<PixelSourceLink> sourcelinks(nSurfaces * nTracks);
+  const int sourcelinksBytes = sizeof(PixelSourceLink)*nSurfaces*nTracks;
+  PixelSourceLink *sourcelinks;
+  GPUERRCHK(cudaMallocHost((void **)&sourcelinks, sourcelinksBytes)); // use pinned memory 
   for (int it = 0; it < nTracks; it++) {
     const auto &sls = ress[it].sourcelinks;
     for (int is = 0; is < nSurfaces; is++) {
@@ -273,16 +277,16 @@ int main(int argc, char *argv[]) {
     CurvilinearParameters *d_pars;
     KalmanFitterType *d_kFitter;
     GPUERRCHK(cudaMalloc(&d_sourcelinks,
-                         sizeof(PixelSourceLink) * nSurfaces * nTracks));
+                         sourcelinksBytes));
     GPUERRCHK(cudaMalloc(&d_pars, sizeof(CurvilinearParameters) * nTracks));
     GPUERRCHK(cudaMalloc(&d_kFitter, sizeof(KalmanFitterType)));
 
     // Copy from host to device
-    GPUERRCHK(cudaMemcpy(d_sourcelinks, sourcelinks.data(),
-                         sizeof(PixelSourceLink) * nSurfaces * nTracks,
+    GPUERRCHK(cudaMemcpy(d_sourcelinks, sourcelinks,
+                         sourcelinksBytes,
                          cudaMemcpyHostToDevice));
-    GPUERRCHK(cudaMemcpy(d_pars, startPars.data(),
-                         nTracks * sizeof(CurvilinearParameters),
+    GPUERRCHK(cudaMemcpy(d_pars, startPars,
+                         parsBytes,
                          cudaMemcpyHostToDevice));
     GPUERRCHK(cudaMemcpy(d_kFitter, &kFitter, sizeof(KalmanFitterType),
                          cudaMemcpyHostToDevice));
@@ -308,7 +312,8 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaFree(d_kFitter));
     // GPUERRCHK(cudaFree(surfacePtrs));
     GPUERRCHK(cudaFree(surfaces));
-    
+    GPUERRCHK(cudaFreeHost(sourcelinks)); 
+    GPUERRCHK(cudaFreeHost(startPars)); 
   } else {
 //// Run on host
 #pragma omp parallel for
