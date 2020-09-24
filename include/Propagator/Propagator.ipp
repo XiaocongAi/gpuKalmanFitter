@@ -17,7 +17,7 @@ ACTS_DEVICE_FUNC PropagatorResult Acts::Propagator<S, N>::propagate(
   StateType state(start, options);
 
   path_aborter_t pathAborter;
-  //  pathAborter.internalLimit = options.pathLimit;
+  pathAborter.internalLimit = options.pathLimit;
 
   state.options.initializer(state, m_stepper, result.initializerResult);
   // Navigator initialize state call
@@ -118,7 +118,7 @@ void Acts::Propagator<S, N>::propagate(
 
   if (IS_MAIN_THREAD) {
     state = StateType(start, options);
-    // pathAborter.internalLimit = options.pathLimit;
+    pathAborter.internalLimit = options.pathLimit;
 
     state.options.initializer(state, m_stepper, result.initializerResult);
     // Navigator initialize state call
