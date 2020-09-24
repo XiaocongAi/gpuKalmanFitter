@@ -375,7 +375,7 @@ private:
   };
 
 public:
-   /// Fit implementation of the foward filter, calls the
+  /// Fit implementation of the foward filter, calls the
   /// the forward filter and backward smoother
   ///
   /// @tparam source_link_t Source link type identifying uncalibrated input
@@ -439,7 +439,7 @@ public:
     return true;
   }
 
-
+#ifdef __CUDACC__
   /// Fit implementation of the foward filter, calls the
   /// the forward filter and backward smoother
   ///
@@ -461,11 +461,11 @@ public:
             typename parameters_t = BoundParameters>
   __device__ bool
   fitOnDevice(const CudaKernelContainer<source_link_t> &sourcelinks,
-      const start_parameters_t &sParameters,
-      const KalmanFitterOptions<outlier_finder_t> &kfOptions,
-      KalmanFitterResult<source_link_t, parameters_t> &kfResult,
-      const Surface *surfaceSequence = nullptr,
-      size_t surfaceSequenceSize = 0) const {
+              const start_parameters_t &sParameters,
+              const KalmanFitterOptions<outlier_finder_t> &kfOptions,
+              KalmanFitterResult<source_link_t, parameters_t> &kfResult,
+              const Surface *surfaceSequence = nullptr,
+              size_t surfaceSequenceSize = 0) const {
 
     const bool IS_MAIN_THREAD = threadIdx.x == 0 && threadIdx.y == 0;
 
@@ -478,28 +478,29 @@ public:
 
     // Create relevant options for the propagation options
     __shared__ PropagatorOptions<KalmanActor, KalmanAborter> kalmanOptions;
-    __shared__ KalmanActor* kalmanActorPtr;
+    __shared__ KalmanActor *kalmanActorPtr;
     __shared__ PropagatorResult propRes;
-    
-    if (IS_MAIN_THREAD) { 
+
+    if (IS_MAIN_THREAD) {
       kalmanOptions = PropagatorOptions<KalmanActor, KalmanAborter>(
-        kfOptions.geoContext, kfOptions.magFieldContext);
+          kfOptions.geoContext, kfOptions.magFieldContext);
       kalmanOptions.initializer.surfaceSequence = surfaceSequence;
       kalmanOptions.initializer.surfaceSequenceSize = surfaceSequenceSize;
-      
+
       // Catch the actor and set the measurements
       kalmanActorPtr = &kalmanOptions.action;
       kalmanActorPtr->inputMeasurements = std::move(sourcelinks);
       kalmanActorPtr->targetSurface = kfOptions.referenceSurface;
-      
+
       // Set config for outlier finder
       kalmanActorPtr->m_outlierFinder = kfOptions.outlierFinder;
     }
     __syncthreads();
-    
+
     // Run the fitter
-    m_propagator.template propagate(sParameters, kalmanOptions, kfResult, propRes);
-    
+    m_propagator.template propagate(sParameters, kalmanOptions, kfResult,
+                                    propRes);
+
     if (!kfResult.result) {
       printf("KalmanFilter failed: \n");
       return false;
@@ -508,6 +509,7 @@ public:
     // Return the converted Track
     return true;
   }
+#endif
 };
 
 } // namespace Acts

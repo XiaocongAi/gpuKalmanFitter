@@ -17,7 +17,7 @@ ACTS_DEVICE_FUNC PropagatorResult Acts::Propagator<S, N>::propagate(
   StateType state(start, options);
 
   path_aborter_t pathAborter;
-//  pathAborter.internalLimit = options.pathLimit;
+  //  pathAborter.internalLimit = options.pathLimit;
 
   state.options.initializer(state, m_stepper, result.initializerResult);
   // Navigator initialize state call
@@ -97,19 +97,19 @@ ACTS_DEVICE_FUNC PropagatorResult Acts::Propagator<S, N>::propagate(
   return result;
 }
 
+#ifdef __CUDACC__
 template <typename S, typename N>
 template <typename parameters_t, typename propagator_options_t,
           typename path_aborter_t>
 void Acts::Propagator<S, N>::propagate(
     const parameters_t &start, const propagator_options_t &options,
     typename propagator_options_t::action_type::result_type &actorResult,
-    PropagatorResult& result)
-    const {
+    PropagatorResult &result) const {
 
   const bool IS_MAIN_THREAD = (threadIdx.x == 0 && threadIdx.y == 0);
-  
+
   using StateType = State<propagator_options_t>;
-  
+
   __shared__ StateType state;
   __shared__ path_aborter_t pathAborter;
   // This is needed for correct error logging
@@ -118,8 +118,8 @@ void Acts::Propagator<S, N>::propagate(
 
   if (IS_MAIN_THREAD) {
     state = StateType(start, options);
-    //pathAborter.internalLimit = options.pathLimit;
-    
+    // pathAborter.internalLimit = options.pathLimit;
+
     state.options.initializer(state, m_stepper, result.initializerResult);
     // Navigator initialize state call
     m_navigator.status(state, m_stepper);
@@ -135,12 +135,12 @@ void Acts::Propagator<S, N>::propagate(
   // Pre-Stepping: abort condition check
   if (IS_MAIN_THREAD) {
     if (state.options.aborter(state, m_stepper, actorResult) or
-	pathAborter(state, m_stepper)) {
+        pathAborter(state, m_stepper)) {
       terminatedEarly = true;
     }
   }
   __syncthreads();
-  
+
   if (!terminatedEarly) {
     // Pre-Stepping: target setting
     if (IS_MAIN_THREAD) {
@@ -148,7 +148,7 @@ void Acts::Propagator<S, N>::propagate(
     }
     __syncthreads();
     // Propagation loop : stepping
-    
+
     for (int step = result.steps; step < state.options.maxSteps; ++step) {
       // Perform a propagation step - it takes the propagation state
       if (IS_MAIN_THREAD) {
@@ -169,28 +169,27 @@ void Acts::Propagator<S, N>::propagate(
       // navigator status call - action list - aborter list - target call
 
       if (IS_MAIN_THREAD) {
-	m_navigator.status(state, m_stepper);
+        m_navigator.status(state, m_stepper);
 
-	state.options.action(state, m_stepper, actorResult);
-	if (state.options.aborter(state, m_stepper, actorResult) or
-	    pathAborter(state, m_stepper)) {
-	  terminatedNormally = true;
-	}
+        state.options.action(state, m_stepper, actorResult);
+        if (state.options.aborter(state, m_stepper, actorResult) or
+            pathAborter(state, m_stepper)) {
+          terminatedNormally = true;
+        }
       }
       __syncthreads();
-      
+
       if (terminatedNormally) {
         break;
       }
 
       if (IS_MAIN_THREAD) {
-	m_navigator.target(state, m_stepper);
+        m_navigator.target(state, m_stepper);
       }
       __syncthreads();
     }
-
   }
-  
+
   if (IS_MAIN_THREAD) {
     // if we didn't terminate normally (via aborters) set navigation break.
     // this will trigger error output in the lines below
@@ -211,5 +210,5 @@ void Acts::Propagator<S, N>::propagate(
     //  }
   }
   __syncthreads();
-  
 }
+#endif

@@ -50,8 +50,7 @@ ACTS_DEVICE_FUNC void propagationTime(propagator_state_t &state,
 template <typename propagator_state_t>
 ACTS_DEVICE_FUNC void transportMatrix(const propagator_state_t &state,
                                       const StepData &sd, const double &h,
-				      FreeMatrix& D)
-{
+                                      FreeMatrix &D) {
   D = FreeMatrix::Identity();
   auto dir = state.stepping.dir;
   auto qop = state.stepping.q / state.stepping.p;
@@ -63,56 +62,57 @@ ACTS_DEVICE_FUNC void transportMatrix(const propagator_state_t &state,
   // For the case without energy loss
   ActsVectorD<3> dk1dL = dir.cross(sd.B_first);
   ActsVectorD<3> dk2dL = (dir + half_h * sd.k1).cross(sd.B_middle) +
-          qop * half_h * dk1dL.cross(sd.B_middle);
+                         qop * half_h * dk1dL.cross(sd.B_middle);
   ActsVectorD<3> dk3dL = (dir + half_h * sd.k2).cross(sd.B_middle) +
-          qop * half_h * dk2dL.cross(sd.B_middle);
-  ActsVectorD<3> dk4dL = (dir + h * sd.k3).cross(sd.B_last) + qop * h * dk3dL.cross(sd.B_last);
+                         qop * half_h * dk2dL.cross(sd.B_middle);
+  ActsVectorD<3> dk4dL =
+      (dir + h * sd.k3).cross(sd.B_last) + qop * h * dk3dL.cross(sd.B_last);
 
   ActsMatrixD<3, 3> dk1dT = ActsMatrixD<3, 3>::Zero();
-{
-  dk1dT(0, 1) = sd.B_first.z();
-  dk1dT(0, 2) = -sd.B_first.y();
-  dk1dT(1, 0) = -sd.B_first.z();
-  dk1dT(1, 2) = sd.B_first.x();
-  dk1dT(2, 0) = sd.B_first.y();
-  dk1dT(2, 1) = -sd.B_first.x();
-  dk1dT *= qop;
-}
+  {
+    dk1dT(0, 1) = sd.B_first.z();
+    dk1dT(0, 2) = -sd.B_first.y();
+    dk1dT(1, 0) = -sd.B_first.z();
+    dk1dT(1, 2) = sd.B_first.x();
+    dk1dT(2, 0) = sd.B_first.y();
+    dk1dT(2, 1) = -sd.B_first.x();
+    dk1dT *= qop;
+  }
 
   ActsMatrixD<3, 3> dk2dT = ActsMatrixD<3, 3>::Identity();
-{
-  dk2dT += half_h * dk1dT;
-  dk2dT = qop * VectorHelpers::cross(dk2dT, sd.B_middle);
-}
+  {
+    dk2dT += half_h * dk1dT;
+    dk2dT = qop * VectorHelpers::cross(dk2dT, sd.B_middle);
+  }
   ActsMatrixD<3, 3> dk3dT = ActsMatrixD<3, 3>::Identity();
-{
-  dk3dT += half_h * dk2dT;
-  dk3dT = qop * VectorHelpers::cross(dk3dT, sd.B_middle);
-}
+  {
+    dk3dT += half_h * dk2dT;
+    dk3dT = qop * VectorHelpers::cross(dk3dT, sd.B_middle);
+  }
   ActsMatrixD<3, 3> dk4dT = ActsMatrixD<3, 3>::Identity();
-{
-  dk4dT += h * dk3dT;
-  dk4dT = qop * VectorHelpers::cross(dk4dT, sd.B_last);
-}
-{
-  auto dFdT = D.block<3, 3>(0, 4);
-  dFdT.setIdentity();
-  dFdT += h / 6. * (dk1dT + dk2dT + dk3dT);
-  dFdT *= h;
-}
-{
-  auto dFdL = D.block<3, 1>(0, 7);
-  dFdL = (h * h) / 6. * (dk1dL + dk2dL + dk3dL);
-}
-{
-  // dGdx is already initialised as (3x3) zero
-  auto dGdT = D.block<3, 3>(4, 4);
-  dGdT += h / 6. * (dk1dT + 2. * (dk2dT + dk3dT) + dk4dT);
-}
-{
-  auto dGdL = D.block<3, 1>(4, 7);
-  dGdL = h / 6. * (dk1dL + 2. * (dk2dL + dk3dL) + dk4dL);
-}
+  {
+    dk4dT += h * dk3dT;
+    dk4dT = qop * VectorHelpers::cross(dk4dT, sd.B_last);
+  }
+  {
+    auto dFdT = D.block<3, 3>(0, 4);
+    dFdT.setIdentity();
+    dFdT += h / 6. * (dk1dT + dk2dT + dk3dT);
+    dFdT *= h;
+  }
+  {
+    auto dFdL = D.block<3, 1>(0, 7);
+    dFdL = (h * h) / 6. * (dk1dL + dk2dL + dk3dL);
+  }
+  {
+    // dGdx is already initialised as (3x3) zero
+    auto dGdT = D.block<3, 3>(4, 4);
+    dGdT += h / 6. * (dk1dT + 2. * (dk2dT + dk3dT) + dk4dT);
+  }
+  {
+    auto dGdL = D.block<3, 1>(4, 7);
+    dGdL = h / 6. * (dk1dL + 2. * (dk2dL + dk3dL) + dk4dL);
+  }
   D(3, 7) = h * state.options.mass * state.options.mass * state.stepping.q /
             (state.stepping.p *
              std::hypot(1., state.options.mass / state.stepping.p));
@@ -209,9 +209,9 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
   // The step transport matrix in global coordinates
   if (state.stepping.covTransport) {
     // for moment, only update the transport part
-        FreeMatrix D;
-        detail::transportMatrix(state, sd, h, D);
-        state.stepping.jacTransport = D * state.stepping.jacTransport;
+    FreeMatrix D;
+    detail::transportMatrix(state, sd, h, D);
+    state.stepping.jacTransport = D * state.stepping.jacTransport;
   }
 
   // Update the track parameters according to the equations of motion
@@ -228,7 +228,7 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
   return true;
 }
 
-
+#ifdef __CUDACC__
 template <typename B>
 template <typename propagator_state_t>
 __device__ bool
@@ -279,7 +279,6 @@ Acts::EigenStepper<B>::stepOnDevice(propagator_state_t &state) const {
     return (error_estimate <= state.options.tolerance);
   };
 
-
   __shared__ bool earlyExit;
 
   if (IS_MAIN_THREAD) {
@@ -291,41 +290,41 @@ Acts::EigenStepper<B>::stepOnDevice(propagator_state_t &state) const {
     // ATL-SOFT-PUB-2009-001
     while (!tryRungeKuttaStep(state.stepping.stepSize)) {
       stepSizeScaling =
-        std::min(std::max(0.25, std::pow((state.options.tolerance /
-                                          std::abs(2. * error_estimate)),
-                                         0.25)),
-                 4.);
+          std::min(std::max(0.25, std::pow((state.options.tolerance /
+                                            std::abs(2. * error_estimate)),
+                                           0.25)),
+                   4.);
       // if (stepSizeScaling == 1.) {
       // break;
       //}
       state.stepping.stepSize = state.stepping.stepSize * stepSizeScaling;
-      
+
       // Todo: adapted error handling on GPU?
       // If step size becomes too small the particle remains at the initial
       // place
       if (state.stepping.stepSize * state.stepping.stepSize <
-	  state.options.stepSizeCutOff * state.options.stepSizeCutOff) {
-	// Not moving due to too low momentum needs an aborter
-	earlyExit = true;
-	break;
+          state.options.stepSizeCutOff * state.options.stepSizeCutOff) {
+        // Not moving due to too low momentum needs an aborter
+        earlyExit = true;
+        break;
       }
-      
+
       // If the parameter is off track too much or given stepSize is not
       // appropriate
       if (nStepTrials > state.options.maxRungeKuttaStepTrials) {
-	// Too many trials, have to abort
-	earlyExit = true;
-	break;
+        // Too many trials, have to abort
+        earlyExit = true;
+        break;
       }
       nStepTrials++;
     }
   }
   __syncthreads();
-  
+
   if (earlyExit) {
     return false;
   }
-  
+
   // use the adjusted step size
   const double h = state.stepping.stepSize;
 
@@ -334,19 +333,21 @@ Acts::EigenStepper<B>::stepOnDevice(propagator_state_t &state) const {
     detail::propagationTime(state, h);
   }
   __syncthreads();
-  
+
   __shared__ FreeMatrix jacTransport;
   // When doing error propagation, update the associated Jacobian matrix
   // The step transport matrix in global coordinates
   if (state.stepping.covTransport) {
-    jacTransport(threadIdx.x, threadIdx.y) = state.stepping.jacTransport(threadIdx.x, threadIdx.y);
+    jacTransport(threadIdx.x, threadIdx.y) =
+        state.stepping.jacTransport(threadIdx.x, threadIdx.y);
 
     // for moment, only update the transport part
     detail::transportMatrix(state, sd, h, jacTransport);
-    
+
     double acc = 0.0;
     for (int i = 0; i < 8; ++i) {
-      acc += jacTransport(threadIdx.x, i) * state.stepping.jacTransport(i, threadIdx.y);
+      acc += jacTransport(threadIdx.x, i) *
+             state.stepping.jacTransport(i, threadIdx.y);
     }
     state.stepping.jacTransport(threadIdx.x, threadIdx.y) = acc;
   }
@@ -354,7 +355,7 @@ Acts::EigenStepper<B>::stepOnDevice(propagator_state_t &state) const {
   if (IS_MAIN_THREAD) {
     // Update the track parameters according to the equations of motion
     state.stepping.pos +=
-      h * state.stepping.dir + h * h / 6. * (sd.k1 + sd.k2 + sd.k3);
+        h * state.stepping.dir + h * h / 6. * (sd.k1 + sd.k2 + sd.k3);
     state.stepping.dir += h / 6. * (sd.k1 + 2. * (sd.k2 + sd.k3) + sd.k4);
     state.stepping.dir /= state.stepping.dir.norm();
     if (state.stepping.covTransport) {
@@ -367,6 +368,7 @@ Acts::EigenStepper<B>::stepOnDevice(propagator_state_t &state) const {
   // return h;
   return true;
 }
+#endif
 
 template <typename B>
 ACTS_DEVICE_FUNC auto

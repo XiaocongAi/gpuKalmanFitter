@@ -8,10 +8,10 @@
 #include "Plugins/BFieldUtils.hpp"
 #include "Propagator/EigenStepper.hpp"
 #include "Propagator/Propagator.hpp"
+#include "Test/TestHelper.hpp"
+#include "Utilities/CudaHelper.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
 #include "Utilities/Units.hpp"
-#include "Utilities/CudaHelper.hpp"
-#include "Test/TestHelper.hpp"
 
 #include "Utilities/Profiling.hpp"
 
@@ -23,11 +23,12 @@
 #include <string>
 #include <vector>
 
-// This executable is used to run the KalmanFitter fit test on GPU with parallelism on the track-level.
-// It contains mainly two parts:
-// 1) Explicit calling of the propagation to create measurements on tracks ( a 'simulated' track could contain 10~100 measurements)
-// 2) Running the Kalmanfitter using the created measurements in 1) as one of the inputs
-// In princinple, both 1) and 2) could on offloaded to GPU. Right now, only 2) is put into a kernel
+// This executable is used to run the KalmanFitter fit test on GPU with
+// parallelism on the track-level. It contains mainly two parts: 1) Explicit
+// calling of the propagation to create measurements on tracks ( a 'simulated'
+// track could contain 10~100 measurements) 2) Running the Kalmanfitter using
+// the created measurements in 1) as one of the inputs In princinple, both 1)
+// and 2) could on offloaded to GPU. Right now, only 2) is put into a kernel
 
 static void show_usage(std::string name) {
   std::cerr << "Usage: <option(s)> VALUES"
@@ -56,14 +57,12 @@ using TSType = typename KalmanFitterResultType::TrackStateType;
 using PlaneSurfaceType = PlaneSurface<InfiniteBounds>;
 
 // Device code
-__global__ void 
-__launch_bounds__(256, 2)
-fitKernel(KalmanFitterType *kFitter,
-                           PixelSourceLink *sourcelinks,
-                           CurvilinearParameters *tpars,
-                           KalmanFitterOptions<VoidOutlierFinder> kfOptions,
-                           TSType *fittedTracks, const Surface *surfacePtrs,
-                           int nSurfaces, int nTracks, int offset) {
+__global__ void __launch_bounds__(256, 2)
+    fitKernel(KalmanFitterType *kFitter, PixelSourceLink *sourcelinks,
+              CurvilinearParameters *tpars,
+              KalmanFitterOptions<VoidOutlierFinder> kfOptions,
+              TSType *fittedTracks, const Surface *surfacePtrs, int nSurfaces,
+              int nTracks, int offset) {
   int i = blockDim.x * blockIdx.x + threadIdx.x + offset;
   if (i < (nTracks + offset)) {
     // Use the CudaKernelContainer for the source links and fitted tracks
@@ -77,10 +76,10 @@ fitKernel(KalmanFitterType *kFitter,
 }
 
 int main(int argc, char *argv[]) {
-//  if (argc < 5) {
-//    show_usage(argv[0]);
-//    return 1;
-//  }
+  //  if (argc < 5) {
+  //    show_usage(argv[0]);
+  //    return 1;
+  //  }
   unsigned int nTracks = 10240;
   bool output = false;
   std::string device = "cpu";
@@ -116,23 +115,29 @@ int main(int argc, char *argv[]) {
 
   const int threadsPerBlock = 256, nStreams = 4;
   // The last stream could could less threads
-  const int threadsPerStream = (nTracks + nStreams -1)/ nStreams;
-  const int overflowThreads = threadsPerStream * nStreams - nTracks; 
-  const int threadsLastStream = threadsPerStream - overflowThreads; 
-  //const int blocksPerGrid_singleStream = (nTracks + threadsPerBlock - 1) / threadsPerBlock;
-  const int blocksPerGrid_multiStream = (threadsPerStream + threadsPerBlock - 1) / threadsPerBlock;
-  std::cout<<"threadsPerStream = "<< threadsPerStream << std::endl;
-  std::cout<<"threadsLastStream = "<< threadsLastStream << std::endl;
+  const int threadsPerStream = (nTracks + nStreams - 1) / nStreams;
+  const int overflowThreads = threadsPerStream * nStreams - nTracks;
+  const int threadsLastStream = threadsPerStream - overflowThreads;
+  // const int blocksPerGrid_singleStream = (nTracks + threadsPerBlock - 1) /
+  // threadsPerBlock;
+  const int blocksPerGrid_multiStream =
+      (threadsPerStream + threadsPerBlock - 1) / threadsPerBlock;
+  std::cout << "threadsPerStream = " << threadsPerStream << std::endl;
+  std::cout << "threadsLastStream = " << threadsLastStream << std::endl;
 
   // The number of test surfaces
   size_t nSurfaces = 10;
-  const int sourcelinksBytes = sizeof(PixelSourceLink)*nSurfaces*nTracks;
-  const int parsBytes = sizeof(CurvilinearParameters)*nTracks;
-  const int perStreamSourcelinksBytes = sizeof(PixelSourceLink)*nSurfaces*threadsPerStream; 
-  const int perStreamParsBytes = sizeof(CurvilinearParameters)*threadsPerStream; 
-  const int lastStreamSourcelinksBytes = sizeof(PixelSourceLink)*nSurfaces*threadsLastStream; 
-  const int lastStreamParsBytes = sizeof(CurvilinearParameters)*threadsLastStream; 
-  const int tsBytes = sizeof(TSType)*nSurfaces*nTracks;
+  const int sourcelinksBytes = sizeof(PixelSourceLink) * nSurfaces * nTracks;
+  const int parsBytes = sizeof(CurvilinearParameters) * nTracks;
+  const int perStreamSourcelinksBytes =
+      sizeof(PixelSourceLink) * nSurfaces * threadsPerStream;
+  const int perStreamParsBytes =
+      sizeof(CurvilinearParameters) * threadsPerStream;
+  const int lastStreamSourcelinksBytes =
+      sizeof(PixelSourceLink) * nSurfaces * threadsLastStream;
+  const int lastStreamParsBytes =
+      sizeof(CurvilinearParameters) * threadsLastStream;
+  const int tsBytes = sizeof(TSType) * nSurfaces * nTracks;
 
   // Create a test context
   GeometryContext gctx(0);
@@ -148,8 +153,7 @@ int main(int argc, char *argv[]) {
   // PlaneSurfaceType surfaces[nSurfaces];
   PlaneSurfaceType *surfaces;
   // Unifited memory allocation for geometry
-  GPUERRCHK(
-      cudaMallocManaged(&surfaces, sizeof(PlaneSurfaceType) * nSurfaces));
+  GPUERRCHK(cudaMallocManaged(&surfaces, sizeof(PlaneSurfaceType) * nSurfaces));
   std::cout << "Allocating the memory for the surfaces" << std::endl;
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
     surfaces[isur] =
@@ -168,7 +172,7 @@ int main(int argc, char *argv[]) {
   std::cout << "----- Starting Kalman fitter test of " << nTracks
             << " tracks on " << device << std::endl;
 
-  const Acts::Surface* surfacePtrs = surfaces;
+  const Acts::Surface *surfacePtrs = surfaces;
 
   // InterpolatedBFieldMap3D bField = Options::readBField(bFieldFileName);
 
@@ -182,25 +186,24 @@ int main(int argc, char *argv[]) {
 
   // Construct random starting track parameters
   CurvilinearParameters *startPars;
-  GPUERRCHK(cudaMallocHost((void**)&startPars, parsBytes)); //use pinned memory 
+  GPUERRCHK(cudaMallocHost((void **)&startPars, parsBytes)); // use pinned
+                                                             // memory
   double resLoc1 = 0.1 * Acts::units::_mm;
   double resLoc2 = 0.1 * Acts::units::_mm;
   double resPhi = 0.01;
   double resTheta = 0.01;
-  
-  const BoundSymMatrix cov = [=] () {
+
+  const BoundSymMatrix cov = [=]() {
     BoundSymMatrix cov = BoundSymMatrix::Zero();
-    cov << resLoc1 * resLoc1, 0.,                0.,              0.,                  0.,     0.,
-           0.,                resLoc2 * resLoc2, 0.,              0.,                  0.,     0.,
-           0.,                0.,                resPhi * resPhi, 0.,                  0.,     0.,
-           0.,                0.,                0.,              resTheta * resTheta, 0.,     0.,
-           0.,                0.,                0.,              0.,                  0.0001, 0.,
-           0.,                0.,                0.,              0.,                  0.,     1.;
+    cov << resLoc1 * resLoc1, 0., 0., 0., 0., 0., 0., resLoc2 * resLoc2, 0., 0.,
+        0., 0., 0., 0., resPhi * resPhi, 0., 0., 0., 0., 0., 0.,
+        resTheta * resTheta, 0., 0., 0., 0., 0., 0., 0.0001, 0., 0., 0., 0., 0.,
+        0., 1.;
     return cov;
   }();
-	
+
   for (int i = 0; i < nTracks; i++) {
-    
+
     double q = 1;
     double time = 0;
     double phi = gauss(generator) * resPhi;
@@ -220,8 +223,8 @@ int main(int argc, char *argv[]) {
   std::cout << "Start to run propagation to create measurements" << std::endl;
   auto start_propagate = std::chrono::high_resolution_clock::now();
 
-  // Run propagation to create the measurements
-  #pragma omp parallel for
+// Run propagation to create the measurements
+#pragma omp parallel for
   for (int it = 0; it < nTracks; it++) {
     propagator.propagate(startPars[it], propOptions, ress[it]);
   }
@@ -230,7 +233,7 @@ int main(int argc, char *argv[]) {
   std::chrono::duration<double> elapsed_seconds =
       end_propagate - start_propagate;
   std::cout << "Time (ms) to run propagation tests: "
-            << elapsed_seconds.count()*1000 << std::endl;
+            << elapsed_seconds.count() * 1000 << std::endl;
 
   // Initialize the vertex counter
   unsigned int vCounter = 0;
@@ -271,7 +274,8 @@ int main(int argc, char *argv[]) {
 
   // Restore the source links
   PixelSourceLink *sourcelinks;
-  GPUERRCHK(cudaMallocHost((void **)&sourcelinks, sourcelinksBytes)); // use pinned memory 
+  GPUERRCHK(cudaMallocHost((void **)&sourcelinks,
+                           sourcelinksBytes)); // use pinned memory
   for (int it = 0; it < nTracks; it++) {
     const auto &sls = ress[it].sourcelinks;
     for (int is = 0; is < nSurfaces; is++) {
@@ -287,20 +291,19 @@ int main(int argc, char *argv[]) {
   KalmanFitterOptions<VoidOutlierFinder> kfOptions(gctx, mctx);
 
   // Allocate memory for KF fitted tracks
-  TSType* fittedTracks;
+  TSType *fittedTracks;
   GPUERRCHK(cudaMallocManaged(&fittedTracks, tsBytes));
 
   // Running directly on host or offloading to GPU
   bool useGPU = (device == "gpu" ? true : false);
   if (useGPU) {
     GPUERRCHK(cudaEventRecord(startEvent, 0));
-    
+
     // Allocate memory on device
     PixelSourceLink *d_sourcelinks;
     CurvilinearParameters *d_pars;
     KalmanFitterType *d_kFitter;
-    GPUERRCHK(cudaMalloc(&d_sourcelinks,
-                         sourcelinksBytes));
+    GPUERRCHK(cudaMalloc(&d_sourcelinks, sourcelinksBytes));
     GPUERRCHK(cudaMalloc(&d_pars, parsBytes));
     GPUERRCHK(cudaMalloc(&d_kFitter, sizeof(KalmanFitterType)));
 
@@ -309,24 +312,26 @@ int main(int argc, char *argv[]) {
                          cudaMemcpyHostToDevice));
 
     // Run on device
-//    for (int _ : {1, 2, 3, 4, 5}) {
+    //    for (int _ : {1, 2, 3, 4, 5}) {
     for (int i = 0; i < nStreams; ++i) {
-    int offset = i * threadsPerStream;
-    //Note: need special handling here
-    const int threads = (i == (nStreams-1)? threadsLastStream : threadsPerStream);
-    const int sBytes = (i == (nStreams-1)? lastStreamSourcelinksBytes : perStreamSourcelinksBytes);
-    const int pBytes = (i == (nStreams-1)? lastStreamParsBytes : perStreamParsBytes);
-    GPUERRCHK(cudaMemcpyAsync(&d_sourcelinks[offset*nSurfaces], &sourcelinks[offset*nSurfaces],
-                         sBytes,
-                         cudaMemcpyHostToDevice, stream[i]));
-    GPUERRCHK(cudaMemcpyAsync(&d_pars[offset], &startPars[offset],
-                         pBytes,
-                         cudaMemcpyHostToDevice, stream[i]));
-    fitKernel<<<blocksPerGrid_multiStream, threadsPerBlock, 0, stream[i]>>>(
-        d_kFitter, d_sourcelinks, d_pars, kfOptions, fittedTracks,
-        surfacePtrs, nSurfaces, threads, offset);
+      int offset = i * threadsPerStream;
+      // Note: need special handling here
+      const int threads =
+          (i == (nStreams - 1) ? threadsLastStream : threadsPerStream);
+      const int sBytes = (i == (nStreams - 1) ? lastStreamSourcelinksBytes
+                                              : perStreamSourcelinksBytes);
+      const int pBytes =
+          (i == (nStreams - 1) ? lastStreamParsBytes : perStreamParsBytes);
+      GPUERRCHK(cudaMemcpyAsync(&d_sourcelinks[offset * nSurfaces],
+                                &sourcelinks[offset * nSurfaces], sBytes,
+                                cudaMemcpyHostToDevice, stream[i]));
+      GPUERRCHK(cudaMemcpyAsync(&d_pars[offset], &startPars[offset], pBytes,
+                                cudaMemcpyHostToDevice, stream[i]));
+      fitKernel<<<blocksPerGrid_multiStream, threadsPerBlock, 0, stream[i]>>>(
+          d_kFitter, d_sourcelinks, d_pars, kfOptions, fittedTracks,
+          surfacePtrs, nSurfaces, threads, offset);
     }
-//    }
+    //    }
     GPUERRCHK(cudaPeekAtLastError());
     GPUERRCHK(cudaDeviceSynchronize());
 
@@ -336,17 +341,17 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaFree(d_kFitter));
     // GPUERRCHK(cudaFree(surfacePtrs));
     GPUERRCHK(cudaFree(surfaces));
-    GPUERRCHK(cudaFreeHost(sourcelinks)); 
-    GPUERRCHK(cudaFreeHost(startPars)); 
-    
+    GPUERRCHK(cudaFreeHost(sourcelinks));
+    GPUERRCHK(cudaFreeHost(startPars));
+
     GPUERRCHK(cudaEventRecord(stopEvent, 0));
     GPUERRCHK(cudaEventSynchronize(stopEvent));
     GPUERRCHK(cudaEventElapsedTime(&ms, startEvent, stopEvent));
     printf("Time (ms) for KF memory transfer and execution: %f\n", ms);
-    
+
   } else {
-//// Run on host
-  auto start_fit = std::chrono::high_resolution_clock::now();
+    //// Run on host
+    auto start_fit = std::chrono::high_resolution_clock::now();
 
 #pragma omp parallel for
     for (int it = 0; it < nTracks; it++) {
@@ -366,8 +371,8 @@ int main(int argc, char *argv[]) {
 
       // Dynamically allocating memory for the fitted states here
       KalmanFitterResultType kfResult;
-      kfResult.fittedStates = CudaKernelContainer<TSType>(
-          &fittedTracks[it * nSurfaces], nSurfaces);
+      kfResult.fittedStates =
+          CudaKernelContainer<TSType>(&fittedTracks[it * nSurfaces], nSurfaces);
 
       auto sourcelinkTrack = CudaKernelContainer<PixelSourceLink>(
           ress[it].sourcelinks.data(), ress[it].sourcelinks.size());
@@ -381,10 +386,10 @@ int main(int argc, char *argv[]) {
         std::cout << "fit failure for track " << it << std::endl;
       }
     }
-  auto end_fit = std::chrono::high_resolution_clock::now();
-  elapsed_seconds = end_fit - start_fit;
-  std::cout << "Time (ms) to run KalmanFitter for " << nTracks << " : "
-            << elapsed_seconds.count()*1000 << std::endl;
+    auto end_fit = std::chrono::high_resolution_clock::now();
+    elapsed_seconds = end_fit - start_fit;
+    std::cout << "Time (ms) to run KalmanFitter for " << nTracks << " : "
+              << elapsed_seconds.count() * 1000 << std::endl;
   }
 
   if (output) {

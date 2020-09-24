@@ -35,8 +35,9 @@ inline PlaneSurface<surface_bounds_t>::PlaneSurface(
     : Surface(std::move(htrans)), m_bounds(std::move(pbounds)) {}
 
 template <typename surface_bounds_t>
-inline PlaneSurface<surface_bounds_t> &Acts::PlaneSurface<surface_bounds_t>::
-operator=(const PlaneSurface<surface_bounds_t> &other) {
+inline PlaneSurface<surface_bounds_t> &
+Acts::PlaneSurface<surface_bounds_t>::operator=(
+    const PlaneSurface<surface_bounds_t> &other) {
   if (this != &other) {
     Surface::operator=(other);
     m_bounds = other.m_bounds;

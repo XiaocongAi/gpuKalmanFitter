@@ -22,11 +22,11 @@ namespace Acts {
 
 /// This is the condition that the pathLimit has been reached
 struct PathLimitReached {
-  // The default constructor 
+  // The default constructor
   PathLimitReached() = default;
 
   /// Boolean switch for Loop protection
-  //double internalLimit = std::numeric_limits<double>::max();
+  // double internalLimit = std::numeric_limits<double>::max();
 
   /// boolean operator for abort condition without using the result
   ///
@@ -59,7 +59,7 @@ struct PathLimitReached {
 /// This is the condition that the Surface has been reached
 /// it then triggers an propagation abort of the propagation
 struct SurfaceReached {
-  // The default constructor 
+  // The default constructor
   SurfaceReached() = default;
 
   /// boolean operator for abort condition without using the result

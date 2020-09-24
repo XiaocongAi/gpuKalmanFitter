@@ -152,7 +152,9 @@ template <typename bfield_t> struct EigenStepper {
   template <typename propagator_state_t>
   ACTS_DEVICE_FUNC bool step(propagator_state_t &state) const;
 
-  /// Perform a Runge-Kutta track parameter propagation step (supposed to be ran on GPU)
+#ifdef __CUDACC__
+  /// Perform a Runge-Kutta track parameter propagation step (supposed to be ran
+  /// on GPU)
   ///
   /// @param [in,out] state is the propagation state associated with the track
   /// parameters that are being propagated.
@@ -164,6 +166,7 @@ template <typename bfield_t> struct EigenStepper {
   ///                      be modified by the stepper class during propagation.
   template <typename propagator_state_t>
   __device__ bool stepOnDevice(propagator_state_t &state) const;
+#endif
 
   /// Global particle position accessor
   ///

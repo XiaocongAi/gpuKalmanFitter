@@ -53,7 +53,7 @@ template <typename action_t, typename aborter_t> struct PropagatorOptions {
   using action_type = action_t;
 
   /// Default constructor
-   PropagatorOptions() = default;
+  PropagatorOptions() = default;
 
   /// PropagatorOptions copy constructor
   PropagatorOptions(const PropagatorOptions<action_t, aborter_t> &po) = default;
@@ -133,7 +133,7 @@ public:
   template <typename propagator_options_t> struct State {
 
     /// The default constructor
-    State() = default;   
+    State() = default;
 
     /// Create the propagator state from the options
     ///
@@ -168,6 +168,7 @@ public:
                                        navigator_t navigator = navigator_t())
       : m_stepper(std::move(stepper)), m_navigator(std::move(navigator)) {}
 
+#ifdef __CUDACC__
   /// @brief Propagate track parameters
   ///
   template <typename parameters_t, typename propagator_options_t,
@@ -175,8 +176,8 @@ public:
   __device__ void propagate(
       const parameters_t &start, const propagator_options_t &options,
       typename propagator_options_t::action_type::result_type &actorResult,
-					      PropagatorResult& result)
-      const;
+      PropagatorResult &result) const;
+#endif
 
   /// @brief Propagate track parameters
   ///
