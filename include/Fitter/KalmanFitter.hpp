@@ -386,6 +386,10 @@ public:
   /// @param sourcelinks The fittable uncalibrated measurements
   /// @param sParameters The initial track parameters
   /// @param kfOptions KalmanOptions steering the fit
+  /// @param kfResult The fitted result
+  /// @param surfaceSequence The surface sequence to initialize the direct
+  /// navigator
+  /// @param surfaceSequenceSize The surface sequence size
   /// @note The input measurements are given in the form of @c SourceLinks.
   /// It's
   /// @c calibrator_t's job to turn them into calibrated measurements used in
@@ -441,7 +445,7 @@ public:
 
 #ifdef __CUDACC__
   /// Fit implementation of the foward filter, calls the
-  /// the forward filter and backward smoother
+  /// the forward filter and backward smoother (device only version)
   ///
   /// @tparam source_link_t Source link type identifying uncalibrated input
   /// measurements.
@@ -451,6 +455,10 @@ public:
   /// @param sourcelinks The fittable uncalibrated measurements
   /// @param sParameters The initial track parameters
   /// @param kfOptions KalmanOptions steering the fit
+  /// @param kfResult The fitted result
+  /// @param surfaceSequence The surface sequence to initialize the direct
+  /// navigator
+  /// @param surfaceSequenceSize The surface sequence size
   /// @note The input measurements are given in the form of @c SourceLinks.
   /// It's
   /// @c calibrator_t's job to turn them into calibrated measurements used in

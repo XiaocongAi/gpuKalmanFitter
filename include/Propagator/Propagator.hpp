@@ -168,17 +168,6 @@ public:
                                        navigator_t navigator = navigator_t())
       : m_stepper(std::move(stepper)), m_navigator(std::move(navigator)) {}
 
-#ifdef __CUDACC__
-  /// @brief Propagate track parameters
-  ///
-  template <typename parameters_t, typename propagator_options_t,
-            typename path_aborter_t = PathLimitReached>
-  __device__ void propagate(
-      const parameters_t &start, const propagator_options_t &options,
-      typename propagator_options_t::action_type::result_type &actorResult,
-      PropagatorResult &result) const;
-#endif
-
   /// @brief Propagate track parameters
   ///
   template <typename parameters_t, typename propagator_options_t,
@@ -187,6 +176,17 @@ public:
       const parameters_t &start, const propagator_options_t &options,
       typename propagator_options_t::action_type::result_type &actorResult)
       const;
+
+#ifdef __CUDACC__
+  /// @brief Propagate track parameters (device only function)
+  ///
+  template <typename parameters_t, typename propagator_options_t,
+            typename path_aborter_t = PathLimitReached>
+  __device__ void propagate(
+      const parameters_t &start, const propagator_options_t &options,
+      typename propagator_options_t::action_type::result_type &actorResult,
+      PropagatorResult &result) const;
+#endif
 
   /// @brief Get a non-const reference on the underlying stepper
   ///
