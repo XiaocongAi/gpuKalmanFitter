@@ -22,8 +22,11 @@ namespace Acts {
 
 /// This is the condition that the pathLimit has been reached
 struct PathLimitReached {
+  // The default constructor 
+  PathLimitReached() = default;
+
   /// Boolean switch for Loop protection
-  double internalLimit = std::numeric_limits<double>::max();
+  //double internalLimit = std::numeric_limits<double>::max();
 
   /// boolean operator for abort condition without using the result
   ///
@@ -34,6 +37,7 @@ struct PathLimitReached {
   template <typename propagator_state_t, typename stepper_t>
   ACTS_DEVICE_FUNC bool operator()(propagator_state_t &state,
                                    const stepper_t & /*unused*/) const {
+    double internalLimit = std::numeric_limits<double>::max();
     if (state.navigation.targetReached) {
       return true;
     }
@@ -55,6 +59,7 @@ struct PathLimitReached {
 /// This is the condition that the Surface has been reached
 /// it then triggers an propagation abort of the propagation
 struct SurfaceReached {
+  // The default constructor 
   SurfaceReached() = default;
 
   /// boolean operator for abort condition without using the result

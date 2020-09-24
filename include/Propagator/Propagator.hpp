@@ -52,8 +52,8 @@ struct PropagatorResult {
 template <typename action_t, typename aborter_t> struct PropagatorOptions {
   using action_type = action_t;
 
-  /// Delete default constructor
-  // PropagatorOptions() = delete;
+  /// Default constructor
+   PropagatorOptions() = default;
 
   /// PropagatorOptions copy constructor
   PropagatorOptions(const PropagatorOptions<action_t, aborter_t> &po) = default;
@@ -131,6 +131,10 @@ public:
   /// This struct holds the common state information for propagating
   /// which is independent of the actual stepper implementation.
   template <typename propagator_options_t> struct State {
+
+    /// The default constructor
+    State() = default;   
+
     /// Create the propagator state from the options
     ///
     /// @tparam parameters_t the type of the start parameters
@@ -168,7 +172,7 @@ public:
   ///
   template <typename parameters_t, typename propagator_options_t,
             typename path_aborter_t = PathLimitReached>
-  ACTS_DEVICE_FUNC void propagate(
+  __device__ void propagate(
       const parameters_t &start, const propagator_options_t &options,
       typename propagator_options_t::action_type::result_type &actorResult,
 					      PropagatorResult& result)

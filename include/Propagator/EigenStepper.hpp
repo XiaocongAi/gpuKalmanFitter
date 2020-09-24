@@ -25,8 +25,8 @@ template <typename bfield_t> struct EigenStepper {
   /// It contains the stepping information and is provided thread local
   /// by the propagator
   struct State {
-    /// Default constructor - deleted
-    State() = delete;
+    /// Default constructor
+    State() = default;
 
     /// Constructor from the initial track parameters
     ///
@@ -107,7 +107,7 @@ template <typename bfield_t> struct EigenStepper {
     double tolerance = s_onSurfaceTolerance;
 
     /// The geometry context
-    const GeometryContext geoContext;
+    GeometryContext geoContext;
 
     // /// @brief Storage of magnetic field and the sub steps during a RKN4 step
     // struct {
@@ -151,6 +151,19 @@ template <typename bfield_t> struct EigenStepper {
   ///                      be modified by the stepper class during propagation.
   template <typename propagator_state_t>
   ACTS_DEVICE_FUNC bool step(propagator_state_t &state) const;
+
+  /// Perform a Runge-Kutta track parameter propagation step (supposed to be ran on GPU)
+  ///
+  /// @param [in,out] state is the propagation state associated with the track
+  /// parameters that are being propagated.
+  ///
+  ///                      the state contains the desired step size.
+  ///                      It can be negative during backwards track
+  ///                      propagation,
+  ///                      and since we're using an adaptive algorithm, it can
+  ///                      be modified by the stepper class during propagation.
+  template <typename propagator_state_t>
+  __device__ bool stepOnDevice(propagator_state_t &state) const;
 
   /// Global particle position accessor
   ///

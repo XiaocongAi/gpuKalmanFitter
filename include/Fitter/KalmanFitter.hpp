@@ -55,6 +55,7 @@ struct KalmanFitterOptions {
 
   /// Deleted default constructor
   // KalmanFitterOptions() = delete;
+  KalmanFitterOptions() = default;
 
   /// PropagatorOptions with context
   ///
@@ -89,45 +90,6 @@ struct KalmanFitterOptions {
 template <typename source_link_t, typename parameters_t>
 struct KalmanFitterResult {
   using TrackStateType = TrackState<source_link_t, parameters_t>;
-
-  // /// Delete default constructor
-  // KalmanFitterResult() = delete;
-
-  ///// Constructor with states size
-  /////
-  ///// @param [in] nStates The number of states on track (has to decided upon
-  /// creation)
-  // ACTS_DEVICE_FUNC KalmanFitterResult(size_t nStates) {
-  //  fittedStates = CudaKernelContainer<TrackStateType>(new
-  //  TrackStateType[nStates], nStates);
-  //}
-
-  // /// Copy constructor
-  // ///
-  // /// @param rhs is the source Grid
-  // ACTS_DEVICE_FUNC KalmanFitterResult(const KalmanFitterResult &rhs){
-  //   size_t nStates = rhs.fittedStates.size();
-  //   fittedStates  = CudaKernelContainer<TrackStateType>(new
-  //   TrackStateType[nStates], nStates); memcpy(fittedStates.array(),
-  //   rhs.fittedStates.array(), sizeof(TrackStateType) * nStates);
-  // }
-
-  //  /// Assignment constructor
-  /////
-  ///// @param rhs is the source Grid
-  // ACTS_DEVICE_FUNC KalmanFitterResult&operator=(const KalmanFitterResult
-  // &rhs) {
-  // size_t nStates = rhs.fittedStates.size();
-  // fittedStates  = CudaKernelContainer<TrackStateType>(new
-  // TrackStateType[nStates], nStates); memcpy(fittedStates.array(),
-  // rhs.fittedStates.array(), sizeof(TrackStateType) * nStates);
-  //
-  // return (*this);
-  //}
-
-  ///// @brief default destructor
-  /////
-  // ACTS_DEVICE_FUNC ~KalmanFitterResult() { delete[] fittedStates.array(); }
 
   // Fitted states that the actor has handled.
   CudaKernelContainer<TrackStateType> fittedStates;
@@ -413,7 +375,7 @@ private:
   };
 
 public:
-  /// Fit implementation of the foward filter, calls the
+   /// Fit implementation of the foward filter, calls the
   /// the forward filter and backward smoother
   ///
   /// @tparam source_link_t Source link type identifying uncalibrated input
@@ -434,6 +396,71 @@ public:
             typename parameters_t = BoundParameters>
   ACTS_DEVICE_FUNC bool
   fit(const CudaKernelContainer<source_link_t> &sourcelinks,
+      const start_parameters_t &sParameters,
+      const KalmanFitterOptions<outlier_finder_t> &kfOptions,
+      KalmanFitterResult<source_link_t, parameters_t> &kfResult,
+      const Surface *surfaceSequence = nullptr,
+      size_t surfaceSequenceSize = 0) const {
+
+    PUSH_RANGE("fit", 0);
+
+    // printf("Preparing %lu input measurements\n", sourcelinks.size());
+    // Create the ActionList and AbortList
+    using KalmanAborter = Aborter<source_link_t, parameters_t>;
+    using KalmanActor = Actor<source_link_t, parameters_t>;
+    using KalmanResult = typename KalmanActor::result_type;
+
+    // Create relevant options for the propagation options
+    PropagatorOptions<KalmanActor, KalmanAborter> kalmanOptions(
+        kfOptions.geoContext, kfOptions.magFieldContext);
+    kalmanOptions.initializer.surfaceSequence = surfaceSequence;
+    kalmanOptions.initializer.surfaceSequenceSize = surfaceSequenceSize;
+
+    // Catch the actor and set the measurements
+    auto &kalmanActor = kalmanOptions.action;
+    kalmanActor.inputMeasurements = std::move(sourcelinks);
+    kalmanActor.targetSurface = kfOptions.referenceSurface;
+
+    // Set config for outlier finder
+    kalmanActor.m_outlierFinder = kfOptions.outlierFinder;
+
+    // Run the fitter
+    const auto propRes =
+        m_propagator.template propagate(sParameters, kalmanOptions, kfResult);
+
+    POP_RANGE();
+
+    if (!kfResult.result) {
+      printf("KalmanFilter failed: \n");
+      return false;
+    }
+
+    // Return the converted Track
+    return true;
+  }
+
+
+  /// Fit implementation of the foward filter, calls the
+  /// the forward filter and backward smoother
+  ///
+  /// @tparam source_link_t Source link type identifying uncalibrated input
+  /// measurements.
+  /// @tparam start_parameters_t Type of the initial parameters
+  /// @tparam parameters_t Type of parameters used for local parameters
+  ///
+  /// @param sourcelinks The fittable uncalibrated measurements
+  /// @param sParameters The initial track parameters
+  /// @param kfOptions KalmanOptions steering the fit
+  /// @note The input measurements are given in the form of @c SourceLinks.
+  /// It's
+  /// @c calibrator_t's job to turn them into calibrated measurements used in
+  /// the fit.
+  ///
+  /// @return the output as an output track
+  template <typename source_link_t, typename start_parameters_t,
+            typename parameters_t = BoundParameters>
+  __device__ bool
+  fitOnDevice(const CudaKernelContainer<source_link_t> &sourcelinks,
       const start_parameters_t &sParameters,
       const KalmanFitterOptions<outlier_finder_t> &kfOptions,
       KalmanFitterResult<source_link_t, parameters_t> &kfResult,

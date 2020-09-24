@@ -17,7 +17,7 @@ ACTS_DEVICE_FUNC PropagatorResult Acts::Propagator<S, N>::propagate(
   StateType state(start, options);
 
   path_aborter_t pathAborter;
-  pathAborter.internalLimit = options.pathLimit;
+//  pathAborter.internalLimit = options.pathLimit;
 
   state.options.initializer(state, m_stepper, result.initializerResult);
   // Navigator initialize state call
@@ -100,13 +100,13 @@ ACTS_DEVICE_FUNC PropagatorResult Acts::Propagator<S, N>::propagate(
 template <typename S, typename N>
 template <typename parameters_t, typename propagator_options_t,
           typename path_aborter_t>
-ACTS_DEVICE_FUNC void Acts::Propagator<S, N>::propagate(
+void Acts::Propagator<S, N>::propagate(
     const parameters_t &start, const propagator_options_t &options,
     typename propagator_options_t::action_type::result_type &actorResult,
     PropagatorResult& result)
     const {
 
-  const bool IS_MAIN_THREAD = threadIdx.x == 0 && threadIdx.y == 0;
+  const bool IS_MAIN_THREAD = (threadIdx.x == 0 && threadIdx.y == 0);
   
   using StateType = State<propagator_options_t>;
   
@@ -118,7 +118,7 @@ ACTS_DEVICE_FUNC void Acts::Propagator<S, N>::propagate(
 
   if (IS_MAIN_THREAD) {
     state = StateType(start, options);
-    pathAborter.internalLimit = options.pathLimit;
+    //pathAborter.internalLimit = options.pathLimit;
     
     state.options.initializer(state, m_stepper, result.initializerResult);
     // Navigator initialize state call
@@ -157,7 +157,7 @@ ACTS_DEVICE_FUNC void Acts::Propagator<S, N>::propagate(
       // maybe don't need syncthreads here
       __syncthreads();
 
-      bool res = m_stepper.step(state);
+      bool res = m_stepper.stepOnDevice(state);
       // How to handle the error here
       // if (not res) {
       //}

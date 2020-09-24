@@ -126,7 +126,115 @@ template <typename propagator_state_t>
 ACTS_DEVICE_FUNC bool
 Acts::EigenStepper<B>::step(propagator_state_t &state) const {
 
-  const bool IS_MAIN_THREAD = threadIdx.x == 0 && threadIdx.y == 0;
+  // Construt a stepping data here
+  detail::StepData sd;
+  // Default constructor will result in wrong value on GPU
+  double error_estimate = 0.;
+
+  // First Runge-Kutta point (at current position)
+  sd.B_first = getField(state.stepping, state.stepping.pos);
+  sd.k1 = detail::evaluatek(state, sd.B_first, 0);
+
+  // The following functor starts to perform a Runge-Kutta step of a certain
+  // size, going up to the point where it can return an estimate of the local
+  // integration error. The results are stated in the local variables above,
+  // allowing integration to continue once the error is deemed satisfactory
+  const auto tryRungeKuttaStep = [&](const ConstrainedStep &h) -> bool {
+    // State the square and half of the step size
+    const double h2 = h * h;
+    const double half_h = h * 0.5;
+
+    // Second Runge-Kutta point
+    const Vector3D pos1 =
+        state.stepping.pos + half_h * state.stepping.dir + h2 * 0.125 * sd.k1;
+    sd.B_middle = getField(state.stepping, pos1);
+    sd.k2 = detail::evaluatek(state, sd.B_middle, 1, half_h, sd.k1);
+
+    // Third Runge-Kutta point
+    sd.k3 = detail::evaluatek(state, sd.B_middle, 2, half_h, sd.k2);
+
+    // Last Runge-Kutta point
+    const Vector3D pos2 =
+        state.stepping.pos + h * state.stepping.dir + h2 * 0.5 * sd.k3;
+    sd.B_last = getField(state.stepping, pos2);
+    sd.k4 = detail::evaluatek(state, sd.B_last, 3, h, sd.k3);
+
+    // Compute and check the local integration error estimate
+    // @Todo
+    error_estimate = std::max(
+        h2 * (sd.k1 - sd.k2 - sd.k3 + sd.k4).template lpNorm<1>(), 1e-20);
+    return (error_estimate <= state.options.tolerance);
+  };
+
+  double stepSizeScaling = 1.;
+  size_t nStepTrials = 0;
+  // Select and adjust the appropriate Runge-Kutta step size as given
+  // ATL-SOFT-PUB-2009-001
+  while (!tryRungeKuttaStep(state.stepping.stepSize)) {
+    stepSizeScaling =
+        std::min(std::max(0.25, std::pow((state.options.tolerance /
+                                          std::abs(2. * error_estimate)),
+                                         0.25)),
+                 4.);
+    // if (stepSizeScaling == 1.) {
+    // break;
+    //}
+    state.stepping.stepSize = state.stepping.stepSize * stepSizeScaling;
+
+    // Todo: adapted error handling on GPU?
+    // If step size becomes too small the particle remains at the initial
+    // place
+    if (state.stepping.stepSize * state.stepping.stepSize <
+        state.options.stepSizeCutOff * state.options.stepSizeCutOff) {
+      // Not moving due to too low momentum needs an aborter
+      return false;
+    }
+
+    // If the parameter is off track too much or given stepSize is not
+    // appropriate
+    if (nStepTrials > state.options.maxRungeKuttaStepTrials) {
+      // Too many trials, have to abort
+      return false;
+    }
+    nStepTrials++;
+  }
+
+  // use the adjusted step size
+  const double h = state.stepping.stepSize;
+
+  // Propagate the time
+  detail::propagationTime(state, h);
+
+  // When doing error propagation, update the associated Jacobian matrix
+  // The step transport matrix in global coordinates
+  if (state.stepping.covTransport) {
+    // for moment, only update the transport part
+        FreeMatrix D;
+        detail::transportMatrix(state, sd, h, D);
+        state.stepping.jacTransport = D * state.stepping.jacTransport;
+  }
+
+  // Update the track parameters according to the equations of motion
+  state.stepping.pos +=
+      h * state.stepping.dir + h * h / 6. * (sd.k1 + sd.k2 + sd.k3);
+  state.stepping.dir += h / 6. * (sd.k1 + 2. * (sd.k2 + sd.k3) + sd.k4);
+  state.stepping.dir /= state.stepping.dir.norm();
+  if (state.stepping.covTransport) {
+    state.stepping.derivative.template head<3>() = state.stepping.dir;
+    state.stepping.derivative.template segment<3>(4) = sd.k4;
+  }
+  state.stepping.pathAccumulated += h;
+  // return h;
+  return true;
+}
+
+
+template <typename B>
+template <typename propagator_state_t>
+__device__ bool
+Acts::EigenStepper<B>::stepOnDevice(propagator_state_t &state) const {
+
+  const bool IS_MAIN_THREAD = (threadIdx.x == 0 && threadIdx.y == 0);
 
   // Construt a stepping data here
   __shared__ detail::StepData sd;
