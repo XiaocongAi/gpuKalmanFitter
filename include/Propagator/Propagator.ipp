@@ -101,7 +101,7 @@ ACTS_DEVICE_FUNC PropagatorResult Acts::Propagator<S, N>::propagate(
 template <typename S, typename N>
 template <typename parameters_t, typename propagator_options_t,
           typename path_aborter_t>
-void Acts::Propagator<S, N>::propagate(
+__device__ void Acts::Propagator<S, N>::propagate(
     const parameters_t &start, const propagator_options_t &options,
     typename propagator_options_t::action_type::result_type &actorResult,
     PropagatorResult &result) const {

@@ -412,7 +412,6 @@ public:
     // Create the ActionList and AbortList
     using KalmanAborter = Aborter<source_link_t, parameters_t>;
     using KalmanActor = Actor<source_link_t, parameters_t>;
-    using KalmanResult = typename KalmanActor::result_type;
 
     // Create relevant options for the propagation options
     PropagatorOptions<KalmanActor, KalmanAborter> kalmanOptions(
@@ -482,7 +481,6 @@ public:
     // Create the ActionList and AbortList
     using KalmanAborter = Aborter<source_link_t, parameters_t>;
     using KalmanActor = Actor<source_link_t, parameters_t>;
-    using KalmanResult = typename KalmanActor::result_type;
 
     // Create relevant options for the propagation options
     __shared__ PropagatorOptions<KalmanActor, KalmanAborter> kalmanOptions;

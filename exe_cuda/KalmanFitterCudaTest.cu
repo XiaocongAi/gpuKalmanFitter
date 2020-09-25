@@ -129,15 +129,18 @@ int main(int argc, char *argv[]) {
   size_t nSurfaces = 10;
   const int sourcelinksBytes = sizeof(PixelSourceLink) * nSurfaces * nTracks;
   const int parsBytes = sizeof(CurvilinearParameters) * nTracks;
+  const int tsBytes = sizeof(TSType) * nSurfaces * nTracks;
   const int perStreamSourcelinksBytes =
       sizeof(PixelSourceLink) * nSurfaces * threadsPerStream;
   const int perStreamParsBytes =
       sizeof(CurvilinearParameters) * threadsPerStream;
+  const int perStreamTSsBytes = sizeof(TSType) * nSurfaces * threadsPerStream;
+
   const int lastStreamSourcelinksBytes =
       sizeof(PixelSourceLink) * nSurfaces * threadsLastStream;
   const int lastStreamParsBytes =
       sizeof(CurvilinearParameters) * threadsLastStream;
-  const int tsBytes = sizeof(TSType) * nSurfaces * nTracks;
+  const int lastStreamTSsBytes = sizeof(TSType) * nSurfaces * threadsLastStream;
 
   // Create a test context
   GeometryContext gctx(0);
@@ -150,7 +153,6 @@ int main(int argc, char *argv[]) {
     translations.push_back({(isur * 30. + 19) * Acts::units::_mm, 0., 0.});
   }
 
-  // PlaneSurfaceType surfaces[nSurfaces];
   PlaneSurfaceType *surfaces;
   // Unifited memory allocation for geometry
   GPUERRCHK(cudaMallocManaged(&surfaces, sizeof(PlaneSurfaceType) * nSurfaces));
@@ -292,7 +294,7 @@ int main(int argc, char *argv[]) {
 
   // Allocate memory for KF fitted tracks
   TSType *fittedTracks;
-  GPUERRCHK(cudaMallocManaged(&fittedTracks, tsBytes));
+  GPUERRCHK(cudaMallocHost((void **)&fittedTracks, tsBytes));
 
   // Running directly on host or offloading to GPU
   bool useGPU = (device == "gpu" ? true : false);
@@ -303,11 +305,13 @@ int main(int argc, char *argv[]) {
     PixelSourceLink *d_sourcelinks;
     CurvilinearParameters *d_pars;
     KalmanFitterType *d_kFitter;
+    TSType *d_fittedTracks;
     GPUERRCHK(cudaMalloc(&d_sourcelinks, sourcelinksBytes));
     GPUERRCHK(cudaMalloc(&d_pars, parsBytes));
+    GPUERRCHK(cudaMalloc(&d_fittedTracks, tsBytes));
     GPUERRCHK(cudaMalloc(&d_kFitter, sizeof(KalmanFitterType)));
 
-    // Copy from host to device
+    // Copy the KalmanFitter from host to device (shared between all threads)
     GPUERRCHK(cudaMemcpy(d_kFitter, &kFitter, sizeof(KalmanFitterType),
                          cudaMemcpyHostToDevice));
 
@@ -318,28 +322,41 @@ int main(int argc, char *argv[]) {
       // Note: need special handling here
       const int threads =
           (i == (nStreams - 1) ? threadsLastStream : threadsPerStream);
+      // The bytes per stream for source links
       const int sBytes = (i == (nStreams - 1) ? lastStreamSourcelinksBytes
                                               : perStreamSourcelinksBytes);
+      // The bytes per stream for starting parameters
       const int pBytes =
           (i == (nStreams - 1) ? lastStreamParsBytes : perStreamParsBytes);
+      // The bytes per stream for fitted tracks
+      const int tBytes =
+          (i == (nStreams - 1) ? lastStreamTSsBytes : perStreamTSsBytes);
       GPUERRCHK(cudaMemcpyAsync(&d_sourcelinks[offset * nSurfaces],
                                 &sourcelinks[offset * nSurfaces], sBytes,
                                 cudaMemcpyHostToDevice, stream[i]));
       GPUERRCHK(cudaMemcpyAsync(&d_pars[offset], &startPars[offset], pBytes,
                                 cudaMemcpyHostToDevice, stream[i]));
+      GPUERRCHK(cudaMemcpyAsync(&d_fittedTracks[offset], &fittedTracks[offset],
+                                tBytes, cudaMemcpyHostToDevice, stream[i]));
       fitKernel<<<blocksPerGrid_multiStream, threadsPerBlock, 0, stream[i]>>>(
-          d_kFitter, d_sourcelinks, d_pars, kfOptions, fittedTracks,
+          d_kFitter, d_sourcelinks, d_pars, kfOptions, d_fittedTracks,
           surfacePtrs, nSurfaces, threads, offset);
+      GPUERRCHK(cudaEventRecord(stopEvent, stream[i]));
+      GPUERRCHK(cudaEventSynchronize(stopEvent));
+      // copy the fitted tracks to host
+      GPUERRCHK(cudaMemcpyAsync(&fittedTracks[offset], &d_fittedTracks[offset],
+                                tBytes, cudaMemcpyDeviceToHost, stream[i]));
     }
     //    }
+
     GPUERRCHK(cudaPeekAtLastError());
     GPUERRCHK(cudaDeviceSynchronize());
 
     // Free the memory on device
     GPUERRCHK(cudaFree(d_sourcelinks));
     GPUERRCHK(cudaFree(d_pars));
+    GPUERRCHK(cudaFree(d_fittedTracks));
     GPUERRCHK(cudaFree(d_kFitter));
-    // GPUERRCHK(cudaFree(surfacePtrs));
     GPUERRCHK(cudaFree(surfaces));
     GPUERRCHK(cudaFreeHost(sourcelinks));
     GPUERRCHK(cudaFreeHost(startPars));
@@ -420,7 +437,7 @@ int main(int argc, char *argv[]) {
   std::cout << "------------------------  ending  -----------------------"
             << std::endl;
 
-  GPUERRCHK(cudaFree(fittedTracks));
+  GPUERRCHK(cudaFreeHost(fittedTracks));
 
   return 0;
 }
