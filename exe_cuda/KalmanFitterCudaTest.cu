@@ -127,6 +127,7 @@ int main(int argc, char *argv[]) {
 
   // The number of test surfaces
   size_t nSurfaces = 10;
+  const int surfaceBytes = sizeof(PlaneSurfaceType) * nSurfaces;
   const int sourcelinksBytes = sizeof(PixelSourceLink) * nSurfaces * nTracks;
   const int parsBytes = sizeof(CurvilinearParameters) * nTracks;
   const int tsBytes = sizeof(TSType) * nSurfaces * nTracks;
@@ -135,6 +136,11 @@ int main(int argc, char *argv[]) {
   const int perStreamParsBytes =
       sizeof(CurvilinearParameters) * threadsPerStream;
   const int perStreamTSsBytes = sizeof(TSType) * nSurfaces * threadsPerStream;
+
+  std::cout << "surface Bytes = " << surfaceBytes << std::endl;
+  std::cout << "source links Bytes = " << sourcelinksBytes << std::endl;
+  std::cout << "startPars Bytes = " << parsBytes << std::endl;
+  std::cout << "TSs Bytes = " << tsBytes << std::endl;
 
   const int lastStreamSourcelinksBytes =
       sizeof(PixelSourceLink) * nSurfaces * threadsLastStream;
