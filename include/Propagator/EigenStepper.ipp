@@ -338,11 +338,14 @@ Acts::EigenStepper<B>::stepOnDevice(propagator_state_t &state) const {
   // When doing error propagation, update the associated Jacobian matrix
   // The step transport matrix in global coordinates
   if (state.stepping.covTransport) {
-    jacTransport(threadIdx.x, threadIdx.y) =
-        state.stepping.jacTransport(threadIdx.x, threadIdx.y);
+    if (IS_MAIN_THREAD) {
+      jacTransport(threadIdx.x, threadIdx.y) = 0;
+      //     state.stepping.jacTransport(threadIdx.x, threadIdx.y);
 
-    // for moment, only update the transport part
-    detail::transportMatrix(state, sd, h, jacTransport);
+      // for moment, only update the transport part
+      detail::transportMatrix(state, sd, h, jacTransport);
+    }
+    __syncthreads();
 
     double acc = 0.0;
     for (int i = 0; i < 8; ++i) {

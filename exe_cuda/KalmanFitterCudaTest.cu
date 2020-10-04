@@ -47,7 +47,8 @@ using Stepper = EigenStepper<ConstantBField>;
 // using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
 using PropagatorType = Propagator<Stepper>;
 using PropResultType = PropagatorResult;
-using PropOptionsType = PropagatorOptions<MeasurementCreator, VoidAborter>;
+using SimPropOptionsType = PropagatorOptions<MeasurementCreator, VoidAborter>;
+using PropState = PropagatorType::State<SimPropOptionsType>;
 
 using KalmanFitterType = KalmanFitter<PropagatorType, GainMatrixUpdater>;
 using KalmanFitterResultType =
@@ -69,6 +70,7 @@ __global__ void __launch_bounds__(256, 2)
     KalmanFitterResultType kfResult;
     kfResult.fittedStates =
         CudaKernelContainer<TSType>(fittedTracks + i * nSurfaces, nSurfaces);
+    // kFitter->fitOnDevice(CudaKernelContainer<PixelSourceLink>(
     kFitter->fit(CudaKernelContainer<PixelSourceLink>(
                      sourcelinks + i * nSurfaces, nSurfaces),
                  tpars[i], kfOptions, kfResult, surfacePtrs, nSurfaces);
@@ -124,6 +126,10 @@ int main(int argc, char *argv[]) {
       (threadsPerStream + threadsPerBlock - 1) / threadsPerBlock;
   std::cout << "threadsPerStream = " << threadsPerStream << std::endl;
   std::cout << "threadsLastStream = " << threadsLastStream << std::endl;
+
+  int sharedMemoryPerTrack = sizeof(PathLimitReached) + sizeof(PropState) +
+                             sizeof(bool) * 2 + sizeof(PropagatorResult);
+  std::cout << "shared memory is " << sharedMemoryPerTrack << std::endl;
 
   // The number of test surfaces
   size_t nSurfaces = 10;
@@ -187,7 +193,7 @@ int main(int argc, char *argv[]) {
   // Construct a stepper with the bField
   Stepper stepper;
   PropagatorType propagator(stepper);
-  PropOptionsType propOptions(gctx, mctx);
+  SimPropOptionsType propOptions(gctx, mctx);
   propOptions.maxSteps = 100;
   propOptions.initializer.surfaceSequence = surfacePtrs;
   propOptions.initializer.surfaceSequenceSize = nSurfaces;
@@ -321,6 +327,9 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaMemcpy(d_kFitter, &kFitter, sizeof(KalmanFitterType),
                          cudaMemcpyHostToDevice));
 
+    dim3 grid(40);    // 40 x 1 x 1
+    dim3 block(8, 8); // 8 x 8 x 1
+
     // Run on device
     //    for (int _ : {1, 2, 3, 4, 5}) {
     for (int i = 0; i < nStreams; ++i) {
@@ -344,7 +353,11 @@ int main(int argc, char *argv[]) {
                                 cudaMemcpyHostToDevice, stream[i]));
       GPUERRCHK(cudaMemcpyAsync(&d_fittedTracks[offset], &fittedTracks[offset],
                                 tBytes, cudaMemcpyHostToDevice, stream[i]));
-      fitKernel<<<blocksPerGrid_multiStream, threadsPerBlock, 0, stream[i]>>>(
+      // fitKernel<<<blocksPerGrid_multiStream, threadsPerBlock, 0,
+      // stream[i]>>>(
+      //    d_kFitter, d_sourcelinks, d_pars, kfOptions, d_fittedTracks,
+      //    surfacePtrs, nSurfaces, threads, offset);
+      fitKernel<<<grid, block, 0, stream[i]>>>(
           d_kFitter, d_sourcelinks, d_pars, kfOptions, d_fittedTracks,
           surfacePtrs, nSurfaces, threads, offset);
       GPUERRCHK(cudaEventRecord(stopEvent, stream[i]));

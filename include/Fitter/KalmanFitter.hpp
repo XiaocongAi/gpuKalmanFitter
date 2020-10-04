@@ -482,9 +482,10 @@ public:
     using KalmanAborter = Aborter<source_link_t, parameters_t>;
     using KalmanActor = Actor<source_link_t, parameters_t>;
 
+    printf("sizeof kalmanOptions = %d\n",
+           sizeof(PropagatorOptions<KalmanActor, KalmanAborter>));
     // Create relevant options for the propagation options
     __shared__ PropagatorOptions<KalmanActor, KalmanAborter> kalmanOptions;
-    __shared__ KalmanActor *kalmanActorPtr;
     __shared__ PropagatorResult propRes;
 
     if (IS_MAIN_THREAD) {
@@ -494,12 +495,11 @@ public:
       kalmanOptions.initializer.surfaceSequenceSize = surfaceSequenceSize;
 
       // Catch the actor and set the measurements
-      kalmanActorPtr = &kalmanOptions.action;
-      kalmanActorPtr->inputMeasurements = std::move(sourcelinks);
-      kalmanActorPtr->targetSurface = kfOptions.referenceSurface;
+      kalmanOptions.action.inputMeasurements = std::move(sourcelinks);
+      kalmanOptions.action.targetSurface = kfOptions.referenceSurface;
 
       // Set config for outlier finder
-      kalmanActorPtr->m_outlierFinder = kfOptions.outlierFinder;
+      kalmanOptions.action.m_outlierFinder = kfOptions.outlierFinder;
     }
     __syncthreads();
 
