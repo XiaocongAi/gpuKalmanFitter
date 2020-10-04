@@ -482,8 +482,6 @@ public:
     using KalmanAborter = Aborter<source_link_t, parameters_t>;
     using KalmanActor = Actor<source_link_t, parameters_t>;
 
-    printf("sizeof kalmanOptions = %d\n",
-           sizeof(PropagatorOptions<KalmanActor, KalmanAborter>));
     // Create relevant options for the propagation options
     __shared__ PropagatorOptions<KalmanActor, KalmanAborter> kalmanOptions;
     __shared__ PropagatorResult propRes;
