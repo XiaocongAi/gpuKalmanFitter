@@ -42,6 +42,7 @@ static void show_usage(std::string name) {
             << "\t-d,--device \tSpecify the device: 'gpu' or 'cpu'\n"
 	    << "\t-g,--grid-size \tSpecify GPU grid size: 'x*y'\n"
 	    << "\t-b,--block-size \tSpecify GPU block size: 'x*y*z'\n"
+            << "\t-s,--shared-memory \tIndicator for using shared memory for one track or not\n"
             << std::endl;
 }
 
@@ -62,7 +63,7 @@ using PlaneSurfaceType = PlaneSurface<InfiniteBounds>;
 
 // Device code
 __global__ void __launch_bounds__(256, 2)
-    fitKernel(KalmanFitterType *kFitter, PixelSourceLink *sourcelinks,
+    fitKernelThreadPerTrack(KalmanFitterType *kFitter, PixelSourceLink *sourcelinks,
               CurvilinearParameters *tpars,
               KalmanFitterOptions<VoidOutlierFinder> kfOptions,
               TSType *fittedTracks, const Surface *surfacePtrs, int nSurfaces,
@@ -73,12 +74,30 @@ __global__ void __launch_bounds__(256, 2)
     KalmanFitterResultType kfResult;
     kfResult.fittedStates =
         CudaKernelContainer<TSType>(fittedTracks + i * nSurfaces, nSurfaces);
-    // kFitter->fitOnDevice(CudaKernelContainer<PixelSourceLink>(
     kFitter->fit(CudaKernelContainer<PixelSourceLink>(
                      sourcelinks + i * nSurfaces, nSurfaces),
                  tpars[i], kfOptions, kfResult, surfacePtrs, nSurfaces);
   }
 }
+
+__global__ void __launch_bounds__(256, 2)
+    fitKernelBlockPerTrack(KalmanFitterType *kFitter, PixelSourceLink *sourcelinks,
+              CurvilinearParameters *tpars,
+              KalmanFitterOptions<VoidOutlierFinder> kfOptions,
+              TSType *fittedTracks, const Surface *surfacePtrs, int nSurfaces,
+              int nTracks, int offset) {
+  int i = blockDim.x * blockIdx.x + threadIdx.x + offset;
+  if (i < (nTracks + offset)) {
+    // Use the CudaKernelContainer for the source links and fitted tracks
+    KalmanFitterResultType kfResult;
+    kfResult.fittedStates =
+        CudaKernelContainer<TSType>(fittedTracks + i * nSurfaces, nSurfaces);
+    kFitter->fitOnDevice(CudaKernelContainer<PixelSourceLink>(
+                     sourcelinks + i * nSurfaces, nSurfaces),
+                 tpars[i], kfOptions, kfResult, surfacePtrs, nSurfaces);
+  }
+}
+
 
 int main(int argc, char *argv[]) {
   //  if (argc < 5) {
@@ -87,6 +106,7 @@ int main(int argc, char *argv[]) {
   //  }
   unsigned int nTracks = 10240;
   bool output = false;
+  bool useSharedMemory = true;
   std::string device = "cpu";
   std::string bFieldFileName;
   double p = 1 * Acts::units::_GeV;
@@ -109,6 +129,8 @@ int main(int argc, char *argv[]) {
         grid = stringToDim3(argv[++i]);
       } else if ((arg == "-b") or (arg == "--block-size")){
         block = stringToDim3(argv[++i]);
+      } else if ((arg == "-s") or (arg == "--shared-memory")) {
+        useSharedMemory = (atoi(argv[++i]) == 1);
       } else {
         std::cerr << "Unknown argument." << std::endl;
         return 1;
@@ -125,7 +147,19 @@ int main(int argc, char *argv[]) {
   printf("Device : %s\n", prop.name);
   GPUERRCHK(cudaSetDevice(devId));
 
-  const int threadsPerBlock = 256, nStreams = 4;
+  int driverVersion;
+  GPUERRCHK(cudaDriverGetVersion(&driverVersion));
+  printf("cuda driver version: %i\n", driverVersion);
+
+  int rtVersion;
+  GPUERRCHK(cudaRuntimeGetVersion(&rtVersion));
+  printf("cuda rt version: %i\n", rtVersion);
+
+  dim3 block(8, 8); // 8 x 8 x 1
+
+  const int threadsPerBlock = useSharedMemory?64:256;
+
+  const int nStreams = 4;
   // The last stream could could less threads
   const int threadsPerStream = (nTracks + nStreams - 1) / nStreams;
   const int overflowThreads = threadsPerStream * nStreams - nTracks;
@@ -363,13 +397,17 @@ int main(int argc, char *argv[]) {
                                 cudaMemcpyHostToDevice, stream[i]));
       GPUERRCHK(cudaMemcpyAsync(&d_fittedTracks[offset], &fittedTracks[offset],
                                 tBytes, cudaMemcpyHostToDevice, stream[i]));
-      // fitKernel<<<blocksPerGrid_multiStream, threadsPerBlock, 0,
-      // stream[i]>>>(
-      //    d_kFitter, d_sourcelinks, d_pars, kfOptions, d_fittedTracks,
-      //    surfacePtrs, nSurfaces, threads, offset);
-      fitKernel<<<grid, block, 0, stream[i]>>>(
+      
+      if(useSharedMemory){ 
+         fitKernelBlockPerTrack<<<blocksPerGrid_multiStream, block, 0, stream[i]>>>(
           d_kFitter, d_sourcelinks, d_pars, kfOptions, d_fittedTracks,
           surfacePtrs, nSurfaces, threads, offset);
+      }else{
+        fitKernelThreadPerTrack<<<blocksPerGrid_multiStream, threadsPerBlock, 0,
+        stream[i]>>>(
+           d_kFitter, d_sourcelinks, d_pars, kfOptions, d_fittedTracks,
+           surfacePtrs, nSurfaces, threads, offset);
+      }
       GPUERRCHK(cudaEventRecord(stopEvent, stream[i]));
       GPUERRCHK(cudaEventSynchronize(stopEvent));
       // copy the fitted tracks to host
