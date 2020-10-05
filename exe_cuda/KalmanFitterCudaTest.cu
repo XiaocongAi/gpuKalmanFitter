@@ -390,6 +390,12 @@ int main(int argc, char *argv[]) {
       // The bytes per stream for fitted tracks
       const int tBytes =
           (i == (nStreams - 1) ? lastStreamTSsBytes : perStreamTSsBytes);
+    
+      if(i==0){
+         // @note: prefetch the surface or not
+         cudaMemPrefetchAsync(surfaces, surfaceBytes, devId, stream[i]);
+      }
+
       GPUERRCHK(cudaMemcpyAsync(&d_sourcelinks[offset * nSurfaces],
                                 &sourcelinks[offset * nSurfaces], sBytes,
                                 cudaMemcpyHostToDevice, stream[i]));
