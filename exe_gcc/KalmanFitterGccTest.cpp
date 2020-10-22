@@ -11,6 +11,7 @@
 #include "Test/TestHelper.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
 #include "Utilities/Units.hpp"
+#include "Utilities/Logger.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -236,6 +237,7 @@ int main(int argc, char *argv[]) {
   KalmanFitterOptions<VoidOutlierFinder> kfOptions(gctx, mctx);
 
   std::vector<TrackState> fittedTracks(nSurfaces * nTracks);
+  int threads = 1;
 
   auto start_fit = std::chrono::high_resolution_clock::now();
   // #pragma omp parallel for
@@ -266,12 +268,17 @@ int main(int argc, char *argv[]) {
     if (not fitStatus) {
       std::cout << "fit failure for track " << it << std::endl;
     }
+     threads = omp_get_num_threads();
   }
 
   auto end_fit = std::chrono::high_resolution_clock::now();
   elapsed_seconds = end_fit - start_fit;
   std::cout << "Time (sec) to run KalmanFitter for " << nTracks << " : "
             << elapsed_seconds.count() << std::endl;
+
+  // Log execution time in csv file
+  Logger::logTime(Logger::buildFilename("nTracks", std::to_string(nTracks), "OMP_NumThreads", std::to_string(threads)), 
+	  elapsed_seconds.count()); 
 
   if (output) {
     std::cout << "writing KF results" << std::endl;
