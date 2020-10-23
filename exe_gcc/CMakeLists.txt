@@ -1,5 +1,5 @@
 add_executable(KalmanFitterGccTest KalmanFitterGccTest.cpp)
-target_link_libraries(KalmanFitterGccTest Actscore)
+target_link_libraries(KalmanFitterGccTest Actscore PerfTesting)
 
 install(TARGETS KalmanFitterGccTest
   EXPORT ${PROJECT_NAME}Targets

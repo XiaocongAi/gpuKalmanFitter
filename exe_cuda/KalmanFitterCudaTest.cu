@@ -15,6 +15,8 @@
 
 #include "Utilities/Profiling.hpp"
 
+#include "Utilities/Logger.hpp"
+
 #include <chrono>
 #include <cmath>
 #include <fstream>
@@ -38,6 +40,8 @@ static void show_usage(std::string name) {
             << "\t-p,--pt \tSpecify the pt of particle\n"
             << "\t-o,--output \tIndicator for writing propagation results\n"
             << "\t-d,--device \tSpecify the device: 'gpu' or 'cpu'\n"
+	    << "\t-g,--grid-size \tSpecify GPU grid size: 'x*y'\n"
+	    << "\t-b,--block-size \tSpecify GPU block size: 'x*y*z'\n"
             << std::endl;
 }
 
@@ -49,7 +53,6 @@ using PropagatorType = Propagator<Stepper>;
 using PropResultType = PropagatorResult;
 using SimPropOptionsType = PropagatorOptions<MeasurementCreator, VoidAborter>;
 using PropState = PropagatorType::State<SimPropOptionsType>;
-
 using KalmanFitterType = KalmanFitter<PropagatorType, GainMatrixUpdater>;
 using KalmanFitterResultType =
     KalmanFitterResult<PixelSourceLink, BoundParameters>;
@@ -87,6 +90,7 @@ int main(int argc, char *argv[]) {
   std::string device = "cpu";
   std::string bFieldFileName;
   double p = 1 * Acts::units::_GeV;
+  dim3 grid(40), block(8,8); 
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
     if ((arg == "-h") or (arg == "--help")) {
@@ -101,12 +105,18 @@ int main(int argc, char *argv[]) {
         output = (atoi(argv[++i]) == 1);
       } else if ((arg == "-d") or (arg == "--device")) {
         device = argv[++i];
+      } else if ((arg == "-g") or (arg == "--grid-size")) {
+        grid = stringToDim3(argv[++i]);
+      } else if ((arg == "-b") or (arg == "--block-size")){
+        block = stringToDim3(argv[++i]);
       } else {
         std::cerr << "Unknown argument." << std::endl;
         return 1;
       }
     }
   }
+  
+  std::cout << grid.x << " " << grid.y << " "<< block.x << " " << block.y << std::endl; 
 
   int devId = 0;
 
@@ -327,8 +337,8 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaMemcpy(d_kFitter, &kFitter, sizeof(KalmanFitterType),
                          cudaMemcpyHostToDevice));
 
-    dim3 grid(40);    // 40 x 1 x 1
-    dim3 block(8, 8); // 8 x 8 x 1
+    //dim3 grid(40);    // 40 x 1 x 1
+   // dim3 block(8, 8); // 8 x 8 x 1
 
     // Run on device
     //    for (int _ : {1, 2, 3, 4, 5}) {
@@ -385,6 +395,10 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaEventElapsedTime(&ms, startEvent, stopEvent));
     printf("Time (ms) for KF memory transfer and execution: %f\n", ms);
 
+    // Log the execution time in seconds
+    Logger::logTime(Logger::buildFilename("nTracks", std::to_string(nTracks), "gridSize", dim3ToString(grid), "blockSize", dim3ToString(block)),
+             ms/1000);
+ 
   } else {
     //// Run on host
     auto start_fit = std::chrono::high_resolution_clock::now();

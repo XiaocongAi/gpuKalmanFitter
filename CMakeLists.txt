@@ -37,7 +37,7 @@ include(cmake/FindEigen.cmake)
 
 # make sure libActscore.so is available at runtime
 #set(CMAKE_INSTALL_RPATH "$ORIGIN/../bin")
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -std=c++14 -lineinfo -res-usage -arch=sm_70 -Xcompiler -fopenmp")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -std=c++14 -lineinfo -res-usage -arch=sm_70 -Xcompiler -fopenmp") 
 
 
 add_library(Actscore STATIC ${LIB_SRC_MAT} ${LIB_SRC_SUR} ${LIB_SRC_BField} ${LIB_SRC_Plugins})
@@ -51,11 +51,22 @@ target_include_directories(Actscore
   $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
   )
 
+# add performance testing support library
+add_library(PerfTesting STATIC "${PROJECT_SOURCE_DIR}/performance_testing")
+target_include_directories(PerfTesting
+  PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/performance_testing>
+  $<INSTALL_INTERFACE:performance_testing>
+  PRIVATE
+  $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
+  )
+set_target_properties(PerfTesting PROPERTIES LINKER_LANGUAGE CXX)
+
 add_subdirectory(exe_cuda)
 add_subdirectory(exe_gcc)
 
 # install-tree
-set(CONF_INCLUDE_DIRS "\${CMAKE_CURRENT_LIST_DIR}/../include")
+set(CONF_INCLUDE_DIRS "\${CMAKE_CURRENT_LIST_DIR}/../include" "\${CMAKE_CURRENT_LIST_DIR}/../performance_testing")
 configure_file(cmake/ActscoreConfig.cmake.in         ${PROJECT_BINARY_DIR}/cmake_install/ActscoreConfig.cmake @ONLY)
 configure_file(cmake/ActscoreConfigVersion.cmake.in  ${PROJECT_BINARY_DIR}/cmake_install/ActscoreConfigVersion.cmake @ONLY)
 install(FILES
@@ -72,14 +83,26 @@ install(TARGETS Actscore
   RESOURCE      DESTINATION resource COMPONENT runtime
   )
 
+install(TARGETS PerfTesting
+  EXPORT ${PROJECT_NAME}Targets
+  RUNTIME       DESTINATION bin      COMPONENT runtime
+  LIBRARY       DESTINATION bin      COMPONENT runtime 
+  ARCHIVE       DESTINATION bin      COMPONENT devel
+  PUBLIC_HEADER DESTINATION include  COMPONENT devel
+  RESOURCE      DESTINATION resource COMPONENT runtime
+  )
+
 install(EXPORT ${PROJECT_NAME}Targets
   DESTINATION cmake
   )
 
+execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/performance_testing/scripts
+                                                           ${CMAKE_SOURCE_DIR}/INSTALL/scripts)
+
 install(CODE "MESSAGE(\"project is installed in ${CMAKE_INSTALL_PREFIX} .\")")
 
 # build-tree
-set(CONF_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include ${PROJECT_BINARY_DIR})
+set(CONF_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include ${PROJECT_BINARY_DIR} ${PROJECT_SOURCE_DIR}/performance_testing)
 configure_file(cmake/ActscoreConfig.cmake.in          ${PROJECT_BINARY_DIR}/cmake/ActscoreConfig.cmake @ONLY)
 configure_file(cmake/ActscoreConfigVersion.cmake.in   ${PROJECT_BINARY_DIR}/cmake/ActscoreConfigVersion.cmake @ONLY)
 
