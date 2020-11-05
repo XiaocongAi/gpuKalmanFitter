@@ -104,7 +104,7 @@ __global__ void __launch_bounds__(256, 2)
 int main(int argc, char *argv[]) {
   unsigned int nTracks = 10240;
   bool output = false;
-  bool useSharedMemory = true;
+  bool useSharedMemory = false; 
   std::string device = "cpu";
   std::string bFieldFileName;
   double p = 1 * Acts::units::_GeV;
@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
       }
     }
   }
- 
+
   if(grid.z!=1 or block.z!=1){
     std::cout<<"3D grid or block is not supported at the moment! Good luck!"<<std::endl;
     return 1; 
@@ -157,11 +157,15 @@ int main(int argc, char *argv[]) {
   GPUERRCHK(cudaRuntimeGetVersion(&rtVersion));
   printf("cuda rt version: %i\n", rtVersion);
  
+  const int tracksPerBlock = block.x*block.y;
+  
   // Use 8*8 block if using one block for one track
+  // @todo Extend to run multiple (block.z) tracks in one block 
   if(useSharedMemory) {
-    block = dim3(8,8); 
+    std::cout<<"Shared memory used. Block size is set to 8*8!"<<std::endl; 
+    block = dim3(8,8);
+    tracksPerBlock = 1; 
   }
-  const int tracksPerBlock = useSharedMemory?1:block.x*block.y;
 
   const int nStreams = 4;
   // The last stream could could less tracks
@@ -170,7 +174,8 @@ int main(int argc, char *argv[]) {
   const int tracksLastStream = tracksPerStream - overflowTracks;
   std::cout << "tracksPerStream = " << tracksPerStream << std::endl;
   std::cout << "tracksLastStream = " << tracksLastStream << std::endl;
-  
+ 
+  // @note shall we use this for the grid size? 
   const int blocksPerGrid_multiStream =
       (tracksPerStream + tracksPerBlock - 1) / tracksPerBlock;
 
@@ -265,7 +270,6 @@ int main(int argc, char *argv[]) {
   }();
 
   for (int i = 0; i < nTracks; i++) {
-
     double q = 1;
     double time = 0;
     double phi = gauss(generator) * resPhi;
@@ -274,7 +278,6 @@ int main(int argc, char *argv[]) {
                  resLoc2 * gauss(generator)); // Units: mm
     Vector3D mom(p * sin(theta) * cos(phi), p * sin(theta) * sin(phi),
                  p * cos(theta)); // Units: GeV
-
     startPars[i] = CurvilinearParameters(cov, pos, mom, q, time);
   }
   std::cout << "Finish creating starting parameters" << std::endl;
@@ -357,7 +360,7 @@ int main(int argc, char *argv[]) {
   GPUERRCHK(cudaMallocHost((void **)&fittedTracks, tsBytes));
 
   // Running directly on host or offloading to GPU
-  bool useGPU = (device == "gpu" ? true : false);
+  bool useGPU = (device == "gpu");
   if (useGPU) {
     GPUERRCHK(cudaEventRecord(startEvent, 0));
 
