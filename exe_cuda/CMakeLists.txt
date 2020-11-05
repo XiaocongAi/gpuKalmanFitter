@@ -1,5 +1,5 @@
 add_executable(KalmanFitterCudaTest KalmanFitterCudaTest.cu)
-target_link_libraries(KalmanFitterCudaTest Actscore PerfTesting)
+target_link_libraries(KalmanFitterCudaTest Actscore)
 
 install(TARGETS KalmanFitterCudaTest
   EXPORT ${PROJECT_NAME}Targets

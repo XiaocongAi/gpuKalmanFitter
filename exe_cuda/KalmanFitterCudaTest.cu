@@ -98,7 +98,6 @@ __global__ void __launch_bounds__(256, 2)
   }
 }
 
-
 int main(int argc, char *argv[]) {
   //  if (argc < 5) {
   //    show_usage(argv[0]);
@@ -154,23 +153,22 @@ int main(int argc, char *argv[]) {
   int rtVersion;
   GPUERRCHK(cudaRuntimeGetVersion(&rtVersion));
   printf("cuda rt version: %i\n", rtVersion);
-
-  dim3 block(8, 8); // 8 x 8 x 1
-
-  const int threadsPerBlock = useSharedMemory?64:256;
+ 
+  // The block dimension
+  const int threadsPerBlock = block.x*block.y*block.z;
 
   const int nStreams = 4;
   // The last stream could could less threads
   const int threadsPerStream = (nTracks + nStreams - 1) / nStreams;
   const int overflowThreads = threadsPerStream * nStreams - nTracks;
   const int threadsLastStream = threadsPerStream - overflowThreads;
-  // const int blocksPerGrid_singleStream = (nTracks + threadsPerBlock - 1) /
-  // threadsPerBlock;
-  const int blocksPerGrid_multiStream =
-      (threadsPerStream + threadsPerBlock - 1) / threadsPerBlock;
   std::cout << "threadsPerStream = " << threadsPerStream << std::endl;
   std::cout << "threadsLastStream = " << threadsLastStream << std::endl;
+  
+  const int blocksPerGrid_multiStream =
+      (threadsPerStream + threadsPerBlock - 1) / threadsPerBlock;
 
+  // The shared memory size
   int sharedMemoryPerTrack = sizeof(PathLimitReached) + sizeof(PropState) +
                              sizeof(bool) * 2 + sizeof(PropagatorResult);
   std::cout << "shared memory is " << sharedMemoryPerTrack << std::endl;
@@ -371,9 +369,6 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaMemcpy(d_kFitter, &kFitter, sizeof(KalmanFitterType),
                          cudaMemcpyHostToDevice));
 
-    //dim3 grid(40);    // 40 x 1 x 1
-   // dim3 block(8, 8); // 8 x 8 x 1
-
     // Run on device
     //    for (int _ : {1, 2, 3, 4, 5}) {
     for (int i = 0; i < nStreams; ++i) {
@@ -404,12 +399,13 @@ int main(int argc, char *argv[]) {
       GPUERRCHK(cudaMemcpyAsync(&d_fittedTracks[offset], &fittedTracks[offset],
                                 tBytes, cudaMemcpyHostToDevice, stream[i]));
       
-      if(useSharedMemory){ 
-         fitKernelBlockPerTrack<<<blocksPerGrid_multiStream, block, 0, stream[i]>>>(
+     // Use shared memory for one track if requested  
+     if(useSharedMemory){ 
+         fitKernelBlockPerTrack<<<grid, block, 0, stream[i]>>>(
           d_kFitter, d_sourcelinks, d_pars, kfOptions, d_fittedTracks,
           surfacePtrs, nSurfaces, threads, offset);
       }else{
-        fitKernelThreadPerTrack<<<blocksPerGrid_multiStream, threadsPerBlock, 0,
+        fitKernelThreadPerTrack<<<grid, block, 0,
         stream[i]>>>(
            d_kFitter, d_sourcelinks, d_pars, kfOptions, d_fittedTracks,
            surfacePtrs, nSurfaces, threads, offset);
