@@ -66,15 +66,18 @@ __global__ void __launch_bounds__(256, 2)
               KalmanFitterOptions<VoidOutlierFinder> kfOptions,
               TSType *fittedTracks, const Surface *surfacePtrs, int nSurfaces,
               int nTracks, int offset) {
-  int i = blockDim.x * blockIdx.x + threadIdx.x + offset;
-  if (i < (nTracks + offset)) {
+  // In case of 1D grid and 1D block, the threadId = blockDim.x*blockIdx.x + threadIdx.x + offset 
+  int threadId = blockDim.x*blockDim.y*(gridDim.x*blockIdx.y + blockIdx.x) +  blockDim.x*threadIdx.y + threadIdx.x + offset; 
+  
+  // Different threads handles different track 
+  if (threadId < (nTracks + offset)) {
     // Use the CudaKernelContainer for the source links and fitted tracks
     KalmanFitterResultType kfResult;
     kfResult.fittedStates =
-        CudaKernelContainer<TSType>(fittedTracks + i * nSurfaces, nSurfaces);
+        CudaKernelContainer<TSType>(fittedTracks + threadId * nSurfaces, nSurfaces);
     kFitter->fit(CudaKernelContainer<PixelSourceLink>(
-                     sourcelinks + i * nSurfaces, nSurfaces),
-                 tpars[i], kfOptions, kfResult, surfacePtrs, nSurfaces);
+                     sourcelinks + threadId * nSurfaces, nSurfaces),
+                 tpars[threadId], kfOptions, kfResult, surfacePtrs, nSurfaces);
   }
 }
 
@@ -84,15 +87,17 @@ __global__ void __launch_bounds__(256, 2)
               KalmanFitterOptions<VoidOutlierFinder> kfOptions,
               TSType *fittedTracks, const Surface *surfacePtrs, int nSurfaces,
               int nTracks, int offset) {
-  int i = blockDim.x * blockIdx.x + threadIdx.x + offset;
-  if (i < (nTracks + offset)) {
+  int blockId = gridDim.x*blockIdx.y + blockIdx.x + offset; 
+  
+  // All threads in this block handles the same track 
+  if (blockId < (nTracks + offset)) {
     // Use the CudaKernelContainer for the source links and fitted tracks
     KalmanFitterResultType kfResult;
     kfResult.fittedStates =
-        CudaKernelContainer<TSType>(fittedTracks + i * nSurfaces, nSurfaces);
+        CudaKernelContainer<TSType>(fittedTracks + blockId * nSurfaces, nSurfaces);
     kFitter->fitOnDevice(CudaKernelContainer<PixelSourceLink>(
-                     sourcelinks + i * nSurfaces, nSurfaces),
-                 tpars[i], kfOptions, kfResult, surfacePtrs, nSurfaces);
+                     sourcelinks + blockId * nSurfaces, nSurfaces),
+                 tpars[blockId], kfOptions, kfResult, surfacePtrs, nSurfaces);
   }
 }
 
@@ -130,7 +135,11 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-  
+ 
+  if(grid.z!=1 or block.z!=1){
+    std::cout<<"3D grid or block is not supported at the moment! Good luck!"<<std::endl;
+    return 1; 
+  } 
   std::cout << grid.x << " " << grid.y << " "<< block.x << " " << block.y << std::endl; 
 
   int devId = 0;
@@ -148,19 +157,22 @@ int main(int argc, char *argv[]) {
   GPUERRCHK(cudaRuntimeGetVersion(&rtVersion));
   printf("cuda rt version: %i\n", rtVersion);
  
-  // The block dimension
-  const int threadsPerBlock = block.x*block.y*block.z;
+  // Use 8*8 block if using one block for one track
+  if(useSharedMemory) {
+    block = dim3(8,8); 
+  }
+  const int tracksPerBlock = useSharedMemory?1:block.x*block.y;
 
   const int nStreams = 4;
-  // The last stream could could less threads
-  const int threadsPerStream = (nTracks + nStreams - 1) / nStreams;
-  const int overflowThreads = threadsPerStream * nStreams - nTracks;
-  const int threadsLastStream = threadsPerStream - overflowThreads;
-  std::cout << "threadsPerStream = " << threadsPerStream << std::endl;
-  std::cout << "threadsLastStream = " << threadsLastStream << std::endl;
+  // The last stream could could less tracks
+  const int tracksPerStream = (nTracks + nStreams - 1) / nStreams;
+  const int overflowTracks = tracksPerStream * nStreams - nTracks;
+  const int tracksLastStream = tracksPerStream - overflowTracks;
+  std::cout << "tracksPerStream = " << tracksPerStream << std::endl;
+  std::cout << "tracksLastStream = " << tracksLastStream << std::endl;
   
   const int blocksPerGrid_multiStream =
-      (threadsPerStream + threadsPerBlock - 1) / threadsPerBlock;
+      (tracksPerStream + tracksPerBlock - 1) / tracksPerBlock;
 
   // The shared memory size
   int sharedMemoryPerTrack = sizeof(PathLimitReached) + sizeof(PropState) +
@@ -174,10 +186,10 @@ int main(int argc, char *argv[]) {
   const int parsBytes = sizeof(CurvilinearParameters) * nTracks;
   const int tsBytes = sizeof(TSType) * nSurfaces * nTracks;
   const int perStreamSourcelinksBytes =
-      sizeof(PixelSourceLink) * nSurfaces * threadsPerStream;
+      sizeof(PixelSourceLink) * nSurfaces * tracksPerStream;
   const int perStreamParsBytes =
-      sizeof(CurvilinearParameters) * threadsPerStream;
-  const int perStreamTSsBytes = sizeof(TSType) * nSurfaces * threadsPerStream;
+      sizeof(CurvilinearParameters) * tracksPerStream;
+  const int perStreamTSsBytes = sizeof(TSType) * nSurfaces * tracksPerStream;
 
   std::cout << "surface Bytes = " << surfaceBytes << std::endl;
   std::cout << "source links Bytes = " << sourcelinksBytes << std::endl;
@@ -185,10 +197,10 @@ int main(int argc, char *argv[]) {
   std::cout << "TSs Bytes = " << tsBytes << std::endl;
 
   const int lastStreamSourcelinksBytes =
-      sizeof(PixelSourceLink) * nSurfaces * threadsLastStream;
+      sizeof(PixelSourceLink) * nSurfaces * tracksLastStream;
   const int lastStreamParsBytes =
-      sizeof(CurvilinearParameters) * threadsLastStream;
-  const int lastStreamTSsBytes = sizeof(TSType) * nSurfaces * threadsLastStream;
+      sizeof(CurvilinearParameters) * tracksLastStream;
+  const int lastStreamTSsBytes = sizeof(TSType) * nSurfaces * tracksLastStream;
 
   // Create a test context
   GeometryContext gctx(0);
@@ -359,17 +371,17 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaMalloc(&d_fittedTracks, tsBytes));
     GPUERRCHK(cudaMalloc(&d_kFitter, sizeof(KalmanFitterType)));
 
-    // Copy the KalmanFitter from host to device (shared between all threads)
+    // Copy the KalmanFitter from host to device (shared between all tracks)
     GPUERRCHK(cudaMemcpy(d_kFitter, &kFitter, sizeof(KalmanFitterType),
                          cudaMemcpyHostToDevice));
 
     // Run on device
     //    for (int _ : {1, 2, 3, 4, 5}) {
     for (int i = 0; i < nStreams; ++i) {
-      int offset = i * threadsPerStream;
+      int offset = i * tracksPerStream;
       // Note: need special handling here
-      const int threads =
-          (i == (nStreams - 1) ? threadsLastStream : threadsPerStream);
+      const int nTracks =
+          (i == (nStreams - 1) ? tracksLastStream : tracksPerStream);
       // The bytes per stream for source links
       const int sBytes = (i == (nStreams - 1) ? lastStreamSourcelinksBytes
                                               : perStreamSourcelinksBytes);
@@ -397,11 +409,11 @@ int main(int argc, char *argv[]) {
      if(useSharedMemory){ 
          fitKernelBlockPerTrack<<<grid, block, 0, stream[i]>>>(
           d_kFitter, d_sourcelinks, d_pars, kfOptions, d_fittedTracks,
-          surfacePtrs, nSurfaces, threads, offset);
+          surfacePtrs, nSurfaces, nTracks, offset);
       }else{
         fitKernelThreadPerTrack<<<grid, block, 0, stream[i]>>>(
            d_kFitter, d_sourcelinks, d_pars, kfOptions, d_fittedTracks,
-           surfacePtrs, nSurfaces, threads, offset);
+           surfacePtrs, nSurfaces, nTracks, offset);
       }
       GPUERRCHK(cudaEventRecord(stopEvent, stream[i]));
       GPUERRCHK(cudaEventSynchronize(stopEvent));
