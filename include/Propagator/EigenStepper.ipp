@@ -340,7 +340,6 @@ Acts::EigenStepper<B>::stepOnDevice(propagator_state_t &state) const {
   if (state.stepping.covTransport) {
     if (IS_MAIN_THREAD) {
       jacTransport(threadIdx.x, threadIdx.y) = 0;
-      //     state.stepping.jacTransport(threadIdx.x, threadIdx.y);
 
       // for moment, only update the transport part
       detail::transportMatrix(state, sd, h, jacTransport);
@@ -348,7 +347,7 @@ Acts::EigenStepper<B>::stepOnDevice(propagator_state_t &state) const {
     __syncthreads();
 
     double acc = 0.0;
-    for (int i = 0; i < 8; ++i) {
+    for (int i = 0; i < eFreeParametersSize; ++i) {
       acc += jacTransport(threadIdx.x, i) *
              state.stepping.jacTransport(i, threadIdx.y);
     }

@@ -240,7 +240,7 @@ int main(int argc, char *argv[]) {
   int threads = 1;
 
   auto start_fit = std::chrono::high_resolution_clock::now();
-  // #pragma omp parallel for
+  #pragma omp parallel for num_threads(250)
   for (int it = 0; it < nTracks; it++) {
     //   BoundSymMatrix cov = BoundSymMatrix::Zero();
     //   cov << resLoc1 * resLoc1, 0., 0., 0., 0., 0., 0., resLoc2 * resLoc2,
