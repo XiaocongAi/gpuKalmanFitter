@@ -12,9 +12,7 @@
 #include "Utilities/CudaHelper.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
 #include "Utilities/Units.hpp"
-
 #include "Utilities/Profiling.hpp"
-
 #include "Utilities/Logger.hpp"
 
 #include <chrono>
@@ -99,10 +97,6 @@ __global__ void __launch_bounds__(256, 2)
 }
 
 int main(int argc, char *argv[]) {
-  //  if (argc < 5) {
-  //    show_usage(argv[0]);
-  //    return 1;
-  //  }
   unsigned int nTracks = 10240;
   bool output = false;
   bool useSharedMemory = true;
@@ -405,8 +399,7 @@ int main(int argc, char *argv[]) {
           d_kFitter, d_sourcelinks, d_pars, kfOptions, d_fittedTracks,
           surfacePtrs, nSurfaces, threads, offset);
       }else{
-        fitKernelThreadPerTrack<<<grid, block, 0,
-        stream[i]>>>(
+        fitKernelThreadPerTrack<<<grid, block, 0, stream[i]>>>(
            d_kFitter, d_sourcelinks, d_pars, kfOptions, d_fittedTracks,
            surfacePtrs, nSurfaces, threads, offset);
       }

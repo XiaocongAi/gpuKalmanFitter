@@ -76,7 +76,7 @@ install(EXPORT ${PROJECT_NAME}Targets
   DESTINATION cmake
   )
 
-execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/performance_testing/scripts
+execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/Performance/scripts
                                                            ${CMAKE_SOURCE_DIR}/INSTALL/scripts)
 
 install(CODE "MESSAGE(\"project is installed in ${CMAKE_INSTALL_PREFIX} .\")")
