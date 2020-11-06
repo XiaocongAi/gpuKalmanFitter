@@ -102,17 +102,17 @@ inline ISurfaceMaterial<Derived>& ISurfaceMaterial<Derived>::operator*=(double s
 
 template<typename Derived>
 inline const MaterialSlab& ISurfaceMaterial<Derived>::materialSlab(const Vector2D& lp) const{
- return static_cast<Derived &>(*this).materialSlab(lp);
+ return static_cast<const Derived &>(*this).materialSlab(lp);
 }
 
 template<typename Derived>
 inline const MaterialSlab& ISurfaceMaterial<Derived>::materialSlab(const Vector3D& gp) const {
- return static_cast<Derived &>(*this).materialSlab(gp);
+ return static_cast<const Derived &>(*this).materialSlab(gp);
 }
 
 template<typename Derived>
 inline const MaterialSlab& ISurfaceMaterial<Derived>::materialSlab(size_t ib0, size_t ib1) const {
- return static_cast<Derived &>(*this).materialSlab(ib0, ib1);
+ return static_cast<const Derived &>(*this).materialSlab(ib0, ib1);
 }
 
 template<typename Derived>

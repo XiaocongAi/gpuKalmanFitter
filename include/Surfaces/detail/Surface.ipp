@@ -38,7 +38,6 @@ inline Surface::Surface(const Vector3D &center, const Vector3D &normal) {
   transform.pretranslate(center);
   m_transform = transform;
 }
-
 template <typename Derived> inline Surface::SurfaceType Surface::type() const {
   return static_cast<const Derived *>(this)->type();
 }
@@ -273,4 +272,8 @@ inline Intersection Surface::intersectionEstimate(
     }
   }
   return intersection;
+}
+
+inline const Acts::HomogeneousSurfaceMaterial& Acts::Surface::surfaceMaterial() const {
+  return m_surfaceMaterial;
 }

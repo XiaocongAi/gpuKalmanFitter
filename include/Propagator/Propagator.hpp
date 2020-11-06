@@ -146,7 +146,7 @@ public:
     ACTS_DEVICE_FUNC State(const parameters_t &start,
                            const propagator_options_t &topts)
         : options(topts), stepping(topts.geoContext, start, topts.direction,
-                                   topts.maxStepSize, topts.tolerance) {
+                                   topts.maxStepSize, topts.tolerance), geoContext(topts.geoContext) {
       // Setting the start surface
       navigation.startSurface = &start.referenceSurface();
     }
@@ -159,7 +159,10 @@ public:
 
     /// Navigation state - internal state of the Navigator
     NavigatorState navigation;
-  };
+
+   /// The context object for the geometry
+   GeometryContext geoContext;
+ };
 
   /// Constructor from implementation object
   ///

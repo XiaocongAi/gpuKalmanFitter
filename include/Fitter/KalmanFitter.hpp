@@ -311,6 +311,9 @@ private:
                        filtered.momentum().normalized(),
                        filtered.momentum().norm(), filtered.time());
 
+        // The material effects after the filtering
+        materialInteractor(surface, state, stepper, fullUpdate);
+
         // We count the state with measurement
         ++result.measurementStates;
       }
@@ -368,7 +371,6 @@ private:
     void materialInteractor(
         const Surface* surface, propagator_state_t& state, stepper_t& stepper,
         const MaterialUpdateStage& updateStage = fullUpdate) const {
-      const auto& logger = state.options.logger;
       // Indicator if having material
       bool hasMaterial = false;
 

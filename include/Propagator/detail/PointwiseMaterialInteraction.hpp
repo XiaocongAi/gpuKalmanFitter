@@ -99,7 +99,7 @@ struct PointwiseMaterialInteraction {
     }
 
     // Retrieve the material properties
-    slab = state.navigation.currentSurface->surfaceMaterial()->materialSlab(
+    slab = state.navigation.currentSurface->surfaceMaterial().materialSlab(
         pos, nav, updateStage);
 
     // Correct the material properties for non-zero incidence
