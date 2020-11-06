@@ -51,7 +51,7 @@ target_include_directories(Actscore
   $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
   )
 
-#add_subdirectory(exe_cuda)
+add_subdirectory(exe_cuda)
 add_subdirectory(exe_gcc)
 
 # install-tree

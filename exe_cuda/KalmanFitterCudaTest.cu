@@ -157,7 +157,7 @@ int main(int argc, char *argv[]) {
   GPUERRCHK(cudaRuntimeGetVersion(&rtVersion));
   printf("cuda rt version: %i\n", rtVersion);
  
-  const int tracksPerBlock = block.x*block.y;
+  int tracksPerBlock = block.x*block.y;
   
   // Use 8*8 block if using one block for one track
   // @todo Extend to run multiple (block.z) tracks in one block 

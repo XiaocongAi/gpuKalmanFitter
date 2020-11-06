@@ -70,15 +70,15 @@ class Material {
   ACTS_DEVICE_FUNC static Material fromMassDensity(float x0, float l0, float ar, float z,
                                   float massRho);
   /// Construct a vacuum representation.
-  ACTS_DEVICE_FUNC Material() = default;
+  Material() = default;
   /// Construct from an encoded parameters vector.
   ACTS_DEVICE_FUNC Material(const ParametersVector& parameters);
 
-  ACTS_DEVICE_FUNC Material(Material&& mat) = default;
-  ACTS_DEVICE_FUNC Material(const Material& mat) = default;
-  ACTS_DEVICE_FUNC ~Material() = default;
-  ACTS_DEVICE_FUNC Material& operator=(Material&& mat) = default;
-  ACTS_DEVICE_FUNC Material& operator=(const Material& mat) = default;
+  Material(Material&& mat) = default;
+  Material(const Material& mat) = default;
+  ~Material() = default;
+  Material& operator=(Material&& mat) = default;
+  Material& operator=(const Material& mat) = default;
 
   /// Check if the material is valid, i.e. it is not vacuum.
   ACTS_DEVICE_FUNC constexpr operator bool() const { return 0.0f < m_ar; }
