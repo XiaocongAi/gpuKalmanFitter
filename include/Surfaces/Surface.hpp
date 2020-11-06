@@ -17,9 +17,7 @@
 #define ACTS_DEVICE_FUNC __host__ __device__
 // We need cuda_runtime.h to ensure that that EIGEN_USING_STD_MATH macro
 // works properly on the device side
-#include <cuda_runtime.h>
-#else
-#define ACTS_DEVICE_FUNC
+#include <cuda_runtime.h> #else #define ACTS_DEVICE_FUNC
 #endif
 
 #include "Geometry/GeometryContext.hpp"
@@ -27,6 +25,7 @@
 #include "Geometry/GeometryStatics.hpp"
 #include "Surfaces/BoundaryCheck.hpp"
 #include "Surfaces/detail/PlanarHelper.hpp"
+#include "Material/HomogeneousSurfaceMaterial.hpp"
 #include "Utilities/Definitions.hpp"
 #include "Utilities/Intersection.hpp"
 
@@ -190,7 +189,7 @@ public:
   }
 
   /// Return method for SurfaceBounds
-  /// @return SurfaceBounds by reference
+  /// @return SurfaceBounds by pointer 
   template <typename Derived>
   ACTS_DEVICE_FUNC const typename Derived::SurfaceBoundsType *bounds() const;
 
@@ -377,10 +376,17 @@ public:
   /// Return properly formatted class name
   // virtual std::string name() const = 0;
 
+  /// Return method for the associated Material to this surface
+  /// @return SurfaceMaterial as plain pointer, can be nullptr
+  const HomogeneousSurfaceMaterial& surfaceMaterial() const;
+  
 protected:
   /// Transform3D definition that positions
   /// (translation, rotation) the surface in global space
   Transform3D m_transform = Transform3D::Identity();
+
+  /// Possibility to attach a material descrption
+  HomogeneousSurfaceMaterial m_surfaceMaterial;
 };
 
 #include "Surfaces/detail/Surface.ipp"
