@@ -25,6 +25,7 @@ class InfiniteBounds : public SurfaceBounds<InfiniteBounds, 0> {
 public:
   InfiniteBounds() = default;
   ~InfiniteBounds() = default;
+  InfiniteBounds(const InfiniteBounds& bounds) = default;
 
   ACTS_DEVICE_FUNC BoundsType type() const { return BoundsType::Boundless; }
 

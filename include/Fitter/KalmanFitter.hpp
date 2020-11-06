@@ -368,7 +368,7 @@ private:
     /// @param updateStage The materal update stage
     ///
     template <typename propagator_state_t, typename stepper_t>
-    void materialInteractor(
+    ACTS_DEVICE_FUNC void materialInteractor(
         const Surface* surface, propagator_state_t& state, stepper_t& stepper,
         const MaterialUpdateStage& updateStage = fullUpdate) const {
       // Indicator if having material

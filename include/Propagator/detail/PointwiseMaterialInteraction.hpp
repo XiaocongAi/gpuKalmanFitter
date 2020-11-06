@@ -64,7 +64,7 @@ struct PointwiseMaterialInteraction {
   /// @param [in] state State of the propagation
   /// @param [in] stepper Stepper in use
   template <typename propagator_state_t, typename stepper_t>
-  PointwiseMaterialInteraction(const Surface* sSurface,
+  ACTS_DEVICE_FUNC PointwiseMaterialInteraction(const Surface* sSurface,
                                const propagator_state_t& state,
                                const stepper_t& stepper)
       : surface(sSurface),
@@ -88,7 +88,7 @@ struct PointwiseMaterialInteraction {
   ///
   /// @return Boolean statement whether the material is valid
   template <typename propagator_state_t>
-  bool evaluateMaterialSlab(const propagator_state_t& state,
+  ACTS_DEVICE_FUNC bool evaluateMaterialSlab(const propagator_state_t& state,
                             MaterialUpdateStage updateStage = fullUpdate) {
     // We are at the start surface
     if (surface == state.navigation.startSurface) {
@@ -115,7 +115,7 @@ struct PointwiseMaterialInteraction {
   /// @param [in] multipleScattering Boolean to indiciate the application of
   /// multiple scattering
   /// @param [in] energyLoss Boolean to indiciate the application of energy loss
-  void evaluatePointwiseMaterialInteraction(bool multipleScattering,
+  ACTS_DEVICE_FUNC void evaluatePointwiseMaterialInteraction(bool multipleScattering,
                                             bool energyLoss);
 
   /// @brief Update the state
@@ -126,7 +126,7 @@ struct PointwiseMaterialInteraction {
   /// @param [in] state State of the propagation
   /// @param [in] stepper Stepper in use
   template <typename propagator_state_t, typename stepper_t>
-  void updateState(propagator_state_t& state, const stepper_t& stepper) {
+  ACTS_DEVICE_FUNC void updateState(propagator_state_t& state, const stepper_t& stepper) {
     // in forward(backward) propagation, energy decreases(increases) and
     // variances increase(decrease)
     const auto nextE = std::sqrt(mass * mass + momentum * momentum) -
@@ -151,7 +151,7 @@ struct PointwiseMaterialInteraction {
   /// @param [in] multipleScattering Boolean to indiciate the application of
   /// multiple scattering
   /// @param [in] energyLoss Boolean to indiciate the application of energy loss
-  void covarianceContributions(bool multipleScattering, bool energyLoss);
+  ACTS_DEVICE_FUNC void covarianceContributions(bool multipleScattering, bool energyLoss);
 
   /// @brief Convenience method for better readability
   ///
@@ -160,7 +160,7 @@ struct PointwiseMaterialInteraction {
   /// @param [in] updateMode The noise update mode (in default: add noise)
   ///
   /// @return The updated variance
-  double updateVariance(double variance, double change,
+  ACTS_DEVICE_FUNC double updateVariance(double variance, double change,
                         NoiseUpdateMode updateMode = addNoise) const;
 };
 }  // namespace detail

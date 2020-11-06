@@ -17,7 +17,9 @@
 #define ACTS_DEVICE_FUNC __host__ __device__
 // We need cuda_runtime.h to ensure that that EIGEN_USING_STD_MATH macro
 // works properly on the device side
-#include <cuda_runtime.h> #else #define ACTS_DEVICE_FUNC
+#include <cuda_runtime.h> 
+#else
+#define ACTS_DEVICE_FUNC
 #endif
 
 #include "Geometry/GeometryContext.hpp"
@@ -82,7 +84,7 @@ protected:
   /// to detector element and layer
   ///
   /// @param other Source surface for copy.
-  Surface(const Surface &other);
+  ACTS_DEVICE_FUNC Surface(const Surface &other);
 
   /// Copy constructor with optional shift
   ///
@@ -378,7 +380,7 @@ public:
 
   /// Return method for the associated Material to this surface
   /// @return SurfaceMaterial as plain pointer, can be nullptr
-  const HomogeneousSurfaceMaterial& surfaceMaterial() const;
+  ACTS_DEVICE_FUNC const HomogeneousSurfaceMaterial& surfaceMaterial() const;
   
 protected:
   /// Transform3D definition that positions
