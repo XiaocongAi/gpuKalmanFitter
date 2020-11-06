@@ -25,6 +25,7 @@ check_language(CUDA)
 aux_source_directory(src/MagneticField LIB_SRC_BField)
 aux_source_directory(src/Plugins LIB_SRC_Plugins)
 aux_source_directory(src/Material LIB_SRC_Material)
+aux_source_directory(src/Propagator/detail LIB_SRC_Propagator)
 
 find_package(CUDA)
 message(${CUDA_TOOLKIT_INCLUDE})
@@ -40,7 +41,7 @@ include(cmake/FindEigen.cmake)
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -std=c++14 -lineinfo -res-usage -arch=sm_70 -Xcompiler -fopenmp") 
 
 
-add_library(Actscore STATIC ${LIB_SRC_BField} ${LIB_SRC_Plugins} ${LIB_SRC_Material})
+add_library(Actscore STATIC ${LIB_SRC_BField} ${LIB_SRC_Plugins} ${LIB_SRC_Material} ${LIB_SRC_Propagator})
 
 target_link_libraries(Actscore PUBLIC OpenMP::OpenMP_CXX  Eigen3::Eigen)
 target_include_directories(Actscore
