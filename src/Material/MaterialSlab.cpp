@@ -8,8 +8,6 @@
 
 #include "Material/MaterialSlab.hpp"
 
-#include "Material/detail/AverageMaterials.hpp"
-
 #include <limits>
 #include <ostream>
 

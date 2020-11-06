@@ -22,6 +22,7 @@ namespace Acts {
 /// MaterialSlab that are associated to a surface,
 /// extended by certain special representations (binned, homogenous)
 ///
+template <typename Derived>
 class ISurfaceMaterial {
  public:
   /// Constructor
@@ -94,27 +95,28 @@ class ISurfaceMaterial {
   double m_splitFactor{1.};  //!< the split factor in favour of oppositePre
 };
 
-template <typename Derived>
-inline ISurfaceMaterial& operator*=(double scale) {
- return static_cast<Derived &>(*this).operator*=(double scale);
+template<typename Derived>
+inline ISurfaceMaterial<Derived>& ISurfaceMaterial<Derived>::operator*=(double scale) {
+ return static_cast<Derived &>(*this).operator*=(scale);
 }  
 
 template<typename Derived>
-inline const MaterialSlab& materialSlab(const Vector2D& lp) const{
- return static_cast<Derived &>(*this).materialSlab(const Vector2D& lp);
+inline const MaterialSlab& ISurfaceMaterial<Derived>::materialSlab(const Vector2D& lp) const{
+ return static_cast<Derived &>(*this).materialSlab(lp);
 }
 
 template<typename Derived>
-inline const MaterialSlab& materialSlab(const Vector3D& gp) const {
- return static_cast<Derived &>(*this).materialSlab(const Vector3D& gp);
+inline const MaterialSlab& ISurfaceMaterial<Derived>::materialSlab(const Vector3D& gp) const {
+ return static_cast<Derived &>(*this).materialSlab(gp);
 }
 
 template<typename Derived>
-inline const MaterialSlab& materialSlab(size_t ib0, size_t ib1) const {
- return static_cast<Derived &>(*this).materialSlab(size_t ib0, size_t ib1);
+inline const MaterialSlab& ISurfaceMaterial<Derived>::materialSlab(size_t ib0, size_t ib1) const {
+ return static_cast<Derived &>(*this).materialSlab(ib0, ib1);
 }
 
-inline double ISurfaceMaterial::factor(NavigationDirection pDir,
+template<typename Derived>
+inline double ISurfaceMaterial<Derived>::factor(NavigationDirection pDir,
                                        MaterialUpdateStage mStage) const {
   if (mStage == Acts::fullUpdate) {
     return 1.;
@@ -122,7 +124,8 @@ inline double ISurfaceMaterial::factor(NavigationDirection pDir,
   return (pDir * mStage > 0 ? m_splitFactor : 1. - m_splitFactor);
 }
 
-inline MaterialSlab ISurfaceMaterial::materialSlab(
+template<typename Derived>
+inline MaterialSlab ISurfaceMaterial<Derived>::materialSlab(
     const Vector2D& lp, NavigationDirection pDir,
     MaterialUpdateStage mStage) const {
   // The plain material properties associated to this bin
@@ -138,7 +141,8 @@ inline MaterialSlab ISurfaceMaterial::materialSlab(
   return plainMatProp;
 }
 
-inline MaterialSlab ISurfaceMaterial::materialSlab(
+template<typename Derived>
+inline MaterialSlab ISurfaceMaterial<Derived>::materialSlab(
     const Vector3D& gp, NavigationDirection pDir,
     MaterialUpdateStage mStage) const {
   // The plain material properties associated to this bin

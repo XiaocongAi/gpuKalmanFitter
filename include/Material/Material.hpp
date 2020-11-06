@@ -54,7 +54,7 @@ class Material {
   /// @param Ar is the relative atomic mass
   /// @param Z is the nuclear charge number
   /// @param molarRho is the molar density
-  static Material fromMolarDensity(float x0, float l0, float ar, float z,
+  ACTS_DEVICE_FUNC static Material fromMolarDensity(float x0, float l0, float ar, float z,
                                    float molarRho);
   /// Construct from material parameters using the mass density.
   ///
@@ -67,41 +67,41 @@ class Material {
   /// @warning Due to the choice of native mass units, using the mass density
   ///   can lead to numerical problems. Typical mass densities lead to
   ///   computations with values differing by 20+ orders of magnitude.
-  static Material fromMassDensity(float x0, float l0, float ar, float z,
+  ACTS_DEVICE_FUNC static Material fromMassDensity(float x0, float l0, float ar, float z,
                                   float massRho);
   /// Construct a vacuum representation.
-  Material() = default;
+  ACTS_DEVICE_FUNC Material() = default;
   /// Construct from an encoded parameters vector.
-  Material(const ParametersVector& parameters);
+  ACTS_DEVICE_FUNC Material(const ParametersVector& parameters);
 
-  Material(Material&& mat) = default;
-  Material(const Material& mat) = default;
-  ~Material() = default;
-  Material& operator=(Material&& mat) = default;
-  Material& operator=(const Material& mat) = default;
+  ACTS_DEVICE_FUNC Material(Material&& mat) = default;
+  ACTS_DEVICE_FUNC Material(const Material& mat) = default;
+  ACTS_DEVICE_FUNC ~Material() = default;
+  ACTS_DEVICE_FUNC Material& operator=(Material&& mat) = default;
+  ACTS_DEVICE_FUNC Material& operator=(const Material& mat) = default;
 
   /// Check if the material is valid, i.e. it is not vacuum.
-  constexpr operator bool() const { return 0.0f < m_ar; }
+  ACTS_DEVICE_FUNC constexpr operator bool() const { return 0.0f < m_ar; }
 
   /// Return the radition length. Infinity in case of vacuum.
-  constexpr float X0() const { return m_x0; }
+  ACTS_DEVICE_FUNC constexpr float X0() const { return m_x0; }
   /// Return the nuclear interaction length. Infinity in case of vacuum.
-  constexpr float L0() const { return m_l0; }
+  ACTS_DEVICE_FUNC constexpr float L0() const { return m_l0; }
   /// Return the relative atomic mass.
-  constexpr float Ar() const { return m_ar; }
+  ACTS_DEVICE_FUNC constexpr float Ar() const { return m_ar; }
   /// Return the nuclear charge number.
-  constexpr float Z() const { return m_z; }
+  ACTS_DEVICE_FUNC constexpr float Z() const { return m_z; }
   /// Return the molar density.
-  constexpr float molarDensity() const { return m_molarRho; }
+  ACTS_DEVICE_FUNC constexpr float molarDensity() const { return m_molarRho; }
   /// Return the molar electron density.
-  constexpr float molarElectronDensity() const { return m_z * m_molarRho; }
+  ACTS_DEVICE_FUNC constexpr float molarElectronDensity() const { return m_z * m_molarRho; }
   /// Return the mass density.
-  float massDensity() const;
+  ACTS_DEVICE_FUNC float massDensity() const;
   /// Return the mean electron excitation energy.
-  float meanExcitationEnergy() const;
+  ACTS_DEVICE_FUNC float meanExcitationEnergy() const;
 
   /// Encode the properties into an opaque parameters vector.
-  ParametersVector parameters() const;
+  ACTS_DEVICE_FUNC ParametersVector parameters() const;
 
  private:
   float m_x0 = std::numeric_limits<float>::infinity();

@@ -138,6 +138,8 @@ constexpr double C = 1.602176634e19;
 constexpr double T = 0.000299792458; // equivalent to c in appropriate SI units
 constexpr double Gauss = 1e-4 * T;
 constexpr double kGauss = 1e-1 * T;
+// Amount of substance, native unit mol
+constexpr double mol = 1.0;
 } // namespace UnitConstants
 
 namespace UnitLiterals {

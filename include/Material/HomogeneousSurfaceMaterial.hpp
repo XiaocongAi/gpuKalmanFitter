@@ -42,7 +42,7 @@ class HomogeneousSurfaceMaterial : public ISurfaceMaterial<HomogeneousSurfaceMat
   HomogeneousSurfaceMaterial(HomogeneousSurfaceMaterial&& hsm) = default;
 
   /// Destructor
-  ~HomogeneousSurfaceMaterial() override = default;
+  ~HomogeneousSurfaceMaterial() = default;
 
   /// Assignment operator
   ///
@@ -60,7 +60,7 @@ class HomogeneousSurfaceMaterial : public ISurfaceMaterial<HomogeneousSurfaceMat
   /// - it is effectively a thickness scaling
   ///
   /// @param scale is the scale factor
-  HomogeneousSurfaceMaterial& operator*=(double scale) final;
+  HomogeneousSurfaceMaterial& operator*=(double scale);
 
   /// Equality operator
   ///
@@ -70,12 +70,12 @@ class HomogeneousSurfaceMaterial : public ISurfaceMaterial<HomogeneousSurfaceMat
   /// @copydoc SurfaceMaterial::materialSlab(const Vector2D&)
   ///
   /// @note the input parameter is ignored
-  const MaterialSlab& materialSlab(const Vector2D& lp) const final;
+  const MaterialSlab& materialSlab(const Vector2D& lp) const;
 
   /// @copydoc SurfaceMaterial::materialSlab(const Vector3D&)
   ///
   /// @note the input parameter is ignored
-  const MaterialSlab& materialSlab(const Vector3D& gp) const final;
+  const MaterialSlab& materialSlab(const Vector3D& gp) const;
 
   /// @copydoc SurfaceMaterial::materialSlab(size_t, size_t)
   ///
@@ -83,7 +83,7 @@ class HomogeneousSurfaceMaterial : public ISurfaceMaterial<HomogeneousSurfaceMat
   /// @param ib1 The bin at local 1 for retrieving the material
   ///
   /// @note the input parameter is ignored
-  const MaterialSlab& materialSlab(size_t ib0, size_t ib1) const final;
+  const MaterialSlab& materialSlab(size_t ib0, size_t ib1) const;
 
   /// The inherited methods - for MaterialSlab access
   using ISurfaceMaterial::materialSlab;
