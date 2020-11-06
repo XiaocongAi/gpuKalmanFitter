@@ -18,6 +18,7 @@
 #include "Propagator/Propagator.hpp"
 #include "Propagator/StandardAborters.hpp"
 #include "Propagator/detail/CovarianceEngine.hpp"
+#include "Propagator/detail/PointwiseMaterialInteraction.hpp"
 #include "Utilities/CudaKernelContainer.hpp"
 #include "Utilities/Definitions.hpp"
 #include "Utilities/Profiling.hpp"
@@ -71,9 +72,10 @@ struct KalmanFitterOptions {
   KalmanFitterOptions(const GeometryContext &gctx,
                       const MagneticFieldContext &mctx,
                       const OutlierFinder &outlierFinder_ = VoidOutlierFinder(),
-                      Surface *rSurface = nullptr)
+                      Surface *rSurface = nullptr, bool mScattering = true, bool eLoss = true)
       : geoContext(gctx), magFieldContext(mctx), outlierFinder(outlierFinder_),
-        referenceSurface(rSurface) {}
+        referenceSurface(rSurface), multipleScattering(mScattering),
+        energyLoss(eLoss) {}
 
   /// Context object for the geometry
   GeometryContext geoContext;
@@ -85,6 +87,12 @@ struct KalmanFitterOptions {
 
   /// The reference Surface
   Surface *referenceSurface = nullptr;
+
+  /// Whether to consider multiple scattering
+  bool multipleScattering = true;
+
+  /// Whether to consider energy loss
+  bool energyLoss = true;
 };
 
 template <typename source_link_t, typename parameters_t>
@@ -181,6 +189,12 @@ private:
     /// Allows retrieving measurements for a surface
     InputMeasurementsType inputMeasurements;
 
+    /// Whether to consider multiple scattering.
+    bool multipleScattering = true;
+
+    /// Whether to consider energy loss.
+    bool energyLoss = true;
+
     /// @brief Kalman actor operation
     ///
     /// @tparam propagator_state_t is the type of Propagagor state
@@ -255,12 +269,8 @@ private:
       if (sourcelink_it != inputMeasurements.end()) {
         // Screen output message
         auto center = (*surface).center(state.options.geoContext);
-        // printf("Measurement surface detected with center = (%f, %f, %f)\n",
-        // center.x(), center.y(), center.z());
 
         // create track state on the vector from sourcelink
-        // result.fittedStates.push_back(TrackStateType(*sourcelink_it));
-        // TrackStateType& trackState = result.fittedStates.back();
         result.fittedStates[result.measurementStates] =
             TrackStateType(*sourcelink_it);
         TrackStateType &trackState =
@@ -344,6 +354,62 @@ private:
       return false;
     }
 
+  /// @brief Kalman actor operation : material interaction
+    ///
+    /// @tparam propagator_state_t is the type of Propagagor state
+    /// @tparam stepper_t Type of the stepper
+    ///
+    /// @param surface The surface where the material interaction happens
+    /// @param state The mutable propagator state object
+    /// @param stepper The stepper in use
+    /// @param updateStage The materal update stage
+    ///
+    template <typename propagator_state_t, typename stepper_t>
+    void materialInteractor(
+        const Surface* surface, propagator_state_t& state, stepper_t& stepper,
+        const MaterialUpdateStage& updateStage = fullUpdate) const {
+      const auto& logger = state.options.logger;
+      // Indicator if having material
+      bool hasMaterial = false;
+
+      // The material might be zero
+      if (surface) {
+        // Prepare relevant input particle properties
+        detail::PointwiseMaterialInteraction interaction(surface, state,
+                                                         stepper);
+        // Evaluate the material properties
+        if (interaction.evaluateMaterialSlab(state, updateStage)) {
+          // Surface has material at this stage
+          hasMaterial = true;
+
+          // Evaluate the material effects
+          interaction.evaluatePointwiseMaterialInteraction(multipleScattering,
+                                                           energyLoss);
+
+          // Screen out material effects info
+          //ACTS_VERBOSE("Material effects on surface: "
+          //             << surface->geometryId()
+          //             << " at update stage: " << updateStage << " are :");
+          //ACTS_VERBOSE("eLoss = "
+          //             << interaction.Eloss << ", "
+          //             << "variancePhi = " << interaction.variancePhi << ", "
+          //             << "varianceTheta = " << interaction.varianceTheta
+          //             << ", "
+          //             << "varianceQoverP = " << interaction.varianceQoverP);
+
+          // Update the state and stepper with material effects
+          interaction.updateState(state, stepper);
+        }
+      }
+
+      if (not hasMaterial) {
+        // Screen out message
+        //ACTS_VERBOSE("No material effects on surface: " << surface->geometryId()
+        //                                                << " at update stage: "
+        //                                                << updateStage);
+      }
+    }
+
     /// The Kalman updater
     updater_t m_updater;
 
@@ -423,6 +489,8 @@ public:
     auto &kalmanActor = kalmanOptions.action;
     kalmanActor.inputMeasurements = std::move(sourcelinks);
     kalmanActor.targetSurface = kfOptions.referenceSurface;
+    kalmanActor.multipleScattering = kfOptions.multipleScattering;
+    kalmanActor.energyLoss = kfOptions.energyLoss;
 
     // Set config for outlier finder
     kalmanActor.m_outlierFinder = kfOptions.outlierFinder;
@@ -495,6 +563,8 @@ public:
       // Catch the actor and set the measurements
       kalmanOptions.action.inputMeasurements = std::move(sourcelinks);
       kalmanOptions.action.targetSurface = kfOptions.referenceSurface;
+      kalmanOptions.action.multipleScattering = kfOptions.multipleScattering;
+      kalmanOptions.action.energyLoss = kfOptions.energyLoss;
 
       // Set config for outlier finder
       kalmanOptions.action.m_outlierFinder = kfOptions.outlierFinder;
