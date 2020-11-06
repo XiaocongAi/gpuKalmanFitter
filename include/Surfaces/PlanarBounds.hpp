@@ -78,10 +78,4 @@ inline bool PlanarBounds<Derived, VerticeSize, ValueSize>::inside(
   return static_cast<Derived &>(*this).inside(lposition, bcheck);
 }
 
-// typename<typename Derived, unsigned int VerticeSize, unsigned int ValueSize>
-// const RectangleBounds& PlanarBounds<Derived, VerticeSize,
-// ValueSize>::boundingBox() const{ return
-// static_cast<Derived&>(*this).boundingBox();
-//}
-
 } // namespace Acts
