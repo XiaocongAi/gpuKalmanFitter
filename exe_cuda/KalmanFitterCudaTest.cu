@@ -109,6 +109,8 @@ int main(int argc, char *argv[]) {
   std::string bFieldFileName;
   double p = 1 * Acts::units::_GeV;
   dim3 grid(40), block(8,8); 
+  bool multipleScattering = false;
+  bool energyLoss = false; 
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
     if ((arg == "-h") or (arg == "--help")) {
@@ -129,6 +131,10 @@ int main(int argc, char *argv[]) {
         block = stringToDim3(argv[++i]);
       } else if ((arg == "-s") or (arg == "--shared-memory")) {
         useSharedMemory = (atoi(argv[++i]) == 1);
+      } else if ((arg == "-m") or (arg == "--multiple-scattering")) {
+        multipleScattering = (atoi(argv[++i]) == 1);
+      } else if ((arg == "-e") or (arg == "--energy-loss")) {
+        energyLoss = (atoi(argv[++i]) == 1);
       } else {
         std::cerr << "Unknown argument." << std::endl;
         return 1;
@@ -288,8 +294,9 @@ int main(int argc, char *argv[]) {
   std::cout << "Start to run propagation to create measurements" << std::endl;
   auto start_propagate = std::chrono::high_resolution_clock::now();
 
-// Run propagation to create the measurements
-#pragma omp parallel for
+ // Run propagation to create the measurements
+ // @todo The material effects have to be considered during the simulation
+ #pragma omp parallel for
   for (int it = 0; it < nTracks; it++) {
     propagator.propagate(startPars[it], propOptions, ress[it]);
   }
@@ -353,7 +360,7 @@ int main(int argc, char *argv[]) {
   KalmanFitterType kFitter(rPropagator);
 
   // The KF options
-  KalmanFitterOptions<VoidOutlierFinder> kfOptions(gctx, mctx);
+  KalmanFitterOptions<VoidOutlierFinder> kfOptions(gctx, mctx,  VoidOutlierFinder(), nullptr, multipleScattering, energyLoss);
 
   // Allocate memory for KF fitted tracks
   TSType *fittedTracks;
