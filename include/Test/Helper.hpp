@@ -5,10 +5,7 @@
 #include "Utilities/Units.hpp"
 #include <random>
 
-std::default_random_engine generator(42);
-std::normal_distribution<double> gauss(0., 1.);
-
-using namespace Acts;
+namespace Test{
 
 // Struct for B field
 struct ConstantBField {
@@ -18,7 +15,12 @@ struct ConstantBField {
 };
 
 // Measurement creator
+template< typename generator_t>
 struct MeasurementCreator {
+  /// Random number generator used for the simulation.
+  generator_t *generator = nullptr;
+ 
+  // The smearing resolution 
   double resX = 30 * Acts::units::_um;
   double resY = 30 * Acts::units::_um;
 
@@ -30,22 +32,24 @@ struct MeasurementCreator {
   template <typename propagator_state_t, typename stepper_t>
   void operator()(propagator_state_t &state, const stepper_t &stepper,
                   result_type &result) const {
+    assert(generator and "The generator pointer must be valid"); 
+
     if (state.navigation.currentSurface != nullptr) {
       // Apply global to local
-      Vector2D lPos;
+      Acts::Vector2D lPos;
       state.navigation.currentSurface->globalToLocal(
           state.options.geoContext, stepper.position(state.stepping),
           stepper.direction(state.stepping), lPos);
       // Perform the smearing to truth
-      double dx = resX * gauss(generator);
-      double dy = resY * gauss(generator);
+      double dx = std::normal_distribution<double>(0., resX)(*generator);
+      double dy = std::normal_distribution<double>(0., resY)(*generator);
 
       // The measurement values
-      Vector2D values;
+      Acts::Vector2D values;
       values << lPos[0] + dx, lPos[1] + dy;
 
       // The measurement covariance
-      SymMatrix2D cov;
+      Acts::SymMatrix2D cov;
       cov << resX * resX, 0., 0., resY * resY;
 
       // Push back to the container
@@ -80,3 +84,5 @@ struct VoidAborter {
     return false;
   }
 };
+
+} // namespace Test

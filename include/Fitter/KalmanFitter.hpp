@@ -375,7 +375,7 @@ private:
       bool hasMaterial = false;
 
       // The material might be zero
-      if (surface) {
+      if (surface and  surface->surfaceMaterial()) {
         // Prepare relevant input particle properties
         detail::PointwiseMaterialInteraction interaction(surface, state,
                                                          stepper);

@@ -20,16 +20,21 @@
 #include <memory>
 #include <vector>
 
-std::default_random_engine generator(42);
-std::normal_distribution<double> gauss(0., 1.);
-
-//using namespace Acts;
-
 namespace ActsFatras {
 
 // Measurement creator taking into account the material effects
+template <typename generator_t>
 struct MinimalSimulator{ 
+  // Random number generator used for the simulation.
+  generator_t *generator = nullptr;
+  /// Initial particle state.
   Particle particle;
+  /// Highland scattering 
+  HighlandScattering scattering;
+  /// Bethe-Bloch
+  BetheBloch betheBloch; 
+  /// Bethe-Heitler
+  BetheHeitler betheHeitler; 
  
   struct this_result {
     /// Current/ final particle state.
@@ -52,7 +57,9 @@ struct MinimalSimulator{
   template <typename propagator_state_t, typename stepper_t>
   void operator()(propagator_state_t &state, const stepper_t &stepper,
                   result_type &result) const {
-    if (not state.navigation.currentSurface != nullptr) {
+   assert(generator and "The generator pointer must be valid");  
+
+   if (state.navigation.currentSurface == nullptr) {
       return; 
     } 
    
@@ -74,13 +81,12 @@ struct MinimalSimulator{
     // since the particle is modified in-place we need a copy.
     auto after = before;
 
-    //if (surface.surfaceMaterial()) {
-    { 
+    if (surface.surfaceMaterial()) {
       // Apply global to local
       Vector2D local(0., 0.);
       surface.globalToLocal(
           state.options.geoContext, stepper.position(state.stepping),
-          stepper.direction(state.stepping), lPos);
+          stepper.direction(state.stepping), local);
 
       Acts::MaterialSlab slab =
             surface.surfaceMaterial().materialSlab(local);
@@ -91,14 +97,14 @@ struct MinimalSimulator{
           // dot-product(unit normal, direction) = cos(incidence angle)
           // particle direction is normalized, not sure about surface normal
           auto cosIncidenceInv =
-              normal.norm() / normal.dot(beforeDir);
+              normal.norm() / normal.dot(before.unitDirection());
           slab.scaleThickness(cosIncidenceInv); 
         
           // The place where the material has effects on the position/direction of the 'after' 
           // @note No children generated for the moment 
-          HighlandScattering(generator, slab, after);
-          BetheBloch(generator, slab, after);
-          BetheHeitler(generator, slab, after);         
+          scattering(*generator, slab, after);
+          betheBloch(*generator, slab, after);
+          betheHeitler(*generator, slab, after);         
  
           // add the accumulated material; assumes the full material was passsed
           // event if the particle was killed.
@@ -114,13 +120,12 @@ struct MinimalSimulator{
           after.setMaterialPassed(before.pathInX0() + slab.thicknessInX0(),
                                   before.pathInL0() + slab.thicknessInL0()); 
       }   
-       
     } 
 
      // store results of this interaction step, including potential hits
     result.particle = after;
     result.hits.emplace_back(
-        surface.geometryId(), before.particleId(),
+        surface.geoID(), before.particleId(),
         // the interaction could potentially modify the particle position
         Hit::Scalar(0.5) * (before.position4() + after.position4()),
         before.momentum4(), after.momentum4(), result.hits.size());

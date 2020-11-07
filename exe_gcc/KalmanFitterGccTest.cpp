@@ -8,10 +8,12 @@
 #include "Plugins/BFieldUtils.hpp"
 #include "Propagator/EigenStepper.hpp"
 #include "Propagator/Propagator.hpp"
-#include "Test/TestHelper.hpp"
+#include "ActsFatras/Kernel/MinimalSimulator.hpp"
+#include "Utilities/RandomNumbers.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
 #include "Utilities/Units.hpp"
 #include "Utilities/Logger.hpp"
+#include "Test/Helper.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -36,11 +38,13 @@ static void show_usage(std::string name) {
 
 using namespace Acts;
 
-using Stepper = EigenStepper<ConstantBField>;
+using Stepper = EigenStepper<Test::ConstantBField>;
 // using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
 using PropagatorType = Propagator<Stepper>;
 using PropResultType = PropagatorResult;
-using PropOptionsType = PropagatorOptions<MeasurementCreator, VoidAborter>;
+//using Simulator = Test::MeasurementCreator<RandomEngine>;
+using Simulator = ActsFatras::MinimalSimulator<RandomEngine>;
+using PropOptionsType = PropagatorOptions<Simulator, Test::VoidAborter>;
 using PlaneSurfaceType = PlaneSurface<InfiniteBounds>;
 
 int main(int argc, char *argv[]) {
@@ -79,6 +83,13 @@ int main(int argc, char *argv[]) {
   // Create a test context
   GeometryContext gctx;
   MagneticFieldContext mctx;
+
+  // Create a random number service
+  RandomNumbers::Config config;
+  config.seed = static_cast<uint64_t>(1234567890u); 
+  auto randomNumbers = std::make_shared<RandomNumbers>(config);
+  auto generator = randomNumbers->spawnGenerator(0);
+  std::normal_distribution<double> gauss(0, 1);
 
   // Create the geometry
   size_t nSurfaces = 10;
@@ -131,6 +142,7 @@ int main(int argc, char *argv[]) {
   propOptions.maxSteps = 100;
   propOptions.initializer.surfaceSequence = surfacePtrs;
   propOptions.initializer.surfaceSequenceSize = nSurfaces;
+  propOptions.action.generator = &generator;
 
   // Construct random starting track parameters
   std::vector<CurvilinearParameters> startPars;
@@ -145,6 +157,7 @@ int main(int argc, char *argv[]) {
         resTheta * resTheta, 0., 0., 0., 0., 0., 0., 0.0001, 0., 0., 0., 0., 0.,
         0., 1.;
 
+    // @note Add random for a range of kinematics
     double q = 1;
     double time = 0;
     double phi = gauss(generator) * resPhi;
@@ -158,14 +171,14 @@ int main(int argc, char *argv[]) {
   }
 
   // Propagation result
-  MeasurementCreator::result_type ress[nTracks];
+  Simulator::result_type simResult[nTracks];
 
   auto start = std::chrono::high_resolution_clock::now();
 
 // Creating the tracks
 #pragma omp parallel for
   for (int it = 0; it < nTracks; it++) {
-    propagator.propagate(startPars[it], propOptions, ress[it]);
+    propagator.propagate(startPars[it], propOptions, simResult[it]);
   }
 
   auto end_propagate = std::chrono::high_resolution_clock::now();
@@ -180,7 +193,7 @@ int main(int argc, char *argv[]) {
     // Write one track to one obj file
     /*
     for (int it = 0; it < nTracks; it++) {
-      auto tracks = ress[it].actorResult.sourcelinks;
+      auto tracks = simResult[it].hits;
       std::ofstream obj_track;
       std::string fileName ="cpu_output/Track-" + std::to_string(it) + ".obj";
       obj_track.open(fileName.c_str());
@@ -201,30 +214,60 @@ int main(int argc, char *argv[]) {
     */
 
     std::cout << "writing propagation results" << std::endl;
-    // Write all of the created tracks to one obj file
+    // Write all of the simulated hits to one obj file
     std::ofstream obj_track;
     std::string fileName = "Tracks-propagation-gcc.obj";
     obj_track.open(fileName.c_str());
 
     // Initialize the vertex counter
     for (int it = 0; it < nTracks; it++) {
-      auto tracks = ress[it].sourcelinks;
+      auto hits = simResult[it].hits;
       ++vCounter;
-      for (const auto &sl : tracks) {
-        const auto &pos = sl.globalPosition(gctx);
+      for (const auto &sl : hits) {
+        const auto &pos = sl.position();
         obj_track << "v " << pos.x() << " " << pos.y() << " " << pos.z()
                   << "\n";
       }
       // Write out the line - only if we have at least two points created
-      size_t vBreak = vCounter + tracks.size() - 1;
+      size_t vBreak = vCounter + hits.size() - 1;
       for (; vCounter < vBreak; ++vCounter)
         obj_track << "l " << vCounter << " " << vCounter + 1 << '\n';
     }
     obj_track.close();
   }
 
+  // Perform smearing to the simulated hits
+  std::vector<std::vector<PixelSourceLink>> sourcelinks(nTracks); 
+  double resX = 30.*Acts::units::_mm, resY = 30.*Acts::units::_mm;
+  for (int it = 0; it < nTracks; it++) {
+     auto hits = simResult[it].hits;
+     for (unsigned int ih =0; ih < hits.size() ; ih++) {
+       // Apply global to local
+       Acts::Vector2D lPos;
+        // find the surface for this hit 
+       surfaces[ih].globalToLocal(
+           gctx, hits[ih].position(),
+           hits[ih].unitDirection(), lPos);
+       // Perform the smearing to truth
+       double dx = std::normal_distribution<double>(0., resX)(generator);
+       double dy = std::normal_distribution<double>(0., resY)(generator);
+ 
+       // The measurement values
+       Acts::Vector2D values;
+       values << lPos[0] + dx, lPos[1] + dy;
+ 
+       // The measurement covariance
+       Acts::SymMatrix2D cov;
+       cov << resX * resX, 0., 0., resY * resY;
+ 
+       // Push back to the container
+       sourcelinks[it].emplace_back(values, cov,
+                                       &surfaces[ih]);
+     }   
+  }
+
   // start to perform fit to the created tracks
-  using RecoStepper = EigenStepper<ConstantBField>;
+  using RecoStepper = EigenStepper<Test::ConstantBField>;
   using RecoPropagator = Propagator<RecoStepper>;
   using KalmanFitter = KalmanFitter<RecoPropagator, GainMatrixUpdater>;
   using KalmanFitterResult =
@@ -261,7 +304,7 @@ int main(int argc, char *argv[]) {
         fittedTracks.data() + it * nSurfaces, nSurfaces);
 
     auto sourcelinkTrack = CudaKernelContainer<PixelSourceLink>(
-        ress[it].sourcelinks.data(), ress[it].sourcelinks.size());
+        sourcelinks[it].data(), sourcelinks[it].size());
     // The fittedTracks will be changed here
     auto fitStatus = kFitter.fit(sourcelinkTrack, startPars[it], kfOptions,
                                  kfResult, surfacePtrs, nSurfaces);

@@ -67,6 +67,11 @@ class HomogeneousSurfaceMaterial : public ISurfaceMaterial<HomogeneousSurfaceMat
   /// @param hsm is the source material
   ACTS_DEVICE_FUNC bool operator==(const HomogeneousSurfaceMaterial& hsm) const;
 
+  /// Check if the material is valid, i.e. it is finite and not vacuum.
+   ACTS_DEVICE_FUNC constexpr operator bool() const {
+     return bool(m_fullMaterial);
+  }
+
   /// @copydoc SurfaceMaterial::materialSlab(const Vector2D&)
   ///
   /// @note the input parameter is ignored

@@ -8,8 +8,10 @@
 
 #pragma once
 
+#include <array>
 #include <cassert>
 #include <climits>
+#include <ostream>
 #include <type_traits>
 #include <utility>
 
@@ -26,7 +28,7 @@ namespace Acts {
 template <typename T, std::size_t... BitsPerLevel>
 class MultiIndex {
  public:
-  static_assert(std::is_integral_v<T> and std::is_unsigned_v<T>,
+  static_assert(std::is_integral<T>::value and std::is_unsigned<T>::value,
                 "The underlying storage type must be an unsigned integer");
   static_assert(0 < sizeof...(BitsPerLevel),
                 "At least one level must be defined");
