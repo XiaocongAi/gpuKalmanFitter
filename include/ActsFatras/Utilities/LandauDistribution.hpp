@@ -16,7 +16,7 @@ namespace ActsFatras {
 ///
 /// Implements the same interface as the standard library distributions.
 class LandauDistribution {
- public:
+public:
   /// Parameter struct that contains all distribution parameters.
   struct param_type {
     /// Parameters must link back to the host distribution.
@@ -74,8 +74,7 @@ class LandauDistribution {
   result_type max() const { return std::numeric_limits<double>::infinity(); }
 
   /// Generate a random number from the configured Landau distribution.
-  template <typename Generator>
-  result_type operator()(Generator &generator) {
+  template <typename Generator> result_type operator()(Generator &generator) {
     return (*this)(generator, m_cfg);
   }
   /// Generate a random number from the given Landau distribution.
@@ -95,12 +94,12 @@ class LandauDistribution {
     return !(lhs == rhs);
   }
 
- private:
+private:
   param_type m_cfg;
 
   static double quantile(double z);
 };
 
-}  // namespace ActsFatras
+} // namespace ActsFatras
 
 #include "ActsFatras/Utilities/detail/LandauDistribution.ipp"

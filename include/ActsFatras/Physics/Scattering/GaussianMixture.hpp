@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "Material/Interactions.hpp"
 #include "ActsFatras/Physics/Scattering/detail/Scattering.hpp"
+#include "Material/Interactions.hpp"
 
 #include <random>
 
@@ -90,8 +90,8 @@ struct GaussianMixture {
   }
 };
 
-}  // namespace detail
+} // namespace detail
 
 using GaussianMixtureScattering = detail::Scattering<detail::GaussianMixture>;
 
-}  // namespace ActsFatras
+} // namespace ActsFatras

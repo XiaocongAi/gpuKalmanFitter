@@ -6,7 +6,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-
 #include "Utilities/Units.hpp"
 
 #include <algorithm>
@@ -21,7 +20,7 @@
 
 // Find an element within a data column using sorted pdg numbers as the index.
 template <typename ColumnContainer>
-static inline auto findByPdg(int32_t pdg, const ColumnContainer& column)
+static inline auto findByPdg(int32_t pdg, const ColumnContainer &column)
     -> std::optional<std::decay_t<decltype(column[0])>> {
   // should be a static_assert, but that seems to fail on LLVM
   assert((std::size(column) == kParticlesCount) and "Inconsistent column size");
@@ -60,7 +59,7 @@ std::string_view ActsFatras::findName(Acts::PdgParticle pdg) {
   return findByPdg(static_cast<int32_t>(pdg), kParticlesName).value_or("");
 }
 
-std::ostream& Acts::operator<<(std::ostream& os, Acts::PdgParticle pdg) {
+std::ostream &Acts::operator<<(std::ostream &os, Acts::PdgParticle pdg) {
   const auto name = ActsFatras::findName(pdg);
   if (not name.empty()) {
     os << name;

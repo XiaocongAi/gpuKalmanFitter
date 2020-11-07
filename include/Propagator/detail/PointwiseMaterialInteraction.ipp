@@ -22,8 +22,9 @@ inline void PointwiseMaterialInteraction::evaluatePointwiseMaterialInteraction(
   }
 }
 
-inline void PointwiseMaterialInteraction::covarianceContributions(
-    bool multipleScattering, bool energyLoss) {
+inline void
+PointwiseMaterialInteraction::covarianceContributions(bool multipleScattering,
+                                                      bool energyLoss) {
   // Compute contributions from interactions
   if (multipleScattering) {
     // TODO use momentum before or after energy loss in backward mode?
@@ -43,11 +44,12 @@ inline void PointwiseMaterialInteraction::covarianceContributions(
   }
 }
 
-inline double PointwiseMaterialInteraction::updateVariance(
-    double variance, double change, NoiseUpdateMode updateMode) const {
+inline double
+PointwiseMaterialInteraction::updateVariance(double variance, double change,
+                                             NoiseUpdateMode updateMode) const {
   // Add/Subtract the change
   // Protect the variance against becoming negative
   return std::max(0., variance + std::copysign(change, updateMode));
 }
-}  // namespace detail
-}  // end of namespace Acts
+} // namespace detail
+} // end of namespace Acts

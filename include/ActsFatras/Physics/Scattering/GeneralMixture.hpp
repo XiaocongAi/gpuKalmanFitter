@@ -99,9 +99,9 @@ struct GeneralMixture {
     std::array<double, 4> scattering_params;
     // Total standard deviation of mixture
     scattering_params[0] = 15. / beta / p * std::sqrt(tInX0) * scale;
-    scattering_params[1] = 1.0;  // Variance of core
-    scattering_params[2] = 1.0;  // Variance of tails
-    scattering_params[3] = 0.5;  // Mixture weight of tail component
+    scattering_params[1] = 1.0; // Variance of core
+    scattering_params[2] = 1.0; // Variance of tails
+    scattering_params[3] = 0.5; // Mixture weight of tail component
     return scattering_params;
   }
 
@@ -109,19 +109,19 @@ struct GeneralMixture {
                                     double Z, double scale) const {
     std::array<double, 4> scattering_params;
     scattering_params[0] = 15. / beta / p * std::sqrt(tInX0) *
-                           scale;  // Total standard deviation of mixture
+                           scale; // Total standard deviation of mixture
     double d1 = std::log(tInX0 / (beta * beta));
     double d2 = std::log(std::pow(Z, 2.0 / 3.0) * tInX0 / (beta * beta));
     double epsi;
-    double var1 = (-1.843e-3 * d1 + 3.347e-2) * d1 + 8.471e-1;  // Variance of
-                                                                // core
+    double var1 = (-1.843e-3 * d1 + 3.347e-2) * d1 + 8.471e-1; // Variance of
+                                                               // core
     if (d2 < 0.5)
       epsi = (6.096e-4 * d2 + 6.348e-3) * d2 + 4.841e-2;
     else
       epsi = (-5.729e-3 * d2 + 1.106e-1) * d2 - 1.908e-2;
-    scattering_params[1] = var1;                            // Variance of core
-    scattering_params[2] = (1 - (1 - epsi) * var1) / epsi;  // Variance of tails
-    scattering_params[3] = epsi;  // Mixture weight of tail component
+    scattering_params[1] = var1;                           // Variance of core
+    scattering_params[2] = (1 - (1 - epsi) * var1) / epsi; // Variance of tails
+    scattering_params[3] = epsi; // Mixture weight of tail component
     return scattering_params;
   }
 
@@ -131,7 +131,7 @@ struct GeneralMixture {
     double N = tInX0 * 1.587E7 * std::pow(Z, 1.0 / 3.0) / (beta * beta) /
                (Z + 1) / std::log(287 / std::sqrt(Z));
     scattering_params[4] = 15. / beta / p * std::sqrt(tInX0) *
-                           scale;  // Total standard deviation of mixture
+                           scale; // Total standard deviation of mixture
     double rho = 41000 / std::pow(Z, 2.0 / 3.0);
     double b = rho / std::sqrt(N * (std::log(rho) - 0.5));
     double n = std::pow(Z, 0.1) * std::log(N);
@@ -141,11 +141,11 @@ struct GeneralMixture {
         2.822E-1;
     double epsi = (1 - var1) / (a * a * (std::log(b / a) - 0.5) - var1);
     scattering_params[3] =
-        (epsi > 0) ? epsi : 0.0;  // Mixture weight of tail component
-    scattering_params[0] = a;     // Parameter 1 of tails
-    scattering_params[1] = b;     // Parameter 2 of tails
-    scattering_params[2] = var1;  // Variance of core
-    scattering_params[5] = N;     // Average number of scattering processes
+        (epsi > 0) ? epsi : 0.0; // Mixture weight of tail component
+    scattering_params[0] = a;    // Parameter 1 of tails
+    scattering_params[1] = b;    // Parameter 2 of tails
+    scattering_params[2] = var1; // Variance of core
+    scattering_params[5] = N;    // Average number of scattering processes
     return scattering_params;
   }
 
@@ -199,8 +199,8 @@ struct GeneralMixture {
   }
 };
 
-}  // namespace detail
+} // namespace detail
 
 using GeneralMixtureScattering = detail::Scattering<detail::GeneralMixture>;
 
-}  // namespace ActsFatras
+} // namespace ActsFatras

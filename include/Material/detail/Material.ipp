@@ -22,10 +22,11 @@ enum MaterialClassificationNumberIndices {
 
 // Avogadro constant
 constexpr double kAvogadro = 6.02214076e23 / Acts::UnitConstants::mol;
-}  // namespace
+} // namespace
 
-inline Acts::Material Acts::Material::fromMassDensity(float x0, float l0, float ar,
-                                               float z, float massRho) {
+inline Acts::Material Acts::Material::fromMassDensity(float x0, float l0,
+                                                      float ar, float z,
+                                                      float massRho) {
   using namespace Acts::UnitLiterals;
 
   Material mat;
@@ -49,8 +50,9 @@ inline Acts::Material Acts::Material::fromMassDensity(float x0, float l0, float 
   return mat;
 }
 
-inline Acts::Material Acts::Material::fromMolarDensity(float x0, float l0, float ar,
-                                                float z, float molarRho) {
+inline Acts::Material Acts::Material::fromMolarDensity(float x0, float l0,
+                                                       float ar, float z,
+                                                       float molarRho) {
   Material mat;
   mat.m_x0 = x0;
   mat.m_l0 = l0;
@@ -60,11 +62,9 @@ inline Acts::Material Acts::Material::fromMolarDensity(float x0, float l0, float
   return mat;
 }
 
-inline Acts::Material::Material(const ParametersVector& parameters)
-    : m_x0(parameters[eRadiationLength]),
-      m_l0(parameters[eInteractionLength]),
-      m_ar(parameters[eRelativeAtomicMass]),
-      m_z(parameters[eNuclearCharge]),
+inline Acts::Material::Material(const ParametersVector &parameters)
+    : m_x0(parameters[eRadiationLength]), m_l0(parameters[eInteractionLength]),
+      m_ar(parameters[eRelativeAtomicMass]), m_z(parameters[eNuclearCharge]),
       m_molarRho(parameters[eMolarDensity]) {}
 
 inline float Acts::Material::massDensity() const {

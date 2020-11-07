@@ -8,10 +8,10 @@
 
 #pragma once
 
-#include "Utilities/Definitions.hpp"
-#include "Utilities/PdgParticle.hpp"
 #include "ActsFatras/EventData/Barcode.hpp"
 #include "ActsFatras/EventData/ProcessType.hpp"
+#include "Utilities/Definitions.hpp"
+#include "Utilities/PdgParticle.hpp"
 
 #include <cmath>
 #include <iosfwd>
@@ -21,7 +21,7 @@ namespace ActsFatras {
 
 /// Simulation particle information and kinematic state.
 class Particle {
- public:
+public:
   using Scalar = double;
   using Vector3 = Acts::ActsVector<Scalar, 3>;
   using Vector4 = Acts::ActsVector<Scalar, 4>;
@@ -188,7 +188,7 @@ class Particle {
   /// The maximum interaction length the particle is allowed to pass.
   constexpr Scalar pathLimitL0() const { return m_limitL0; }
 
- private:
+private:
   // identity, i.e. things that do not change over the particle lifetime.
   /// Particle identifier within the event.
   Barcode m_particleId;
@@ -217,4 +217,4 @@ class Particle {
   Scalar m_limitL0 = std::numeric_limits<Scalar>::max();
 };
 
-}  // namespace ActsFatras
+} // namespace ActsFatras

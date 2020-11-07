@@ -9,14 +9,14 @@
 inline Surface::Surface(const Transform3D &tform)
     : GeometryObject(), m_transform(std::move(tform)) {}
 
-
 inline Surface::Surface(const Surface &other)
-    : GeometryObject(other), m_transform(other.m_transform), m_surfaceMaterial(other.m_surfaceMaterial) {}
+    : GeometryObject(other), m_transform(other.m_transform),
+      m_surfaceMaterial(other.m_surfaceMaterial) {}
 
 inline Surface::Surface(const GeometryContext &gctx, const Surface &other,
                         const Transform3D &shift)
-    : GeometryObject(),
-      m_transform(Transform3D(shift * other.transform(gctx))), m_surfaceMaterial(other.m_surfaceMaterial) {}
+    : GeometryObject(), m_transform(Transform3D(shift * other.transform(gctx))),
+      m_surfaceMaterial(other.m_surfaceMaterial) {}
 
 inline Surface::Surface(const Vector3D &center, const Vector3D &normal) {
   /// the right-handed coordinate system is defined as
@@ -274,6 +274,7 @@ inline Intersection Surface::intersectionEstimate(
   return intersection;
 }
 
-inline const Acts::HomogeneousSurfaceMaterial& Acts::Surface::surfaceMaterial() const {
+inline const Acts::HomogeneousSurfaceMaterial &
+Acts::Surface::surfaceMaterial() const {
   return m_surfaceMaterial;
 }

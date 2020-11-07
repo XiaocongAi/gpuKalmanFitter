@@ -21,7 +21,7 @@
 namespace Acts {
 
 /// The random number generator used in the framework.
-using RandomEngine = std::mt19937;  ///< Mersenne Twister
+using RandomEngine = std::mt19937; ///< Mersenne Twister
 
 /// Provide event and algorithm specific random number generator.s
 ///
@@ -35,12 +35,12 @@ using RandomEngine = std::mt19937;  ///< Mersenne Twister
 /// clients should spawn their own local distribution objects
 /// as needed, following the C++11 STL design.
 class RandomNumbers {
- public:
+public:
   struct Config {
-    uint64_t seed = 1234567890u;  ///< random seed
+    uint64_t seed = 1234567890u; ///< random seed
   };
 
-  RandomNumbers(const Config& cfg);
+  RandomNumbers(const Config &cfg);
 
   /// Spawn an algorithm-local random number generator. To avoid inefficiencies
   /// and multiple uses of a given RNG seed, this should only be done once per
@@ -56,11 +56,11 @@ class RandomNumbers {
   /// random engine is used and `spawnGenerator` can not be used.
   uint64_t generateSeed(uint64_t eventNumber) const;
 
- private:
+private:
   Config m_cfg;
 };
 
-inline RandomNumbers::RandomNumbers(const Config& cfg) : m_cfg(cfg) {}
+inline RandomNumbers::RandomNumbers(const Config &cfg) : m_cfg(cfg) {}
 
 inline RandomEngine RandomNumbers::spawnGenerator(uint64_t eventNumber) const {
   return RandomEngine(generateSeed(eventNumber));
@@ -72,4 +72,4 @@ inline uint64_t RandomNumbers::generateSeed(uint64_t eventNumber) const {
   return m_cfg.seed + id;
 }
 
-}  // namespace Acts 
+} // namespace Acts

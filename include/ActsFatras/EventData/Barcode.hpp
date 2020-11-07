@@ -94,7 +94,7 @@ namespace ActsFatras {
 class Barcode : public Acts::MultiIndex<uint64_t, 12, 12, 16, 8, 16> {
   using Base = Acts::MultiIndex<uint64_t, 12, 12, 16, 8, 16>;
 
- public:
+public:
   using Base::Base;
   using Base::Value;
 
@@ -110,15 +110,15 @@ class Barcode : public Acts::MultiIndex<uint64_t, 12, 12, 16, 8, 16> {
   constexpr Value subParticle() const { return level(4); }
 
   /// Set the primary vertex identifier.
-  constexpr Barcode& setVertexPrimary(Value id) { return set(0, id), *this; }
+  constexpr Barcode &setVertexPrimary(Value id) { return set(0, id), *this; }
   /// Set the secondary vertex identifier.
-  constexpr Barcode& setVertexSecondary(Value id) { return set(1, id), *this; }
+  constexpr Barcode &setVertexSecondary(Value id) { return set(1, id), *this; }
   /// Set the parent particle identifier.
-  constexpr Barcode& setParticle(Value id) { return set(2, id), *this; }
+  constexpr Barcode &setParticle(Value id) { return set(2, id), *this; }
   /// Set the particle identifier.
-  constexpr Barcode& setGeneration(Value id) { return set(3, id), *this; }
+  constexpr Barcode &setGeneration(Value id) { return set(3, id), *this; }
   /// Set the process identifier.
-  constexpr Barcode& setSubParticle(Value id) { return set(4, id), *this; }
+  constexpr Barcode &setSubParticle(Value id) { return set(4, id), *this; }
 
   /// Construct a new barcode representing a descendant particle.
   ///
@@ -128,14 +128,13 @@ class Barcode : public Acts::MultiIndex<uint64_t, 12, 12, 16, 8, 16> {
   }
 };
 
-}  // namespace ActsFatras
+} // namespace ActsFatras
 
 // specialize std::hash so Barcode can be used e.g. in an unordered_map
 namespace std {
-template <>
-struct hash<ActsFatras::Barcode> {
+template <> struct hash<ActsFatras::Barcode> {
   auto operator()(ActsFatras::Barcode barcode) const noexcept {
     return std::hash<ActsFatras::Barcode::Value>()(barcode.value());
   }
 };
-}  // namespace std
+} // namespace std

@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "Material/Interactions.hpp"
 #include "ActsFatras/Physics/Scattering/detail/Scattering.hpp"
+#include "Material/Interactions.hpp"
 
 #include <random>
 
@@ -41,8 +41,8 @@ struct Highland {
   }
 };
 
-}  // namespace detail
+} // namespace detail
 
 using HighlandScattering = detail::Scattering<detail::Highland>;
 
-}  // namespace ActsFatras
+} // namespace ActsFatras

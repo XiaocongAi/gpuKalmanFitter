@@ -8,10 +8,10 @@
 
 #pragma once
 
-#include "Material/Interactions.hpp"
-#include "Material/MaterialSlab.hpp"
 #include "ActsFatras/EventData/Particle.hpp"
 #include "ActsFatras/Utilities/LandauDistribution.hpp"
+#include "Material/Interactions.hpp"
+#include "Material/MaterialSlab.hpp"
 
 #include <array>
 
@@ -67,4 +67,4 @@ struct BetheBloch {
   }
 };
 
-}  // namespace ActsFatras
+} // namespace ActsFatras

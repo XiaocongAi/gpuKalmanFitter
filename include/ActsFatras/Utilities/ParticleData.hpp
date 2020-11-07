@@ -30,7 +30,7 @@ float findMass(Acts::PdgParticle pdg);
 /// @return Particle name or empty if not available.
 std::string_view findName(Acts::PdgParticle pdg);
 
-}  // namespace ActsFatras
+} // namespace ActsFatras
 
 namespace Acts {
 
@@ -41,8 +41,8 @@ namespace Acts {
 ///       to contain the full particle data table, it can only be defined
 ///       here. It also only extends the output and should not have any
 ///       side effects. We are probably fine.
-std::ostream& operator<<(std::ostream& os, PdgParticle pdg);
+std::ostream &operator<<(std::ostream &os, PdgParticle pdg);
 
-}  // namespace Acts
+} // namespace Acts
 
 #include "ActsFatras/Utilities/detail/ParticleData.ipp"

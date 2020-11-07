@@ -240,7 +240,7 @@ static const float kParticlesMassMeV[kParticlesCount] = {
     4421.0f,   1506.0f,       1936.0f,     2010.0f,     2297.0f,
     2350.0f,
 };
-static const char* const kParticlesName[kParticlesCount] = {
+static const char *const kParticlesName[kParticlesCount] = {
     "a(1)(1640)-",
     "pi(1)(1600)-",
     "pi(1800)-",

@@ -46,7 +46,8 @@ public:
   /// Copy Constructor
   ///
   /// @param psf is the source surface for the copy
-  // @note The ACTS_DEVICE_FUNC identifier is necessary, otherwise CUDA complaint
+  // @note The ACTS_DEVICE_FUNC identifier is necessary, otherwise CUDA
+  // complaint
   ACTS_DEVICE_FUNC PlaneSurface(const PlaneSurface &other);
 
   /// Copy constructor - with shift

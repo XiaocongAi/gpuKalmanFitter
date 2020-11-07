@@ -72,7 +72,8 @@ struct KalmanFitterOptions {
   KalmanFitterOptions(const GeometryContext &gctx,
                       const MagneticFieldContext &mctx,
                       const OutlierFinder &outlierFinder_ = VoidOutlierFinder(),
-                      Surface *rSurface = nullptr, bool mScattering = true, bool eLoss = true)
+                      Surface *rSurface = nullptr, bool mScattering = true,
+                      bool eLoss = true)
       : geoContext(gctx), magFieldContext(mctx), outlierFinder(outlierFinder_),
         referenceSurface(rSurface), multipleScattering(mScattering),
         energyLoss(eLoss) {}
@@ -357,7 +358,7 @@ private:
       return false;
     }
 
-  /// @brief Kalman actor operation : material interaction
+    /// @brief Kalman actor operation : material interaction
     ///
     /// @tparam propagator_state_t is the type of Propagagor state
     /// @tparam stepper_t Type of the stepper
@@ -369,13 +370,13 @@ private:
     ///
     template <typename propagator_state_t, typename stepper_t>
     ACTS_DEVICE_FUNC void materialInteractor(
-        const Surface* surface, propagator_state_t& state, stepper_t& stepper,
-        const MaterialUpdateStage& updateStage = fullUpdate) const {
+        const Surface *surface, propagator_state_t &state, stepper_t &stepper,
+        const MaterialUpdateStage &updateStage = fullUpdate) const {
       // Indicator if having material
       bool hasMaterial = false;
 
       // The material might be zero
-      if (surface and  surface->surfaceMaterial()) {
+      if (surface and surface->surfaceMaterial()) {
         // Prepare relevant input particle properties
         detail::PointwiseMaterialInteraction interaction(surface, state,
                                                          stepper);
@@ -389,10 +390,10 @@ private:
                                                            energyLoss);
 
           // Screen out material effects info
-          //ACTS_VERBOSE("Material effects on surface: "
+          // ACTS_VERBOSE("Material effects on surface: "
           //             << surface->geometryId()
           //             << " at update stage: " << updateStage << " are :");
-          //ACTS_VERBOSE("eLoss = "
+          // ACTS_VERBOSE("eLoss = "
           //             << interaction.Eloss << ", "
           //             << "variancePhi = " << interaction.variancePhi << ", "
           //             << "varianceTheta = " << interaction.varianceTheta
@@ -406,8 +407,10 @@ private:
 
       if (not hasMaterial) {
         // Screen out message
-        //ACTS_VERBOSE("No material effects on surface: " << surface->geometryId()
-        //                                                << " at update stage: "
+        // ACTS_VERBOSE("No material effects on surface: " <<
+        // surface->geometryId()
+        //                                                << " at update stage:
+        //                                                "
         //                                                << updateStage);
       }
     }

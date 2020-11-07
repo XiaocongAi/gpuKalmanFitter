@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "Material/MaterialSlab.hpp"
 #include "ActsFatras/EventData/Particle.hpp"
+#include "Material/MaterialSlab.hpp"
 
 #include <array>
 #include <random>
@@ -54,4 +54,4 @@ struct BetheHeitler {
   }
 };
 
-}  // namespace ActsFatras
+} // namespace ActsFatras

@@ -20,4 +20,4 @@ enum class ProcessType : uint32_t {
   eUndefined = 0,
 };
 
-}  // namespace ActsFatras
+} // namespace ActsFatras

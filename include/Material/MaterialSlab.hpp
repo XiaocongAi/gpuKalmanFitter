@@ -21,7 +21,7 @@ namespace Acts {
 ///
 /// @see Material for a description of the available parameters.
 class MaterialSlab {
- public:
+public:
   /// Construct vacuum without thickness.
   MaterialSlab() = default;
   /// Construct vacuum with thickness.
@@ -30,14 +30,14 @@ class MaterialSlab {
   ///
   /// @param material  is the material description
   /// @param thickness is the thickness of the material
-  ACTS_DEVICE_FUNC MaterialSlab(const Material& material, float thickness);
-  
+  ACTS_DEVICE_FUNC MaterialSlab(const Material &material, float thickness);
+
   ~MaterialSlab() = default;
 
-  MaterialSlab(MaterialSlab&&) = default;
-  MaterialSlab(const MaterialSlab&) = default;
-  MaterialSlab& operator=(MaterialSlab&&) = default;
-  MaterialSlab& operator=(const MaterialSlab&) = default;
+  MaterialSlab(MaterialSlab &&) = default;
+  MaterialSlab(const MaterialSlab &) = default;
+  MaterialSlab &operator=(MaterialSlab &&) = default;
+  MaterialSlab &operator=(const MaterialSlab &) = default;
 
   /// Scale the material thickness by the given factor.
   ACTS_DEVICE_FUNC void scaleThickness(float scale);
@@ -48,32 +48,38 @@ class MaterialSlab {
   }
 
   /// Access the (average) material parameters.
-  ACTS_DEVICE_FUNC constexpr const Material& material() const { return m_material; }
+  ACTS_DEVICE_FUNC constexpr const Material &material() const {
+    return m_material;
+  }
   /// Return the thickness.
   ACTS_DEVICE_FUNC constexpr float thickness() const { return m_thickness; }
   /// Return the radiation length fraction.
-  ACTS_DEVICE_FUNC constexpr float thicknessInX0() const { return m_thicknessInX0; }
+  ACTS_DEVICE_FUNC constexpr float thicknessInX0() const {
+    return m_thicknessInX0;
+  }
   /// Return the nuclear interaction length fraction.
-  ACTS_DEVICE_FUNC constexpr float thicknessInL0() const { return m_thicknessInL0; }
+  ACTS_DEVICE_FUNC constexpr float thicknessInL0() const {
+    return m_thicknessInL0;
+  }
 
- private:
+private:
   Material m_material;
   float m_thickness = 0.0f;
   float m_thicknessInX0 = 0.0f;
   float m_thicknessInL0 = 0.0f;
 
-  friend constexpr bool operator==(const MaterialSlab& lhs,
-                                   const MaterialSlab& rhs) {
+  friend constexpr bool operator==(const MaterialSlab &lhs,
+                                   const MaterialSlab &rhs) {
     // t/X0 and t/L0 are dependent variables and need not be checked
     return (lhs.m_material == rhs.m_material) and
            (lhs.m_thickness == rhs.m_thickness);
   }
-  friend constexpr bool operator!=(const MaterialSlab& lhs,
-                                   const MaterialSlab& rhs) {
+  friend constexpr bool operator!=(const MaterialSlab &lhs,
+                                   const MaterialSlab &rhs) {
     return !(lhs == rhs);
   }
 };
 
-}  // namespace Acts
+} // namespace Acts
 
 #include "Material/detail/MaterialSlab.ipp"

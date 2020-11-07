@@ -36,7 +36,7 @@ namespace Acts {
 ///   any particular size since we might consider to store more parameters in
 ///   the future.
 class Material {
- public:
+public:
   using ParametersVector = Acts::ActsVectorF<5>;
 
   // Both mass and molar density are stored as a float and can thus not be
@@ -54,8 +54,8 @@ class Material {
   /// @param Ar is the relative atomic mass
   /// @param Z is the nuclear charge number
   /// @param molarRho is the molar density
-  ACTS_DEVICE_FUNC static Material fromMolarDensity(float x0, float l0, float ar, float z,
-                                   float molarRho);
+  ACTS_DEVICE_FUNC static Material
+  fromMolarDensity(float x0, float l0, float ar, float z, float molarRho);
   /// Construct from material parameters using the mass density.
   ///
   /// @param X0 is the radiation length
@@ -67,18 +67,18 @@ class Material {
   /// @warning Due to the choice of native mass units, using the mass density
   ///   can lead to numerical problems. Typical mass densities lead to
   ///   computations with values differing by 20+ orders of magnitude.
-  ACTS_DEVICE_FUNC static Material fromMassDensity(float x0, float l0, float ar, float z,
-                                  float massRho);
+  ACTS_DEVICE_FUNC static Material fromMassDensity(float x0, float l0, float ar,
+                                                   float z, float massRho);
   /// Construct a vacuum representation.
   Material() = default;
   /// Construct from an encoded parameters vector.
-  ACTS_DEVICE_FUNC Material(const ParametersVector& parameters);
+  ACTS_DEVICE_FUNC Material(const ParametersVector &parameters);
 
-  Material(Material&& mat) = default;
-  Material(const Material& mat) = default;
+  Material(Material &&mat) = default;
+  Material(const Material &mat) = default;
   ~Material() = default;
-  Material& operator=(Material&& mat) = default;
-  Material& operator=(const Material& mat) = default;
+  Material &operator=(Material &&mat) = default;
+  Material &operator=(const Material &mat) = default;
 
   /// Check if the material is valid, i.e. it is not vacuum.
   ACTS_DEVICE_FUNC constexpr operator bool() const { return 0.0f < m_ar; }
@@ -94,7 +94,9 @@ class Material {
   /// Return the molar density.
   ACTS_DEVICE_FUNC constexpr float molarDensity() const { return m_molarRho; }
   /// Return the molar electron density.
-  ACTS_DEVICE_FUNC constexpr float molarElectronDensity() const { return m_z * m_molarRho; }
+  ACTS_DEVICE_FUNC constexpr float molarElectronDensity() const {
+    return m_z * m_molarRho;
+  }
   /// Return the mass density.
   ACTS_DEVICE_FUNC float massDensity() const;
   /// Return the mean electron excitation energy.
@@ -103,23 +105,23 @@ class Material {
   /// Encode the properties into an opaque parameters vector.
   ACTS_DEVICE_FUNC ParametersVector parameters() const;
 
- private:
+private:
   float m_x0 = std::numeric_limits<float>::infinity();
   float m_l0 = std::numeric_limits<float>::infinity();
   float m_ar = 0.0f;
   float m_z = 0.0f;
   float m_molarRho = 0.0f;
 
-  friend constexpr bool operator==(const Material& lhs, const Material& rhs) {
+  friend constexpr bool operator==(const Material &lhs, const Material &rhs) {
     return (lhs.m_x0 == rhs.m_x0) and (lhs.m_l0 == rhs.m_l0) and
            (lhs.m_ar == rhs.m_ar) and (lhs.m_z == rhs.m_z) and
            (lhs.m_molarRho == rhs.m_molarRho);
   }
-  friend constexpr bool operator!=(const Material& lhs, const Material& rhs) {
+  friend constexpr bool operator!=(const Material &lhs, const Material &rhs) {
     return !(lhs == rhs);
   }
 };
 
-}  // namespace Acts
+} // namespace Acts
 
 #include "Material/detail/Material.ipp"

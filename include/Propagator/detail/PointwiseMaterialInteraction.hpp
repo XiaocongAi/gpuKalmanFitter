@@ -17,7 +17,7 @@ namespace detail {
 /// @brief Struct to handle pointwise material interaction
 struct PointwiseMaterialInteraction {
   /// Data from the propagation state
-  const Surface* surface;
+  const Surface *surface;
 
   /// The particle position at the interaction.
   const Vector3D pos = Vector3D(0., 0., 0);
@@ -64,18 +64,15 @@ struct PointwiseMaterialInteraction {
   /// @param [in] state State of the propagation
   /// @param [in] stepper Stepper in use
   template <typename propagator_state_t, typename stepper_t>
-  ACTS_DEVICE_FUNC PointwiseMaterialInteraction(const Surface* sSurface,
-                               const propagator_state_t& state,
-                               const stepper_t& stepper)
-      : surface(sSurface),
-        pos(stepper.position(state.stepping)),
+  ACTS_DEVICE_FUNC PointwiseMaterialInteraction(const Surface *sSurface,
+                                                const propagator_state_t &state,
+                                                const stepper_t &stepper)
+      : surface(sSurface), pos(stepper.position(state.stepping)),
         time(stepper.time(state.stepping)),
         dir(stepper.direction(state.stepping)),
         momentum(stepper.momentum(state.stepping)),
-        q(stepper.charge(state.stepping)),
-        qOverP(q / momentum),
-        mass(state.options.mass),
-        pdg(state.options.absPdgCode),
+        q(stepper.charge(state.stepping)), qOverP(q / momentum),
+        mass(state.options.mass), pdg(state.options.absPdgCode),
         performCovarianceTransport(state.stepping.covTransport),
         nav(state.stepping.navDir) {}
 
@@ -88,8 +85,9 @@ struct PointwiseMaterialInteraction {
   ///
   /// @return Boolean statement whether the material is valid
   template <typename propagator_state_t>
-  ACTS_DEVICE_FUNC bool evaluateMaterialSlab(const propagator_state_t& state,
-                            MaterialUpdateStage updateStage = fullUpdate) {
+  ACTS_DEVICE_FUNC bool
+  evaluateMaterialSlab(const propagator_state_t &state,
+                       MaterialUpdateStage updateStage = fullUpdate) {
     // We are at the start surface
     if (surface == state.navigation.startSurface) {
       updateStage = postUpdate;
@@ -115,8 +113,9 @@ struct PointwiseMaterialInteraction {
   /// @param [in] multipleScattering Boolean to indiciate the application of
   /// multiple scattering
   /// @param [in] energyLoss Boolean to indiciate the application of energy loss
-  ACTS_DEVICE_FUNC void evaluatePointwiseMaterialInteraction(bool multipleScattering,
-                                            bool energyLoss);
+  ACTS_DEVICE_FUNC void
+  evaluatePointwiseMaterialInteraction(bool multipleScattering,
+                                       bool energyLoss);
 
   /// @brief Update the state
   ///
@@ -126,7 +125,8 @@ struct PointwiseMaterialInteraction {
   /// @param [in] state State of the propagation
   /// @param [in] stepper Stepper in use
   template <typename propagator_state_t, typename stepper_t>
-  ACTS_DEVICE_FUNC void updateState(propagator_state_t& state, const stepper_t& stepper) {
+  ACTS_DEVICE_FUNC void updateState(propagator_state_t &state,
+                                    const stepper_t &stepper) {
     // in forward(backward) propagation, energy decreases(increases) and
     // variances increase(decrease)
     const auto nextE = std::sqrt(mass * mass + momentum * momentum) -
@@ -145,13 +145,14 @@ struct PointwiseMaterialInteraction {
         state.stepping.cov(eBoundQOverP, eBoundQOverP), varianceQoverP, mode);
   }
 
- private:
+private:
   /// @brief Evaluates the contributions to the covariance matrix
   ///
   /// @param [in] multipleScattering Boolean to indiciate the application of
   /// multiple scattering
   /// @param [in] energyLoss Boolean to indiciate the application of energy loss
-  ACTS_DEVICE_FUNC void covarianceContributions(bool multipleScattering, bool energyLoss);
+  ACTS_DEVICE_FUNC void covarianceContributions(bool multipleScattering,
+                                                bool energyLoss);
 
   /// @brief Convenience method for better readability
   ///
@@ -160,10 +161,11 @@ struct PointwiseMaterialInteraction {
   /// @param [in] updateMode The noise update mode (in default: add noise)
   ///
   /// @return The updated variance
-  ACTS_DEVICE_FUNC double updateVariance(double variance, double change,
-                        NoiseUpdateMode updateMode = addNoise) const;
+  ACTS_DEVICE_FUNC double
+  updateVariance(double variance, double change,
+                 NoiseUpdateMode updateMode = addNoise) const;
 };
-}  // namespace detail
-}  // end of namespace Acts
+} // namespace detail
+} // end of namespace Acts
 
 #include "Propagator/detail/PointwiseMaterialInteraction.ipp"

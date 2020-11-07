@@ -38,4 +38,4 @@ constexpr inline PdgParticle makeAbsolutePdgParticle(PdgParticle pdg) {
   return static_cast<PdgParticle>((0 <= value) ? value : -value);
 }
 
-}  // namespace Acts
+} // namespace Acts

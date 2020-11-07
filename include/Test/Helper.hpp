@@ -5,22 +5,22 @@
 #include "Utilities/Units.hpp"
 #include <random>
 
-namespace Test{
+namespace Test {
 
 // Struct for B field
 struct ConstantBField {
-  ACTS_DEVICE_FUNC static Acts::Vector3D getField(const Acts::Vector3D & /*field*/) {
+  ACTS_DEVICE_FUNC static Acts::Vector3D
+  getField(const Acts::Vector3D & /*field*/) {
     return Acts::Vector3D(0., 0., 2. * Acts::units::_T);
   }
 };
 
 // Measurement creator
-template< typename generator_t>
-struct MeasurementCreator {
+template <typename generator_t> struct MeasurementCreator {
   /// Random number generator used for the simulation.
   generator_t *generator = nullptr;
- 
-  // The smearing resolution 
+
+  // The smearing resolution
   double resX = 30 * Acts::units::_um;
   double resY = 30 * Acts::units::_um;
 
@@ -32,7 +32,7 @@ struct MeasurementCreator {
   template <typename propagator_state_t, typename stepper_t>
   void operator()(propagator_state_t &state, const stepper_t &stepper,
                   result_type &result) const {
-    assert(generator and "The generator pointer must be valid"); 
+    assert(generator and "The generator pointer must be valid");
 
     if (state.navigation.currentSurface != nullptr) {
       // Apply global to local

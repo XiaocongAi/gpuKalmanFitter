@@ -8,11 +8,12 @@
 
 static constexpr auto eps = 2 * std::numeric_limits<float>::epsilon();
 
-inline Acts::MaterialSlab::MaterialSlab(float thickness) : m_thickness(thickness) {}
+inline Acts::MaterialSlab::MaterialSlab(float thickness)
+    : m_thickness(thickness) {}
 
-inline Acts::MaterialSlab::MaterialSlab(const Material& material, float thickness)
-    : m_material(material),
-      m_thickness(thickness),
+inline Acts::MaterialSlab::MaterialSlab(const Material &material,
+                                        float thickness)
+    : m_material(material), m_thickness(thickness),
       m_thicknessInX0((eps < material.X0()) ? (thickness / material.X0()) : 0),
       m_thicknessInL0((eps < material.L0()) ? (thickness / material.L0()) : 0) {
 }

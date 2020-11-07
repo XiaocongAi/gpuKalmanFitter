@@ -25,15 +25,15 @@ namespace Acts {
 /// for equality. The ordering follows the hiearchy, i.e. indices are
 /// first ordered by the highest level, then within the highest level by the
 /// second level and so on.
-template <typename T, std::size_t... BitsPerLevel>
-class MultiIndex {
- public:
+template <typename T, std::size_t... BitsPerLevel> class MultiIndex {
+public:
   static_assert(std::is_integral<T>::value and std::is_unsigned<T>::value,
                 "The underlying storage type must be an unsigned integer");
   static_assert(0 < sizeof...(BitsPerLevel),
                 "At least one level must be defined");
-  //static_assert((sizeof(T) * CHAR_BIT) == (... + BitsPerLevel),
-  //              "The sum of bits per level must match the underlying storage");
+  // static_assert((sizeof(T) * CHAR_BIT) == (... + BitsPerLevel),
+  //              "The sum of bits per level must match the underlying
+  //              storage");
 
   /// The type of ther underlying storage value.
   using Value = T;
@@ -50,8 +50,7 @@ class MultiIndex {
   /// as a regular constructor, constructing a MultiIndex from a single
   /// encoded value and encoding only the first level would have the same
   /// signature and could not be distinguished.
-  template <typename... Us>
-  static constexpr MultiIndex Encode(Us&&... us) {
+  template <typename... Us> static constexpr MultiIndex Encode(Us &&... us) {
     static_assert(sizeof...(Us) <= NumLevels,
                   "Can only encode as many levels as in the MultiIndex");
 
@@ -67,12 +66,12 @@ class MultiIndex {
   constexpr MultiIndex(Value encoded) : m_value(encoded) {}
   /// Construct a default MultiIndex with undefined values for each level.
   MultiIndex() = default;
-  MultiIndex(const MultiIndex&) = default;
-  MultiIndex(MultiIndex&) = default;
-  MultiIndex& operator=(const MultiIndex&) = default;
-  MultiIndex& operator=(MultiIndex&&) = default;
+  MultiIndex(const MultiIndex &) = default;
+  MultiIndex(MultiIndex &) = default;
+  MultiIndex &operator=(const MultiIndex &) = default;
+  MultiIndex &operator=(MultiIndex &&) = default;
   /// Allow setting the MultiIndex from an already encoded value.
-  constexpr MultiIndex& operator=(Value encoded) {
+  constexpr MultiIndex &operator=(Value encoded) {
     m_value = encoded;
     return *this;
   }
@@ -85,7 +84,7 @@ class MultiIndex {
     return (m_value >> shift(lvl)) & mask(lvl);
   }
   /// Set the value of the index level.
-  constexpr MultiIndex& set(std::size_t lvl, Value val) {
+  constexpr MultiIndex &set(std::size_t lvl, Value val) {
     assert((lvl < NumLevels) and "Index level outside allowed range");
     // mask of valid bits at the encoded positions for the index level
     Value shiftedMask = (mask(lvl) << shift(lvl));
@@ -113,7 +112,7 @@ class MultiIndex {
     return (m_value & ~maskLower) | maskLower;
   }
 
- private:
+private:
   // per-level mask and right-most bit position for shifting
   static constexpr std::array<std::size_t, NumLevels> s_bits{BitsPerLevel...};
   static constexpr std::size_t shift(std::size_t lvl) {
@@ -138,15 +137,15 @@ class MultiIndex {
   }
 };
 
-}  // namespace Acts
+} // namespace Acts
 
 // specialize std::hash so MultiIndex can be used e.g. in an unordered_map
 namespace std {
 template <typename Storage, std::size_t... BitsPerLevel>
 struct hash<Acts::MultiIndex<Storage, BitsPerLevel...>> {
-  auto operator()(Acts::MultiIndex<Storage, BitsPerLevel...> idx) const
-      noexcept {
+  auto
+  operator()(Acts::MultiIndex<Storage, BitsPerLevel...> idx) const noexcept {
     return std::hash<Storage>()(idx.value());
   }
 };
-}  // namespace std
+} // namespace std

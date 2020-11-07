@@ -1,3 +1,4 @@
+#include "ActsFatras/Kernel/MinimalSimulator.hpp"
 #include "EventData/PixelSourceLink.hpp"
 #include "EventData/TrackParameters.hpp"
 #include "Fitter/GainMatrixUpdater.hpp"
@@ -8,12 +9,11 @@
 #include "Plugins/BFieldUtils.hpp"
 #include "Propagator/EigenStepper.hpp"
 #include "Propagator/Propagator.hpp"
-#include "ActsFatras/Kernel/MinimalSimulator.hpp"
-#include "Utilities/RandomNumbers.hpp"
-#include "Utilities/ParameterDefinitions.hpp"
-#include "Utilities/Units.hpp"
-#include "Utilities/Logger.hpp"
 #include "Test/Helper.hpp"
+#include "Utilities/Logger.hpp"
+#include "Utilities/ParameterDefinitions.hpp"
+#include "Utilities/RandomNumbers.hpp"
+#include "Utilities/Units.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -42,7 +42,7 @@ using Stepper = EigenStepper<Test::ConstantBField>;
 // using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
 using PropagatorType = Propagator<Stepper>;
 using PropResultType = PropagatorResult;
-//using Simulator = Test::MeasurementCreator<RandomEngine>;
+// using Simulator = Test::MeasurementCreator<RandomEngine>;
 using Simulator = ActsFatras::MinimalSimulator<RandomEngine>;
 using PropOptionsType = PropagatorOptions<Simulator, Test::VoidAborter>;
 using PlaneSurfaceType = PlaneSurface<InfiniteBounds>;
@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
 
   // Create a random number service
   RandomNumbers::Config config;
-  config.seed = static_cast<uint64_t>(1234567890u); 
+  config.seed = static_cast<uint64_t>(1234567890u);
   auto randomNumbers = std::make_shared<RandomNumbers>(config);
   auto generator = randomNumbers->spawnGenerator(0);
   std::normal_distribution<double> gauss(0, 1);
@@ -237,33 +237,31 @@ int main(int argc, char *argv[]) {
   }
 
   // Perform smearing to the simulated hits
-  std::vector<std::vector<PixelSourceLink>> sourcelinks(nTracks); 
-  double resX = 30.*Acts::units::_mm, resY = 30.*Acts::units::_mm;
+  std::vector<std::vector<PixelSourceLink>> sourcelinks(nTracks);
+  double resX = 30. * Acts::units::_mm, resY = 30. * Acts::units::_mm;
   for (int it = 0; it < nTracks; it++) {
-     auto hits = simResult[it].hits;
-     for (unsigned int ih =0; ih < hits.size() ; ih++) {
-       // Apply global to local
-       Acts::Vector2D lPos;
-        // find the surface for this hit 
-       surfaces[ih].globalToLocal(
-           gctx, hits[ih].position(),
-           hits[ih].unitDirection(), lPos);
-       // Perform the smearing to truth
-       double dx = std::normal_distribution<double>(0., resX)(generator);
-       double dy = std::normal_distribution<double>(0., resY)(generator);
- 
-       // The measurement values
-       Acts::Vector2D values;
-       values << lPos[0] + dx, lPos[1] + dy;
- 
-       // The measurement covariance
-       Acts::SymMatrix2D cov;
-       cov << resX * resX, 0., 0., resY * resY;
- 
-       // Push back to the container
-       sourcelinks[it].emplace_back(values, cov,
-                                       &surfaces[ih]);
-     }   
+    auto hits = simResult[it].hits;
+    for (unsigned int ih = 0; ih < hits.size(); ih++) {
+      // Apply global to local
+      Acts::Vector2D lPos;
+      // find the surface for this hit
+      surfaces[ih].globalToLocal(gctx, hits[ih].position(),
+                                 hits[ih].unitDirection(), lPos);
+      // Perform the smearing to truth
+      double dx = std::normal_distribution<double>(0., resX)(generator);
+      double dy = std::normal_distribution<double>(0., resY)(generator);
+
+      // The measurement values
+      Acts::Vector2D values;
+      values << lPos[0] + dx, lPos[1] + dy;
+
+      // The measurement covariance
+      Acts::SymMatrix2D cov;
+      cov << resX * resX, 0., 0., resY * resY;
+
+      // Push back to the container
+      sourcelinks[it].emplace_back(values, cov, &surfaces[ih]);
+    }
   }
 
   // start to perform fit to the created tracks
@@ -283,7 +281,7 @@ int main(int argc, char *argv[]) {
   int threads = 1;
 
   auto start_fit = std::chrono::high_resolution_clock::now();
-  #pragma omp parallel for num_threads(250)
+#pragma omp parallel for num_threads(250)
   for (int it = 0; it < nTracks; it++) {
     //   BoundSymMatrix cov = BoundSymMatrix::Zero();
     //   cov << resLoc1 * resLoc1, 0., 0., 0., 0., 0., 0., resLoc2 * resLoc2,
@@ -311,7 +309,7 @@ int main(int argc, char *argv[]) {
     if (not fitStatus) {
       std::cout << "fit failure for track " << it << std::endl;
     }
-     threads = omp_get_num_threads();
+    threads = omp_get_num_threads();
   }
 
   auto end_fit = std::chrono::high_resolution_clock::now();
@@ -320,8 +318,10 @@ int main(int argc, char *argv[]) {
             << elapsed_seconds.count() << std::endl;
 
   // Log execution time in csv file
-  Logger::logTime(Logger::buildFilename("nTracks", std::to_string(nTracks), "OMP_NumThreads", std::to_string(threads)), 
-	  elapsed_seconds.count()); 
+  Logger::logTime(Logger::buildFilename("nTracks", std::to_string(nTracks),
+                                        "OMP_NumThreads",
+                                        std::to_string(threads)),
+                  elapsed_seconds.count());
 
   if (output) {
     std::cout << "writing KF results" << std::endl;

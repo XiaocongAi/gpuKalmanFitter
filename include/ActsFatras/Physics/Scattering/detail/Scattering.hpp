@@ -8,10 +8,10 @@
 
 #pragma once
 
+#include "ActsFatras/EventData/Particle.hpp"
 #include "Material/MaterialSlab.hpp"
 #include "Utilities/Definitions.hpp"
 #include "Utilities/UnitVectors.hpp"
-#include "ActsFatras/EventData/Particle.hpp"
 
 #include <array>
 #include <random>
@@ -22,8 +22,7 @@ namespace detail {
 /// Simulate (multiple) scattering using a configurable scattering model.
 ///
 /// @tparam scattering_model_t Model implementation to draw a scattering angle.
-template <typename scattering_model_t>
-struct Scattering {
+template <typename scattering_model_t> struct Scattering {
   /// The scattering formula
   scattering_model_t angle;
 
@@ -70,5 +69,5 @@ struct Scattering {
   }
 };
 
-}  // namespace detail
-}  // namespace ActsFatras
+} // namespace detail
+} // namespace ActsFatras
