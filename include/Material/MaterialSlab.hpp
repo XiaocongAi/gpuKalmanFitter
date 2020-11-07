@@ -75,3 +75,5 @@ class MaterialSlab {
 };
 
 }  // namespace Acts
+
+#include "Material/detail/MaterialSlab.ipp"

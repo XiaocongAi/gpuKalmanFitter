@@ -6,14 +6,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#include "Propagator/detail/PointwiseMaterialInteraction.hpp"
-
 #include "Material/Interactions.hpp"
 #include "Utilities/Helpers.hpp"
 
 namespace Acts {
 namespace detail {
-void PointwiseMaterialInteraction::evaluatePointwiseMaterialInteraction(
+inline void PointwiseMaterialInteraction::evaluatePointwiseMaterialInteraction(
     bool multipleScattering, bool energyLoss) {
   if (energyLoss) {
     Eloss = computeEnergyLossBethe(slab, pdg, mass, qOverP, q);
@@ -24,7 +22,7 @@ void PointwiseMaterialInteraction::evaluatePointwiseMaterialInteraction(
   }
 }
 
-void PointwiseMaterialInteraction::covarianceContributions(
+inline void PointwiseMaterialInteraction::covarianceContributions(
     bool multipleScattering, bool energyLoss) {
   // Compute contributions from interactions
   if (multipleScattering) {
@@ -45,7 +43,7 @@ void PointwiseMaterialInteraction::covarianceContributions(
   }
 }
 
-double PointwiseMaterialInteraction::updateVariance(
+inline double PointwiseMaterialInteraction::updateVariance(
     double variance, double change, NoiseUpdateMode updateMode) const {
   // Add/Subtract the change
   // Protect the variance against becoming negative

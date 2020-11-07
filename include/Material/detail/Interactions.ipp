@@ -6,8 +6,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#include "Material/Interactions.hpp"
-
 #include "Material/Material.hpp"
 #include "Utilities/PdgParticle.hpp"
 
@@ -33,7 +31,7 @@ struct RelativisticQuantities {
   float betaGamma = 0.0f;
   float gamma = 0.0f;
 
-  RelativisticQuantities(float mass, float qOverP, float q) {
+  ACTS_DEVICE_FUNC RelativisticQuantities(float mass, float qOverP, float q) {
     // beta²/q² = (p/E)²/q² = p²/(q²m² + q²p²) = 1/(q² + (m²(q/p)²)
     // q²/beta² = q² + m²(q/p)²
     q2OverBeta2 = q * q + (mass * qOverP) * (mass * qOverP);
@@ -50,17 +48,17 @@ struct RelativisticQuantities {
 };
 
 /// Compute q/p derivative of beta².
-inline float deriveBeta2(float qOverP, const RelativisticQuantities& rq) {
+ACTS_DEVICE_FUNC inline float deriveBeta2(float qOverP, const RelativisticQuantities& rq) {
   return -2 / (qOverP * rq.gamma * rq.gamma);
 }
 
 /// Compute the 2 * mass * (beta * gamma)² mass term.
-inline float computeMassTerm(float mass, const RelativisticQuantities& rq) {
+ACTS_DEVICE_FUNC inline float computeMassTerm(float mass, const RelativisticQuantities& rq) {
   return 2 * mass * rq.betaGamma * rq.betaGamma;
 }
 
 /// Compute mass term logarithmic derivative w/ respect to q/p.
-inline float logDeriveMassTerm(float qOverP) {
+ACTS_DEVICE_FUNC inline float logDeriveMassTerm(float qOverP) {
   // only need to compute d((beta*gamma)²)/(beta*gamma)²; rest cancels.
   return -2 / qOverP;
 }
@@ -68,7 +66,7 @@ inline float logDeriveMassTerm(float qOverP) {
 /// Compute the maximum energy transfer in a single collision.
 ///
 /// Uses RPP2018 eq. 33.4.
-inline float computeWMax(float mass, const RelativisticQuantities& rq) {
+ACTS_DEVICE_FUNC inline float computeWMax(float mass, const RelativisticQuantities& rq) {
   const auto mfrac = Me / mass;
   const auto nominator = 2 * Me * rq.betaGamma * rq.betaGamma;
   const auto denonimator = 1.0f + 2 * rq.gamma * mfrac + mfrac * mfrac;
@@ -76,7 +74,7 @@ inline float computeWMax(float mass, const RelativisticQuantities& rq) {
 }
 
 /// Compute WMax logarithmic derivative w/ respect to q/p.
-inline float logDeriveWMax(float mass, float qOverP,
+ACTS_DEVICE_FUNC inline float logDeriveWMax(float mass, float qOverP,
                            const RelativisticQuantities& rq) {
   // this is (q/p) * (beta/q).
   // both quantities have the same sign and the product must always be
@@ -95,13 +93,13 @@ inline float logDeriveWMax(float mass, float qOverP,
 ///
 /// where (Z/A)*rho is the electron density in the material and x is the
 /// traversed length (thickness) of the material.
-inline float computeEpsilon(float molarElectronDensity, float thickness,
+ACTS_DEVICE_FUNC inline float computeEpsilon(float molarElectronDensity, float thickness,
                             const RelativisticQuantities& rq) {
   return 0.5f * K * molarElectronDensity * thickness * rq.q2OverBeta2;
 }
 
 /// Compute epsilon logarithmic derivative w/ respect to q/p.
-inline float logDeriveEpsilon(float qOverP, const RelativisticQuantities& rq) {
+ACTS_DEVICE_FUNC inline float logDeriveEpsilon(float qOverP, const RelativisticQuantities& rq) {
   // only need to compute d(q²/beta²)/(q²/beta²); everything else cancels.
   return 2 / (qOverP * rq.gamma * rq.gamma);
 }
@@ -111,7 +109,7 @@ inline float logDeriveEpsilon(float qOverP, const RelativisticQuantities& rq) {
 /// Uses RPP2018 eq. 33.6 which is only valid for high energies.
 ///
 /// @todo Should we use RPP2018 eq. 33.7 instead w/ tabulated constants?
-inline float computeDeltaHalf(float meanExitationPotential,
+ACTS_DEVICE_FUNC inline float computeDeltaHalf(float meanExitationPotential,
                               float molarElectronDensity,
                               const RelativisticQuantities& rq) {
   // only relevant for very high ernergies; use arbitrary cutoff
@@ -125,7 +123,7 @@ inline float computeDeltaHalf(float meanExitationPotential,
 }
 
 /// Compute derivative w/ respect to q/p for the density correction.
-inline float deriveDeltaHalf(float qOverP, const RelativisticQuantities& rq) {
+ACTS_DEVICE_FUNC inline float deriveDeltaHalf(float qOverP, const RelativisticQuantities& rq) {
   // original equation is of the form
   //     log(beta*gamma) + log(eplasma/I) - 1/2
   // which the resulting derivative as
@@ -140,7 +138,7 @@ inline float deriveDeltaHalf(float qOverP, const RelativisticQuantities& rq) {
   assert((qOverP != 0) and "q/p must be non-zero"); \
   assert((q != 0) and "Charge must be non-zero");
 
-float Acts::computeEnergyLossBethe(const MaterialSlab& slab, int /* unused */,
+ACTS_DEVICE_FUNC inline float Acts::computeEnergyLossBethe(const MaterialSlab& slab, int /* unused */,
                                    float m, float qOverP, float q) {
   ASSERT_INPUTS(m, qOverP, q)
 
@@ -167,7 +165,7 @@ float Acts::computeEnergyLossBethe(const MaterialSlab& slab, int /* unused */,
   return eps * running;
 }
 
-float Acts::deriveEnergyLossBetheQOverP(const MaterialSlab& slab,
+ACTS_DEVICE_FUNC inline float Acts::deriveEnergyLossBetheQOverP(const MaterialSlab& slab,
                                         int /* unused */, float m, float qOverP,
                                         float q) {
   ASSERT_INPUTS(m, qOverP, q)
@@ -207,7 +205,7 @@ float Acts::deriveEnergyLossBetheQOverP(const MaterialSlab& slab,
   return eps * rel;
 }
 
-float Acts::computeEnergyLossLandau(const MaterialSlab& slab, int /* unused */,
+ACTS_DEVICE_FUNC inline float Acts::computeEnergyLossLandau(const MaterialSlab& slab, int /* unused */,
                                     float m, float qOverP, float q) {
   ASSERT_INPUTS(m, qOverP, q)
 
@@ -229,7 +227,7 @@ float Acts::computeEnergyLossLandau(const MaterialSlab& slab, int /* unused */,
   return eps * running;
 }
 
-float Acts::deriveEnergyLossLandauQOverP(const MaterialSlab& slab,
+ACTS_DEVICE_FUNC inline float Acts::deriveEnergyLossLandauQOverP(const MaterialSlab& slab,
                                          int /* unused */, float m,
                                          float qOverP, float q) {
   ASSERT_INPUTS(m, qOverP, q)
@@ -276,13 +274,13 @@ namespace {
 ///     fwhm = 2 * sqrt(2 * log(2)) * sigma
 /// -> sigma = fwhm / (2 * sqrt(2 * log(2)))
 ///
-inline float convertLandauFwhmToGaussianSigma(float fwhm) {
+ACTS_DEVICE_FUNC inline float convertLandauFwhmToGaussianSigma(float fwhm) {
   return fwhm / (2 * std::sqrt(2 * std::log(2.0f)));
 }
 
 }  // namespace
 
-float Acts::computeEnergyLossLandauSigma(const MaterialSlab& slab,
+ACTS_DEVICE_FUNC inline float Acts::computeEnergyLossLandauSigma(const MaterialSlab& slab,
                                          int /* unused */, float m,
                                          float qOverP, float q) {
   ASSERT_INPUTS(m, qOverP, q)
@@ -300,7 +298,7 @@ float Acts::computeEnergyLossLandauSigma(const MaterialSlab& slab,
   return convertLandauFwhmToGaussianSigma(fwhm);
 }
 
-float Acts::computeEnergyLossLandauSigmaQOverP(const MaterialSlab& slab,
+ACTS_DEVICE_FUNC inline float Acts::computeEnergyLossLandauSigmaQOverP(const MaterialSlab& slab,
                                                int /* unused */, float m,
                                                float qOverP, float q) {
   ASSERT_INPUTS(m, qOverP, q)
@@ -330,12 +328,12 @@ float Acts::computeEnergyLossLandauSigmaQOverP(const MaterialSlab& slab,
 namespace {
 
 /// Compute mean energy loss from bremsstrahlung per radiation length.
-inline float computeBremsstrahlungLossMean(float mass, float energy) {
+ACTS_DEVICE_FUNC inline float computeBremsstrahlungLossMean(float mass, float energy) {
   return energy * (Me / mass) * (Me / mass);
 }
 
 /// Derivative of the bremsstrahlung loss per rad length with respect to energy.
-inline float deriveBremsstrahlungLossMeanE(float mass) {
+ACTS_DEVICE_FUNC inline float deriveBremsstrahlungLossMeanE(float mass) {
   return (Me / mass) * (Me / mass);
 }
 
@@ -362,7 +360,7 @@ constexpr double MuonHigh0 = -2.986_MeV;
 constexpr double MuonHigh1 = 9.253e-5;
 
 /// Compute additional radiation energy loss for muons per radiation length.
-inline float computeMuonDirectPairPhotoNuclearLossMean(double energy) {
+ACTS_DEVICE_FUNC inline float computeMuonDirectPairPhotoNuclearLossMean(double energy) {
   if (energy < MuonHighLowThreshold) {
     return MuonLow0 +
            (MuonLow1 + (MuonLow2 + MuonLow3 * energy) * energy) * energy;
@@ -372,7 +370,7 @@ inline float computeMuonDirectPairPhotoNuclearLossMean(double energy) {
 }
 
 /// Derivative of the additional rad loss per rad length with respect to energy.
-inline float deriveMuonDirectPairPhotoNuclearLossMeanE(double energy) {
+ACTS_DEVICE_FUNC inline float deriveMuonDirectPairPhotoNuclearLossMeanE(double energy) {
   if (energy < MuonHighLowThreshold) {
     return MuonLow1 + (2 * MuonLow2 + 3 * MuonLow3 * energy) * energy;
   } else {
@@ -382,7 +380,7 @@ inline float deriveMuonDirectPairPhotoNuclearLossMeanE(double energy) {
 
 }  // namespace
 
-float Acts::computeEnergyLossRadiative(const MaterialSlab& slab, int pdg,
+ACTS_DEVICE_FUNC inline float Acts::computeEnergyLossRadiative(const MaterialSlab& slab, int pdg,
                                        float m, float qOverP, float q) {
   ASSERT_INPUTS(m, qOverP, q)
 
@@ -407,7 +405,7 @@ float Acts::computeEnergyLossRadiative(const MaterialSlab& slab, int pdg,
   return dEdx * x;
 }
 
-float Acts::deriveEnergyLossRadiativeQOverP(const MaterialSlab& slab, int pdg,
+ACTS_DEVICE_FUNC inline float Acts::deriveEnergyLossRadiativeQOverP(const MaterialSlab& slab, int pdg,
                                             float m, float qOverP, float q) {
   ASSERT_INPUTS(m, qOverP, q)
 
@@ -439,19 +437,19 @@ float Acts::deriveEnergyLossRadiativeQOverP(const MaterialSlab& slab, int pdg,
   return derE * derQOverP * x;
 }
 
-float Acts::computeEnergyLossMean(const MaterialSlab& slab, int pdg, float m,
+ACTS_DEVICE_FUNC inline float Acts::computeEnergyLossMean(const MaterialSlab& slab, int pdg, float m,
                                   float qOverP, float q) {
   return computeEnergyLossBethe(slab, pdg, m, qOverP, q) +
          computeEnergyLossRadiative(slab, pdg, m, qOverP, q);
 }
 
-float Acts::deriveEnergyLossMeanQOverP(const MaterialSlab& slab, int pdg,
+ACTS_DEVICE_FUNC inline float Acts::deriveEnergyLossMeanQOverP(const MaterialSlab& slab, int pdg,
                                        float m, float qOverP, float q) {
   return deriveEnergyLossBetheQOverP(slab, pdg, m, qOverP, q) +
          deriveEnergyLossRadiativeQOverP(slab, pdg, m, qOverP, q);
 }
 
-float Acts::computeEnergyLossMode(const MaterialSlab& slab, int pdg, float m,
+ACTS_DEVICE_FUNC inline float Acts::computeEnergyLossMode(const MaterialSlab& slab, int pdg, float m,
                                   float qOverP, float q) {
   // see ATL-SOFT-PUB-2008-003 section 3 for the relative fractions
   // TODO this is inconsistent with the text of the note
@@ -459,7 +457,7 @@ float Acts::computeEnergyLossMode(const MaterialSlab& slab, int pdg, float m,
          0.15f * computeEnergyLossRadiative(slab, pdg, m, qOverP, q);
 }
 
-float Acts::deriveEnergyLossModeQOverP(const MaterialSlab& slab, int pdg,
+ACTS_DEVICE_FUNC inline float Acts::deriveEnergyLossModeQOverP(const MaterialSlab& slab, int pdg,
                                        float m, float qOverP, float q) {
   // see ATL-SOFT-PUB-2008-003 section 3 for the relative fractions
   // TODO this is inconsistent with the text of the note
@@ -470,7 +468,7 @@ float Acts::deriveEnergyLossModeQOverP(const MaterialSlab& slab, int pdg,
 namespace {
 
 /// Multiple scattering theta0 for minimum ionizing particles.
-inline float theta0Highland(float xOverX0, float momentumInv,
+ACTS_DEVICE_FUNC inline float theta0Highland(float xOverX0, float momentumInv,
                             float q2OverBeta2) {
   // RPP2018 eq. 33.15 (treats beta and q² consistenly)
   const auto t = std::sqrt(xOverX0 * q2OverBeta2);
@@ -480,7 +478,7 @@ inline float theta0Highland(float xOverX0, float momentumInv,
 }
 
 /// Multiple scattering theta0 for electrons.
-inline float theta0RossiGreisen(float xOverX0, float momentumInv,
+ACTS_DEVICE_FUNC inline float theta0RossiGreisen(float xOverX0, float momentumInv,
                                 float q2OverBeta2) {
   // TODO add source paper/ resource
   const auto t = std::sqrt(xOverX0 * q2OverBeta2);
@@ -490,7 +488,7 @@ inline float theta0RossiGreisen(float xOverX0, float momentumInv,
 
 }  // namespace
 
-float Acts::computeMultipleScatteringTheta0(const MaterialSlab& slab, int pdg,
+ACTS_DEVICE_FUNC inline float Acts::computeMultipleScatteringTheta0(const MaterialSlab& slab, int pdg,
                                             float m, float qOverP, float q) {
   ASSERT_INPUTS(m, qOverP, q)
 

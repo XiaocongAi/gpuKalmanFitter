@@ -121,3 +121,5 @@ class Material {
 };
 
 }  // namespace Acts
+
+#include "Material/detail/Material.ipp"

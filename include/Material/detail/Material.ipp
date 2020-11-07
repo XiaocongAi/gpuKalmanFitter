@@ -6,8 +6,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#include "Material/Material.hpp"
-
 #include "Utilities/Units.hpp"
 
 #include <cmath>
@@ -26,7 +24,7 @@ enum MaterialClassificationNumberIndices {
 constexpr double kAvogadro = 6.02214076e23 / Acts::UnitConstants::mol;
 }  // namespace
 
-Acts::Material Acts::Material::fromMassDensity(float x0, float l0, float ar,
+inline Acts::Material Acts::Material::fromMassDensity(float x0, float l0, float ar,
                                                float z, float massRho) {
   using namespace Acts::UnitLiterals;
 
@@ -51,7 +49,7 @@ Acts::Material Acts::Material::fromMassDensity(float x0, float l0, float ar,
   return mat;
 }
 
-Acts::Material Acts::Material::fromMolarDensity(float x0, float l0, float ar,
+inline Acts::Material Acts::Material::fromMolarDensity(float x0, float l0, float ar,
                                                 float z, float molarRho) {
   Material mat;
   mat.m_x0 = x0;
@@ -62,14 +60,14 @@ Acts::Material Acts::Material::fromMolarDensity(float x0, float l0, float ar,
   return mat;
 }
 
-Acts::Material::Material(const ParametersVector& parameters)
+inline Acts::Material::Material(const ParametersVector& parameters)
     : m_x0(parameters[eRadiationLength]),
       m_l0(parameters[eInteractionLength]),
       m_ar(parameters[eRelativeAtomicMass]),
       m_z(parameters[eNuclearCharge]),
       m_molarRho(parameters[eMolarDensity]) {}
 
-float Acts::Material::massDensity() const {
+inline float Acts::Material::massDensity() const {
   using namespace Acts::UnitLiterals;
 
   // perform computations in double precision to avoid loss of precision
@@ -78,14 +76,14 @@ float Acts::Material::massDensity() const {
   return atomicMass * numberDensity;
 }
 
-float Acts::Material::meanExcitationEnergy() const {
+inline float Acts::Material::meanExcitationEnergy() const {
   using namespace Acts::UnitLiterals;
 
   // use approximative computation as defined in ATL-SOFT-PUB-2008-003
   return 16_eV * std::pow(m_z, 0.9f);
 }
 
-Acts::Material::ParametersVector Acts::Material::parameters() const {
+inline Acts::Material::ParametersVector Acts::Material::parameters() const {
   ParametersVector parameters;
   parameters[eRadiationLength] = m_x0;
   parameters[eInteractionLength] = m_l0;

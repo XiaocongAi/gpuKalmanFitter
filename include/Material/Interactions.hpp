@@ -130,3 +130,5 @@ ACTS_DEVICE_FUNC float computeMultipleScatteringTheta0(const MaterialSlab& slab,
                                       float q = UnitConstants::e);
 
 }  // namespace Acts
+
+#include "Material/detail/Interactions.ipp"

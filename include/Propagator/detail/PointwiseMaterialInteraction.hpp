@@ -165,3 +165,5 @@ struct PointwiseMaterialInteraction {
 };
 }  // namespace detail
 }  // end of namespace Acts
+
+#include "Propagator/detail/PointwiseMaterialInteraction.ipp"
