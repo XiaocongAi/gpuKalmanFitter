@@ -8,12 +8,14 @@
 #include "Plugins/BFieldUtils.hpp"
 #include "Propagator/EigenStepper.hpp"
 #include "Propagator/Propagator.hpp"
-#include "Test/TestHelper.hpp"
-#include "Utilities/CudaHelper.hpp"
+#include "ActsFatras/Kernel/MinimalSimulator.hpp"
+#include "Utilities/RandomNumbers.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
 #include "Utilities/Units.hpp"
 #include "Utilities/Profiling.hpp"
 #include "Utilities/Logger.hpp"
+#include "Utilities/CudaHelper.hpp"
+#include "Test/Helper.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -46,11 +48,12 @@ static void show_usage(std::string name) {
 
 using namespace Acts;
 
-using Stepper = EigenStepper<ConstantBField>;
+using Stepper = EigenStepper<Test::ConstantBField>;
 // using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
 using PropagatorType = Propagator<Stepper>;
 using PropResultType = PropagatorResult;
-using SimPropOptionsType = PropagatorOptions<MeasurementCreator, VoidAborter>;
+using Simulator = ActsFatras::MinimalSimulator<RandomEngine>;
+using SimPropOptionsType = PropagatorOptions<Simulator, Test::VoidAborter>;
 using PropState = PropagatorType::State<SimPropOptionsType>;
 using KalmanFitterType = KalmanFitter<PropagatorType, GainMatrixUpdater>;
 using KalmanFitterResultType =
@@ -154,12 +157,9 @@ int main(int argc, char *argv[]) {
   GPUERRCHK(cudaGetDeviceProperties(&prop, devId));
   printf("Device : %s\n", prop.name);
   GPUERRCHK(cudaSetDevice(devId));
-
-  int driverVersion;
+  int driverVersion, rtVersion;
   GPUERRCHK(cudaDriverGetVersion(&driverVersion));
   printf("cuda driver version: %i\n", driverVersion);
-
-  int rtVersion;
   GPUERRCHK(cudaRuntimeGetVersion(&rtVersion));
   printf("cuda rt version: %i\n", rtVersion);
  
@@ -217,6 +217,13 @@ int main(int argc, char *argv[]) {
   GeometryContext gctx(0);
   MagneticFieldContext mctx(0);
 
+  // Create a random number service
+  RandomNumbers::Config config;
+  config.seed = static_cast<uint64_t>(1234567890u);
+  auto randomNumbers = std::make_shared<RandomNumbers>(config);
+  auto generator = randomNumbers->spawnGenerator(0);
+  std::normal_distribution<double> gauss(0, 1);
+
   // Create the geometry
   // Set translation vectors
   std::vector<Acts::Vector3D> translations;
@@ -256,6 +263,7 @@ int main(int argc, char *argv[]) {
   propOptions.maxSteps = 100;
   propOptions.initializer.surfaceSequence = surfacePtrs;
   propOptions.initializer.surfaceSequenceSize = nSurfaces;
+  propOptions.action.generator = &generator;
 
   // Construct random starting track parameters
   CurvilinearParameters *startPars;
@@ -276,6 +284,7 @@ int main(int argc, char *argv[]) {
   }();
 
   for (int i = 0; i < nTracks; i++) {
+    // @note Add random for a range of kinematics 
     double q = 1;
     double time = 0;
     double phi = gauss(generator) * resPhi;
@@ -289,7 +298,7 @@ int main(int argc, char *argv[]) {
   std::cout << "Finish creating starting parameters" << std::endl;
 
   // Propagation result
-  std::vector<MeasurementCreator::result_type> ress(nTracks);
+  Simulator::result_type simResult[nTracks];
 
   std::cout << "Start to run propagation to create measurements" << std::endl;
   auto start_propagate = std::chrono::high_resolution_clock::now();
@@ -298,7 +307,7 @@ int main(int argc, char *argv[]) {
  // @todo The material effects have to be considered during the simulation
  #pragma omp parallel for
   for (int it = 0; it < nTracks; it++) {
-    propagator.propagate(startPars[it], propOptions, ress[it]);
+    propagator.propagate(startPars[it], propOptions, simResult[it]);
   }
 
   auto end_propagate = std::chrono::high_resolution_clock::now();
@@ -317,10 +326,10 @@ int main(int argc, char *argv[]) {
     obj_track.open(fileName.c_str());
 
     for (int it = 0; it < nTracks; it++) {
-      auto tracks = ress[it].sourcelinks;
+      auto tracks = simResult[it].hits;
       ++vCounter;
       for (const auto &sl : tracks) {
-        const auto &pos = sl.globalPosition(gctx);
+        const auto &pos = sl.position();
         obj_track << "v " << pos.x() << " " << pos.y() << " " << pos.z()
                   << "\n";
       }
@@ -348,11 +357,33 @@ int main(int argc, char *argv[]) {
   PixelSourceLink *sourcelinks;
   GPUERRCHK(cudaMallocHost((void **)&sourcelinks,
                            sourcelinksBytes)); // use pinned memory
+  
+  // Perform smearing to the simulated hits
+  double resX = 30.*Acts::units::_mm, resY = 30.*Acts::units::_mm;
   for (int it = 0; it < nTracks; it++) {
-    const auto &sls = ress[it].sourcelinks;
-    for (int is = 0; is < nSurfaces; is++) {
-      sourcelinks[it * nSurfaces + is] = sls[is];
-    }
+     auto hits = simResult[it].hits;
+     for (unsigned int ih =0; ih < hits.size() ; ih++) {
+       // Apply global to local
+       Acts::Vector2D lPos;
+        // find the surface for this hit 
+       surfaces[ih].globalToLocal(
+           gctx, hits[ih].position(),
+           hits[ih].unitDirection(), lPos);
+       // Perform the smearing to truth
+       double dx = std::normal_distribution<double>(0., resX)(generator);
+       double dy = std::normal_distribution<double>(0., resY)(generator);
+       
+       // The measurement values
+       Acts::Vector2D values;
+       values << lPos[0] + dx, lPos[1] + dy;
+       
+       // The measurement covariance
+       Acts::SymMatrix2D cov;
+       cov << resX * resX, 0., 0., resY * resY;
+    
+       // Push back to the container
+       sourcelinks[it * nSurfaces + ih] = PixelSourceLink(values, cov, &surfaces[ih]); 
+     }
   }
 
   // Create an KFitter
@@ -479,8 +510,7 @@ int main(int argc, char *argv[]) {
       kfResult.fittedStates =
           CudaKernelContainer<TSType>(&fittedTracks[it * nSurfaces], nSurfaces);
 
-      auto sourcelinkTrack = CudaKernelContainer<PixelSourceLink>(
-          ress[it].sourcelinks.data(), ress[it].sourcelinks.size());
+      auto sourcelinkTrack = CudaKernelContainer<PixelSourceLink>(sourcelinks+it*nSurfaces, nSurfaces);
 
       // The fittedTracks will be changed here
       // Note that we are using exacty the truth starting parameters here (which

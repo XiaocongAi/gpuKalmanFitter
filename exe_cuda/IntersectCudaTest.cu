@@ -1,7 +1,7 @@
 #include "Geometry/GeometryContext.hpp"
 #include "Surfaces/ConvexPolygonBounds.hpp"
 #include "Surfaces/PlaneSurface.hpp"
-#include "Test/TestHelper.hpp"
+#include "Test/Helper.hpp"
 #include "Utilities/CudaHelper.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
 #include "Utilities/Units.hpp"

@@ -32,8 +32,8 @@ class MultiIndex {
                 "The underlying storage type must be an unsigned integer");
   static_assert(0 < sizeof...(BitsPerLevel),
                 "At least one level must be defined");
-  static_assert((sizeof(T) * CHAR_BIT) == (... + BitsPerLevel),
-                "The sum of bits per level must match the underlying storage");
+  //static_assert((sizeof(T) * CHAR_BIT) == (... + BitsPerLevel),
+  //              "The sum of bits per level must match the underlying storage");
 
   /// The type of ther underlying storage value.
   using Value = T;

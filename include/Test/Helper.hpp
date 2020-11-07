@@ -9,8 +9,8 @@ namespace Test{
 
 // Struct for B field
 struct ConstantBField {
-  ACTS_DEVICE_FUNC static Vector3D getField(const Vector3D & /*field*/) {
-    return Vector3D(0., 0., 2. * Acts::units::_T);
+  ACTS_DEVICE_FUNC static Acts::Vector3D getField(const Acts::Vector3D & /*field*/) {
+    return Acts::Vector3D(0., 0., 2. * Acts::units::_T);
   }
 };
 
@@ -25,7 +25,7 @@ struct MeasurementCreator {
   double resY = 30 * Acts::units::_um;
 
   struct this_result {
-    std::vector<PixelSourceLink> sourcelinks;
+    std::vector<Acts::PixelSourceLink> sourcelinks;
   };
   using result_type = this_result;
 
