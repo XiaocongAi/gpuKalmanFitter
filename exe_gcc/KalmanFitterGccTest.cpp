@@ -12,8 +12,8 @@
 #include "Test/Helper.hpp"
 #include "Utilities/Logger.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
-#include "Utilities/RandomNumbers.hpp"
 #include "Utilities/Units.hpp"
+#include "ActsExamples/RandomNumbers.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -85,9 +85,9 @@ int main(int argc, char *argv[]) {
   MagneticFieldContext mctx;
 
   // Create a random number service
-  RandomNumbers::Config config;
+  ActsExamples::RandomNumbers::Config config;
   config.seed = static_cast<uint64_t>(1234567890u);
-  auto randomNumbers = std::make_shared<RandomNumbers>(config);
+  auto randomNumbers = std::make_shared<ActsExamples::RandomNumbers>(config);
   auto generator = randomNumbers->spawnGenerator(0);
   std::normal_distribution<double> gauss(0, 1);
 
