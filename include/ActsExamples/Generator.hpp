@@ -13,6 +13,7 @@
 #pragma once
 
 #include "ActsExamples/RandomNumbers.hpp"
+#include "ActsFatras/EventData/Particle.hpp"
 
 namespace ActsExamples {
 /// The sim particle container

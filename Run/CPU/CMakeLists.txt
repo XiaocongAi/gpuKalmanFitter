@@ -1,5 +1,11 @@
 add_executable(KalmanFitterCPUTest KalmanFitterCPUTest.cpp)
-target_link_libraries(KalmanFitterCPUTest Actscore TestCommon)
+target_link_libraries(KalmanFitterCPUTest Actscore)
+
+target_include_directories(
+  KalmanFitterCPUTest 
+  PUBLIC 
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../Common>
+)
 
 install(TARGETS KalmanFitterCPUTest
   EXPORT ${PROJECT_NAME}Targets

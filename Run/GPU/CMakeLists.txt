@@ -1,5 +1,5 @@
 add_executable(KalmanFitterGPUTest KalmanFitterGPUTest.cu)
-target_link_libraries(KalmanFitterGPUTest Actscore TestCommon)
+target_link_libraries(KalmanFitterGPUTest Actscore)
 
 install(TARGETS KalmanFitterGPUTest
   EXPORT ${PROJECT_NAME}Targets
@@ -11,7 +11,7 @@ install(TARGETS KalmanFitterGPUTest
 )
 
 add_executable(IntersectGPUTest IntersectGPUTest.cu)
-target_link_libraries(IntersectGPUTest Actscore TestCommon )
+target_link_libraries(IntersectGPUTest Actscore)
 
 install(TARGETS IntersectGPUTest
   EXPORT ${PROJECT_NAME}Targets
@@ -21,4 +21,3 @@ install(TARGETS IntersectGPUTest
   PUBLIC_HEADER DESTINATION include  COMPONENT devel
   RESOURCE      DESTINATION resource COMPONENT runtime
 )
-

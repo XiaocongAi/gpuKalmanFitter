@@ -215,6 +215,7 @@ constexpr double _mm2 = _mm * _mm;
 constexpr double _h = UnitConstants::h;
 constexpr double _s = UnitConstants::s;
 constexpr double _ms = UnitConstants::ms;
+constexpr double _ns = UnitConstants::ns;
 /// @}
 
 /// @name energy/momentum/mass units
