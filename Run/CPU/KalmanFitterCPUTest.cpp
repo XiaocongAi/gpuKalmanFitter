@@ -9,11 +9,12 @@
 #include "Plugins/BFieldUtils.hpp"
 #include "Propagator/EigenStepper.hpp"
 #include "Propagator/Propagator.hpp"
-#include "Test/Helper.hpp"
 #include "Utilities/Logger.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
 #include "Utilities/Units.hpp"
 #include "ActsExamples/RandomNumbers.hpp"
+#include "Test/Helper.hpp"
+#include "Test/Processor.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -42,7 +43,6 @@ using Stepper = EigenStepper<Test::ConstantBField>;
 // using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
 using PropagatorType = Propagator<Stepper>;
 using PropResultType = PropagatorResult;
-// using Simulator = Test::MeasurementCreator<RandomEngine>;
 using Simulator = ActsFatras::MinimalSimulator<RandomEngine>;
 using PropOptionsType = PropagatorOptions<Simulator, Test::VoidAborter>;
 using PlaneSurfaceType = PlaneSurface<InfiniteBounds>;
@@ -76,14 +76,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  std::cout << "----- Propgation test of " << nTracks << " tracks on " << device
-            << ". Writing results to obj file? " << output << " ----- "
-            << std::endl;
-
-  // Create a test context
-  GeometryContext gctx;
-  MagneticFieldContext mctx;
-
   // Create a random number service
   ActsExamples::RandomNumbers::Config config;
   config.seed = static_cast<uint64_t>(1234567890u);
@@ -91,51 +83,56 @@ int main(int argc, char *argv[]) {
   auto generator = randomNumbers->spawnGenerator(0);
   std::normal_distribution<double> gauss(0, 1);
 
+  // Create a test context
+  GeometryContext gctx;
+  MagneticFieldContext mctx;
+
   // Create the geometry
   size_t nSurfaces = 10;
-
   // Set translation vectors
   std::vector<Acts::Vector3D> translations;
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
     translations.push_back({(isur * 30. + 19) * Acts::units::_mm, 0., 0.});
   }
-
   // Create plane surfaces without boundaries
   std::vector<PlaneSurfaceType> surfaces;
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
     surfaces.push_back(
         PlaneSurfaceType(translations[isur], Acts::Vector3D(1, 0, 0)));
   }
-
   const Acts::Surface *surfacePtrs = surfaces.data();
-
-  PlaneSurfaceType surfaceArrs[nSurfaces];
-  for (unsigned int isur = 0; isur < nSurfaces; isur++) {
-    surfaceArrs[isur] =
-        PlaneSurfaceType(translations[isur], Acts::Vector3D(1, 0, 0));
-    const Acts::Surface *surface = &surfaceArrs[isur];
-    std::cout << (*surface).center(gctx) << std::endl;
-  }
-
+  //PlaneSurfaceType surfaceArrs[nSurfaces];
+  //for (unsigned int isur = 0; isur < nSurfaces; isur++) {
+  //  surfaceArrs[isur] =
+  //      PlaneSurfaceType(translations[isur], Acts::Vector3D(1, 0, 0));
+  //  const Acts::Surface *surface = &surfaceArrs[isur];
+  //  std::cout << (*surface).center(gctx) << std::endl;
+  //}
   std::cout << "Creating " << surfaces.size() << " boundless plane surfaces"
             << std::endl;
+  
+  // Prepare to run the particles generation
+  ActsExamples::GaussianVertexGenerator vertexGen;
+  vertexGen.stddev[Acts::eFreePos0] = 1.0 * Acts::units::_mm; 
+  vertexGen.stddev[Acts::eFreePos1] = 1.0 * Acts::units::_mm;
+  vertexGen.stddev[Acts::eFreePos2] = 1.0 * Acts::units::_mm;
+  vertexGen.stddev[Acts::eFreeTime] = 1.0 * Acts::units::_ns;
+  ActsExamples::ParametricParticleGenerator::Config pgCfg;
+  pgCfg.phiMin = -M_PI;
+  pgCfg.phiMin = M_PI;
+  pgCfg.etaMin = -1; 
+  pgCfg.etaMax = 1; 
+  pgCfg.thetaMin = 2 * std::atan(std::exp(-etaMin));
+  pgCfg.thetaMax = 2 * std::atan(std::exp(-etaMax));
+  pgCfg.pMin = 1.0*Acts::units::_GeV;  
+  pgCfg.pMin = 10.0*Acts::units::_GeV;  
+  pgCfg.numParticles = 1; 
+  ActsExamples::Generator generator = ActsExamples::Generator{ActsExamples::FixedMultiplicityGenerator{10000}, std::move(vertexGen),ActsExamples::ParametricParticleGenerator(pgCfg)};
+  // Run the generation to generate particles
+  std::vector<ActsFatras::Particle> particles;
+  runGeneration(rng, generator, particles); 
 
-  //  // Test the pointers to surfaces
-  //  const PlaneSurfaceType *surfacePtr = surfaces.data();
-  //  for (unsigned int isur = 0; isur < nSurfaces; isur++) {
-  //     std::cout<<"surface " << isur <<  " has center at: \n"
-  //     <<(*surfacePtr).center(gctx)<<std::endl;
-  //    surfacePtr++;
-  //  }
-
-  //   InterpolatedBFieldMap3D bField = Options::readBField(bFieldFileName);
-  //   std::cout
-  //      << "Reading BField and creating a 3D InterpolatedBFieldMap instance
-  //      done"
-  //      << std::endl;
-
-  // Construct a stepper with the bField
-  // Stepper stepper(bField);
+  // Prepare to run the simulation
   Stepper stepper;
   PropagatorType propagator(stepper);
   PropOptionsType propOptions(gctx, mctx);
@@ -143,83 +140,32 @@ int main(int argc, char *argv[]) {
   propOptions.initializer.surfaceSequence = surfacePtrs;
   propOptions.initializer.surfaceSequenceSize = nSurfaces;
   propOptions.action.generator = &generator;
-
-  // Construct random starting track parameters
-  std::vector<CurvilinearParameters> startPars;
-  double resLoc1 = 0.1 * Acts::units::_mm;
-  double resLoc2 = 0.1 * Acts::units::_mm;
-  double resPhi = 0.01;
-  double resTheta = 0.01;
-  for (int i = 0; i < nTracks; i++) {
-    BoundSymMatrix cov = BoundSymMatrix::Zero();
-    cov << resLoc1 * resLoc1, 0., 0., 0., 0., 0., 0., resLoc2 * resLoc2, 0., 0.,
-        0., 0., 0., 0., resPhi * resPhi, 0., 0., 0., 0., 0., 0.,
-        resTheta * resTheta, 0., 0., 0., 0., 0., 0., 0.0001, 0., 0., 0., 0., 0.,
-        0., 1.;
-
-    // @note Add random for a range of kinematics
-    double q = 1;
-    double time = 0;
-    double phi = gauss(generator) * resPhi;
-    double theta = M_PI / 2 + gauss(generator) * resTheta;
-    Vector3D pos(0, resLoc1 * gauss(generator),
-                 resLoc2 * gauss(generator)); // Units: mm
-    Vector3D mom(p * sin(theta) * cos(phi), p * sin(theta) * sin(phi),
-                 p * cos(theta)); // Units: GeV
-
-    startPars.emplace_back(cov, pos, mom, q, time);
-  }
-
-  // Propagation result
   std::vector<Simulator::result_type> simResult(nTracks);
-
   auto start = std::chrono::high_resolution_clock::now();
-
-// Creating the tracks
-#pragma omp parallel for
-  for (int it = 0; it < nTracks; it++) {
-    propagator.propagate(startPars[it], propOptions, simResult[it]);
-  }
-
+  // Run the simulation to generate sim hits 
+  runSimulation(propagator, propOptions, simResult); 
   auto end_propagate = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed_seconds = end_propagate - start;
   std::cout << "Time (sec) to run propagation tests: "
             << elapsed_seconds.count() << std::endl;
-
   if (output) {
     std::cout << "writing propagation results" << std::endl;
     Test::writeSimHits(simResult);  
   }
 
-  // Perform smearing to the simulated hits
-  std::vector<std::vector<PixelSourceLink>> sourcelinks(nTracks);
-  double resX = 30. * Acts::units::_mm, resY = 30. * Acts::units::_mm;
-  for (int it = 0; it < nTracks; it++) {
-    auto hits = simResult[it].hits;
-    for (unsigned int ih = 0; ih < hits.size(); ih++) {
-      // Apply global to local
-      Acts::Vector2D lPos;
-      // find the surface for this hit
-      surfaces[ih].globalToLocal(gctx, hits[ih].position(),
-                                 hits[ih].unitDirection(), lPos);
-      // Perform the smearing to truth
-      double dx = std::normal_distribution<double>(0., resX)(generator);
-      double dy = std::normal_distribution<double>(0., resY)(generator);
+  // The hit smearing resolution
+  std::array<double, 2> hitResolution = { 30. * Acts::units::_mm, 30. * Acts::units::_mm}; 
+  // Run sim hits smearing to create source links 
+  PixelSourceLink sourcelinks[nTracks*nSurfaces];
+  runHitSmearing(rng, gctx, simResult, hitResolution, sourcelinks, surfaces, nSurfaces);
 
-      // The measurement values
-      Acts::Vector2D values;
-      values << lPos[0] + dx, lPos[1] + dy;
+  // The particle smearing resolution
+  Test::ParticleSmearingParameters seedResolution;
+  // Run truth seed smearing to create starting parameters 
+  CurvilinearParameters* startPars;  
+  runParticleSmearing(rng, gctx, particles, seedResolution, startPars);  
 
-      // The measurement covariance
-      Acts::SymMatrix2D cov;
-      cov << resX * resX, 0., 0., resY * resY;
-
-      // Push back to the container
-      sourcelinks[it].emplace_back(values, cov, &surfaces[ih]);
-    }
-  }
-
-  // start to perform fit to the created tracks
+  // Prepare to perform fit to the created tracks
   using RecoStepper = EigenStepper<Test::ConstantBField>;
   using RecoPropagator = Propagator<RecoStepper>;
   using KalmanFitter = KalmanFitter<RecoPropagator, GainMatrixUpdater>;
@@ -232,41 +178,28 @@ int main(int argc, char *argv[]) {
   KalmanFitter kFitter(rPropagator);
   KalmanFitterOptions<VoidOutlierFinder> kfOptions(gctx, mctx);
 
+  // The fitted results
   std::vector<TrackState> fittedTracks(nSurfaces * nTracks);
-  int threads = 1;
-
+  
+   int threads = 1;
   auto start_fit = std::chrono::high_resolution_clock::now();
 #pragma omp parallel for num_threads(250)
   for (int it = 0; it < nTracks; it++) {
-    //   BoundSymMatrix cov = BoundSymMatrix::Zero();
-    //   cov << resLoc1 * resLoc1, 0., 0., 0., 0., 0., 0., resLoc2 * resLoc2,
-    //   0., 0.,
-    //       0., 0., 0., 0., resPhi * resPhi, 0., 0., 0., 0., 0., 0.,
-    //       resTheta * resTheta, 0., 0., 0., 0., 0., 0., 0.0001, 0., 0., 0.,
-    //       0., 0., 0., 1.;
-
-    //   double q = 1;
-    //   double time = 0;
-    //   Vector3D pos(0, 0, 0); // Units: mm
-    //   Vector3D mom(p, 0, 0); // Units: GeV
-
-    //   CurvilinearParameters rStart(cov, pos, mom, q, time);
-
+    // The fit result wrapper  
     KalmanFitterResult kfResult;
     kfResult.fittedStates = CudaKernelContainer<TrackState>(
         fittedTracks.data() + it * nSurfaces, nSurfaces);
-
+    // The input source links wrapper
     auto sourcelinkTrack = CudaKernelContainer<PixelSourceLink>(
-        sourcelinks[it].data(), sourcelinks[it].size());
-    // The fittedTracks will be changed here
+        sourcelinks+ it*nSurfaces, nSurfaces);
+    // Run the fit. The fittedTracks will be changed here
     auto fitStatus = kFitter.fit(sourcelinkTrack, startPars[it], kfOptions,
                                  kfResult, surfacePtrs, nSurfaces);
     if (not fitStatus) {
       std::cout << "fit failure for track " << it << std::endl;
     }
-    threads = omp_get_num_threads();
   }
-
+  threads = omp_get_num_threads();
   auto end_fit = std::chrono::high_resolution_clock::now();
   elapsed_seconds = end_fit - start_fit;
   std::cout << "Time (sec) to run KalmanFitter for " << nTracks << " : "
@@ -279,9 +212,11 @@ int main(int argc, char *argv[]) {
                   elapsed_seconds.count());
 
   if (output) {
-    std::cout << "writing KF results" << std::endl;
+    std::cout << "writing fitting results" << std::endl;
     Test::writeTracks(fittedTracks.data(), nTracks,nSurfaces);
   }
+
+  // Write the residual and pull of track parameters to ntuple
 
   std::cout << "------------------------  ending  -----------------------"
             << std::endl;

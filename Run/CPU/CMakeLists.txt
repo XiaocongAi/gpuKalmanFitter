@@ -1,7 +1,7 @@
-add_executable(KalmanFitterGccTest KalmanFitterGccTest.cpp)
-target_link_libraries(KalmanFitterGccTest Actscore)
+add_executable(KalmanFitterCPUTest KalmanFitterCPUTest.cpp)
+target_link_libraries(KalmanFitterCPUTest Actscore TestCommon)
 
-install(TARGETS KalmanFitterGccTest
+install(TARGETS KalmanFitterCPUTest
   EXPORT ${PROJECT_NAME}Targets
   RUNTIME       DESTINATION bin      COMPONENT runtime
   LIBRARY       DESTINATION bin      COMPONENT runtime
