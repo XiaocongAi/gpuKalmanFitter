@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "Surfaces/Surface.hpp"
 #include "ActsFatras/EventData/Hit.hpp"
 #include "ActsFatras/EventData/Particle.hpp"
 #include "ActsFatras/Physics/EnergyLoss/BetheBloch.hpp"
@@ -82,7 +83,7 @@ template <typename generator_t> struct MinimalSimulator {
 
     if (surface.surfaceMaterial()) {
       // Apply global to local
-      Vector2D local(0., 0.);
+      Acts::Vector2D local(0., 0.);
       surface.globalToLocal(state.options.geoContext,
                             stepper.position(state.stepping),
                             stepper.direction(state.stepping), local);

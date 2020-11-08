@@ -307,7 +307,7 @@ int main(int argc, char *argv[]) {
   std::cout << "Finish creating starting parameters" << std::endl;
 
   // Propagation result
-  Simulator::result_type simResult[nTracks];
+  std::vector<Simulator::result_type> simResult(nTracks);
 
   std::cout << "Start to run propagation to create measurements" << std::endl;
   auto start_propagate = std::chrono::high_resolution_clock::now();
@@ -325,29 +325,9 @@ int main(int argc, char *argv[]) {
   std::cout << "Time (ms) to run propagation tests: "
             << elapsed_seconds.count() * 1000 << std::endl;
 
-  // Initialize the vertex counter
-  unsigned int vCounter = 0;
   if (output) {
     std::cout << "writing propagation results" << std::endl;
-    // Write all of the created tracks to one obj file
-    std::ofstream obj_track;
-    std::string fileName = "Tracks-propagation.obj";
-    obj_track.open(fileName.c_str());
-
-    for (int it = 0; it < nTracks; it++) {
-      auto tracks = simResult[it].hits;
-      ++vCounter;
-      for (const auto &sl : tracks) {
-        const auto &pos = sl.position();
-        obj_track << "v " << pos.x() << " " << pos.y() << " " << pos.z()
-                  << "\n";
-      }
-      // Write out the line - only if we have at least two points created
-      size_t vBreak = vCounter + tracks.size() - 1;
-      for (; vCounter < vBreak; ++vCounter)
-        obj_track << "l " << vCounter << " " << vCounter + 1 << '\n';
-    }
-    obj_track.close();
+    Test::writeSimHits(simResult); 
   }
 
   // Prepare to perform fit to the created tracks
@@ -542,27 +522,7 @@ int main(int argc, char *argv[]) {
 
   if (output) {
     std::cout << "writing KF results" << std::endl;
-    // Write all of the created tracks to one obj file
-    std::ofstream obj_ftrack;
-    std::string fileName_ = "Tracks-fitted.obj";
-    obj_ftrack.open(fileName_.c_str());
-
-    // Initialize the vertex counter
-    vCounter = 0;
-    for (int it = 0; it < nTracks; it++) {
-      ++vCounter;
-      for (int is = 0; is < nSurfaces; is++) {
-        const auto &pos =
-            fittedTracks[it * nSurfaces + is].parameter.filtered.position();
-        obj_ftrack << "v " << pos.x() << " " << pos.y() << " " << pos.z()
-                   << "\n";
-      }
-      // Write out the line - only if we have at least two points created
-      size_t vBreak = vCounter + nSurfaces - 1;
-      for (; vCounter < vBreak; ++vCounter)
-        obj_ftrack << "l " << vCounter << " " << vCounter + 1 << '\n';
-    }
-    obj_ftrack.close();
+    Test::writeTracks(fittedTracks, nTracks, nSurfaces); 
   }
 
   std::cout << "------------------------  ending  -----------------------"
