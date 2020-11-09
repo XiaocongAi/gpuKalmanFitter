@@ -8,10 +8,10 @@
 
 #pragma once
 
-#include "Utilities/PdgParticle.hpp"
-#include "Utilities/Units.hpp"
 #include "ActsExamples/RandomNumbers.hpp"
 #include "ActsFatras/EventData/Barcode.hpp"
+#include "Utilities/PdgParticle.hpp"
+#include "Utilities/Units.hpp"
 
 #include <array>
 #include <cmath>
@@ -27,17 +27,17 @@ using SimParticleContainer = std::vector<ActsFatras::Particle>;
 /// the given limits). Its absolute momentum is drawn from a uniform
 /// distribution. Position and time are always set to zero.
 class ParametricParticleGenerator {
- public:
+public:
   struct Config {
     // Low, high (exclusive) for the transverse direction angle.
     double phiMin = 0;
-    double phiMax = 0; 
+    double phiMax = 0;
     // Low, high (inclusive) for  the longitudinal direction angle.
     //
     // This intentionally uses theta instead of eta so it can represent the
     // full direction space with finite values.
-    double thetaMin = M_PI/2;
-    double thetaMax = M_PI/2;
+    double thetaMin = M_PI / 2;
+    double thetaMax = M_PI / 2;
     // Low, high (exclusive) for absolute momentum.
     double pMin = 1 * Acts::UnitConstants::GeV;
     double pMax = 10 * Acts::UnitConstants::GeV;
@@ -49,12 +49,12 @@ class ParametricParticleGenerator {
     size_t numParticles = 1;
   };
 
-  ParametricParticleGenerator(const Config& cfg);
+  ParametricParticleGenerator(const Config &cfg);
 
   /// Generate a single primary vertex with the given number of particles.
-  SimParticleContainer operator()(RandomEngine& rng) const;
+  SimParticleContainer operator()(RandomEngine &rng) const;
 
- private:
+private:
   Config m_cfg;
   // will be automatically set from PDG data tables
   double m_charge;
@@ -64,10 +64,10 @@ class ParametricParticleGenerator {
 };
 
 inline ParametricParticleGenerator::ParametricParticleGenerator(
-    const Config& cfg)
+    const Config &cfg)
     : m_cfg(cfg),
-      //m_charge(ActsFatras::findCharge(m_cfg.pdg)),
-      //m_mass(ActsFatras::findMass(m_cfg.pdg)),
+      // m_charge(ActsFatras::findCharge(m_cfg.pdg)),
+      // m_mass(ActsFatras::findMass(m_cfg.pdg)),
       // since we want to draw the direction uniform on the unit sphere, we must
       // draw from cos(theta) instead of theta. see e.g.
       // https://mathworld.wolfram.com/SpherePointPicking.html
@@ -76,14 +76,15 @@ inline ParametricParticleGenerator::ParametricParticleGenerator(
       // https://en.cppreference.com/w/cpp/numeric/random/uniform_real_distribution
       m_cosThetaMax(std::nextafter(std::cos(m_cfg.thetaMax),
                                    std::numeric_limits<double>::max())) {
-     if(m_cfg.pdg != Acts::PdgParticle::eMuon){
-       throw std::invalid_argument("Sorry. Only eMuon is supported.");
-     }
-     m_charge = -1;
-     m_mass = 105.6583755 * Acts::UnitConstants::MeV;
-  } 
+  if (m_cfg.pdg != Acts::PdgParticle::eMuon) {
+    throw std::invalid_argument("Sorry. Only eMuon is supported.");
+  }
+  m_charge = -1;
+  m_mass = 105.6583755 * Acts::UnitConstants::MeV;
+}
 
-inline SimParticleContainer ParametricParticleGenerator::operator()(RandomEngine& rng) const {
+inline SimParticleContainer ParametricParticleGenerator::
+operator()(RandomEngine &rng) const {
   using UniformIndex = std::uniform_int_distribution<unsigned int>;
   using UniformReal = std::uniform_real_distribution<double>;
 
@@ -95,7 +96,9 @@ inline SimParticleContainer ParametricParticleGenerator::operator()(RandomEngine
       m_cfg.pdg,
       static_cast<Acts::PdgParticle>(-m_cfg.pdg),
   };
-  const double qChoices[] = { m_charge, -m_charge,
+  const double qChoices[] = {
+      m_charge,
+      -m_charge,
   };
   UniformReal phiDist(m_cfg.phiMin, m_cfg.phiMax);
   UniformReal cosThetaDist(m_cosThetaMin, m_cosThetaMax);
@@ -136,4 +139,4 @@ inline SimParticleContainer ParametricParticleGenerator::operator()(RandomEngine
   return particles;
 }
 
-}  // namespace ActsExamples
+} // namespace ActsExamples

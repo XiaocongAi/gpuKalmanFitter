@@ -119,8 +119,8 @@ HomogeneousSurfaceMaterial::materialSlab(size_t /*ib0*/, size_t /*ib1*/) const {
   return (m_fullMaterial);
 }
 
-inline bool HomogeneousSurfaceMaterial::operator==(
-    const HomogeneousSurfaceMaterial &hsm) const {
+inline bool HomogeneousSurfaceMaterial::
+operator==(const HomogeneousSurfaceMaterial &hsm) const {
   return (m_fullMaterial == hsm.m_fullMaterial);
 }
 

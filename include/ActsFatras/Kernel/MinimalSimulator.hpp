@@ -8,12 +8,12 @@
 
 #pragma once
 
-#include "Surfaces/Surface.hpp"
 #include "ActsFatras/EventData/Hit.hpp"
 #include "ActsFatras/EventData/Particle.hpp"
 #include "ActsFatras/Physics/EnergyLoss/BetheBloch.hpp"
 #include "ActsFatras/Physics/EnergyLoss/BetheHeitler.hpp"
 #include "ActsFatras/Physics/Scattering/Highland.hpp"
+#include "Surfaces/Surface.hpp"
 
 #include <algorithm>
 #include <cassert>

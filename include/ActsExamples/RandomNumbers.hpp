@@ -42,7 +42,7 @@ public:
 
   RandomNumbers(const Config &cfg);
 
-  /// Spawn an event-local random number generator. 
+  /// Spawn an event-local random number generator.
   ///
   /// It calls generateSeed() for an event driven seed
   ///

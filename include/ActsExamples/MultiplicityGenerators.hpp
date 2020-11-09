@@ -21,15 +21,15 @@ namespace ActsExamples {
 struct FixedMultiplicityGenerator {
   size_t n = 1;
 
-  size_t operator()(RandomEngine& /* unused */) const { return n; }
+  size_t operator()(RandomEngine & /* unused */) const { return n; }
 };
 
 struct PoissonMultiplicityGenerator {
   double mean = 1;
 
-  size_t operator()(RandomEngine& rng) const {
+  size_t operator()(RandomEngine &rng) const {
     return (0 < mean) ? std::poisson_distribution<size_t>(mean)(rng) : 0;
   }
 };
 
-}  // namespace ActsExamples
+} // namespace ActsExamples

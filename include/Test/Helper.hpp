@@ -4,9 +4,9 @@
 #include "Utilities/Definitions.hpp"
 #include "Utilities/Units.hpp"
 
-#include <random>
 #include <fstream>
 #include <iostream>
+#include <random>
 
 namespace Test {
 
@@ -88,54 +88,53 @@ struct VoidAborter {
   }
 };
 
-template< typename hits_collection_t>
-void writeSimHits(const hits_collection_t& simHits){
- // Write all of the created tracks to one obj file
- std::ofstream obj_hits;
- std::string fileName = "sim-hits.obj";
- obj_hits.open(fileName.c_str());
+template <typename hits_collection_t>
+void writeSimHits(const hits_collection_t &simHits) {
+  // Write all of the created tracks to one obj file
+  std::ofstream obj_hits;
+  std::string fileName = "sim-hits.obj";
+  obj_hits.open(fileName.c_str());
 
-// Initialize the vertex counter
- unsigned int vCounter=0;
- for (unsigned int ih = 0; ih < simHits.size(); ih++) {
-   auto hits= simHits[ih].hits;
-   ++vCounter;
-   for (const auto &sl : hits) {
-     const auto &pos = sl.position();
-     obj_hits << "v " << pos.x() << " " << pos.y() << " " << pos.z()
-               << "\n";
-   }
-   // Write out the line - only if we have at least two points created
-   size_t vBreak = vCounter + hits.size() - 1;
-   for (; vCounter < vBreak; ++vCounter)
-     obj_hits << "l " << vCounter << " " << vCounter + 1 << '\n';
- }
- obj_hits.close();
- }
-
-template<typename track_state_t>
-void writeTracks(const track_state_t* states, unsigned int nTracks, unsigned int nSurfaces){
-// Write all of the created tracks to one obj file
-std::ofstream obj_tracks;
-std::string fileName_ = "tracks-fitted.obj";
-obj_tracks.open(fileName_.c_str());
-
-// Initialize the vertex counter
-unsigned int vCounter = 0;
-for (unsigned int it = 0; it < nTracks; it++) {
-  ++vCounter;
-  for (int is = 0; is < nSurfaces; is++) {
-    const auto &pos =
-        states[it * nSurfaces + is].parameter.filtered.position();
-    obj_tracks << "v " << pos.x() << " " << pos.y() << " " << pos.z()
-               << "\n";
+  // Initialize the vertex counter
+  unsigned int vCounter = 0;
+  for (unsigned int ih = 0; ih < simHits.size(); ih++) {
+    auto hits = simHits[ih].hits;
+    ++vCounter;
+    for (const auto &sl : hits) {
+      const auto &pos = sl.position();
+      obj_hits << "v " << pos.x() << " " << pos.y() << " " << pos.z() << "\n";
+    }
+    // Write out the line - only if we have at least two points created
+    size_t vBreak = vCounter + hits.size() - 1;
+    for (; vCounter < vBreak; ++vCounter)
+      obj_hits << "l " << vCounter << " " << vCounter + 1 << '\n';
   }
-  // Write out the line - only if we have at least two points created
-  size_t vBreak = vCounter + nSurfaces - 1;
-  for (; vCounter < vBreak; ++vCounter)
-    obj_tracks << "l " << vCounter << " " << vCounter + 1 << '\n';
+  obj_hits.close();
 }
-obj_tracks.close();
+
+template <typename track_state_t>
+void writeTracks(const track_state_t *states, unsigned int nTracks,
+                 unsigned int nSurfaces) {
+  // Write all of the created tracks to one obj file
+  std::ofstream obj_tracks;
+  std::string fileName_ = "tracks-fitted.obj";
+  obj_tracks.open(fileName_.c_str());
+
+  // Initialize the vertex counter
+  unsigned int vCounter = 0;
+  for (unsigned int it = 0; it < nTracks; it++) {
+    ++vCounter;
+    for (int is = 0; is < nSurfaces; is++) {
+      const auto &pos =
+          states[it * nSurfaces + is].parameter.filtered.position();
+      obj_tracks << "v " << pos.x() << " " << pos.y() << " " << pos.z() << "\n";
+    }
+    // Write out the line - only if we have at least two points created
+    size_t vBreak = vCounter + nSurfaces - 1;
+    for (; vCounter < vBreak; ++vCounter)
+      obj_tracks << "l " << vCounter << " " << vCounter + 1 << '\n';
+  }
+  obj_tracks.close();
 }
 
 } // namespace Test

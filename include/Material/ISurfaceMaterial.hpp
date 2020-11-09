@@ -100,8 +100,8 @@ protected:
 };
 
 template <typename Derived>
-inline ISurfaceMaterial<Derived> &
-ISurfaceMaterial<Derived>::operator*=(double scale) {
+inline ISurfaceMaterial<Derived> &ISurfaceMaterial<Derived>::
+operator*=(double scale) {
   return static_cast<Derived &>(*this).operator*=(scale);
 }
 

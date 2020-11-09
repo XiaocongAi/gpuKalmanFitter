@@ -12,8 +12,8 @@
 
 #pragma once
 
-#include "Utilities/Definitions.hpp"
 #include "ActsExamples/RandomNumbers.hpp"
+#include "Utilities/Definitions.hpp"
 
 #include <random>
 
@@ -23,7 +23,7 @@ struct FixedVertexGenerator {
   /// The fixed vertex position and time.
   Acts::Vector4D fixed = Acts::Vector4D::Zero();
 
-  Acts::Vector4D operator()(RandomEngine& /* unused */) const { return fixed; }
+  Acts::Vector4D operator()(RandomEngine & /* unused */) const { return fixed; }
 };
 
 struct GaussianVertexGenerator {
@@ -33,7 +33,7 @@ struct GaussianVertexGenerator {
   /// Mean vertex position and time.
   Acts::Vector4D mean = {0.0, 0.0, 0.0, 0.0};
 
-  Acts::Vector4D operator()(RandomEngine& rng) const {
+  Acts::Vector4D operator()(RandomEngine &rng) const {
     auto normal = std::normal_distribution<double>(0.0, 1.0);
     Acts::Vector4D rndNormal = {
         normal(rng),
@@ -45,4 +45,4 @@ struct GaussianVertexGenerator {
   }
 };
 
-}  // namespace ActsExamples
+} // namespace ActsExamples
