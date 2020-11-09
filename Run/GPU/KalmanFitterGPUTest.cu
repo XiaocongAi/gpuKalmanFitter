@@ -63,10 +63,10 @@ using TSType = typename KalmanFitterResultType::TrackStateType;
 // Device code
 __global__ void __launch_bounds__(256, 2)
     fitKernelThreadPerTrack(KalmanFitterType *kFitter,
-                            PixelSourceLink *sourcelinks,
-                            CurvilinearParameters *tpars,
-                            KalmanFitterOptions<VoidOutlierFinder> kfOptions,
-                            TSType *fittedTracks, const Surface *surfacePtrs,
+                            Acts::PixelSourceLink *sourcelinks,
+                            Acts::CurvilinearParameters *tpars,
+                            Acts::KalmanFitterOptions<Acts::VoidOutlierFinder> kfOptions,
+                            TSType *fittedTracks, const Acts::Surface *surfacePtrs,
                             int nSurfaces, int nTracks, int offset) {
   // In case of 1D grid and 1D block, the threadId = blockDim.x*blockIdx.x +
   // threadIdx.x + offset
@@ -80,7 +80,7 @@ __global__ void __launch_bounds__(256, 2)
     KalmanFitterResultType kfResult;
     kfResult.fittedStates = CudaKernelContainer<TSType>(
         fittedTracks + threadId * nSurfaces, nSurfaces);
-    kFitter->fit(CudaKernelContainer<PixelSourceLink>(
+    kFitter->fit(Acts::CudaKernelContainer<PixelSourceLink>(
                      sourcelinks + threadId * nSurfaces, nSurfaces),
                  tpars[threadId], kfOptions, kfResult, surfacePtrs, nSurfaces);
   }
@@ -88,10 +88,10 @@ __global__ void __launch_bounds__(256, 2)
 
 __global__ void __launch_bounds__(256, 2)
     fitKernelBlockPerTrack(KalmanFitterType *kFitter,
-                           PixelSourceLink *sourcelinks,
-                           CurvilinearParameters *tpars,
-                           KalmanFitterOptions<VoidOutlierFinder> kfOptions,
-                           TSType *fittedTracks, const Surface *surfacePtrs,
+                           Acts::PixelSourceLink *sourcelinks,
+                           Acts::CurvilinearParameters *tpars,
+                           Acts::KalmanFitterOptions<Acts::VoidOutlierFinder> kfOptions,
+                           TSType *fittedTracks, const Acts::Surface *surfacePtrs,
                            int nSurfaces, int nTracks, int offset) {
   int blockId = gridDim.x * blockIdx.y + blockIdx.x + offset;
 
@@ -101,7 +101,7 @@ __global__ void __launch_bounds__(256, 2)
     KalmanFitterResultType kfResult;
     kfResult.fittedStates = CudaKernelContainer<TSType>(
         fittedTracks + blockId * nSurfaces, nSurfaces);
-    kFitter->fitOnDevice(CudaKernelContainer<PixelSourceLink>(
+    kFitter->fitOnDevice(Acts::CudaKernelContainer<PixelSourceLink>(
                              sourcelinks + blockId * nSurfaces, nSurfaces),
                          tpars[blockId], kfOptions, kfResult, surfacePtrs,
                          nSurfaces);
@@ -219,8 +219,8 @@ int main(int argc, char *argv[]) {
   const int lastStreamTSsBytes = sizeof(TSType) * nSurfaces * tracksLastStream;
 
   // Create a test context
-  GeometryContext gctx(0);
-  MagneticFieldContext mctx(0);
+  Acts::GeometryContext gctx(0);
+  Acts::MagneticFieldContext mctx(0);
 
   // Create a random number service
   ActsExamples::RandomNumbers::Config config;
@@ -291,7 +291,10 @@ int main(int argc, char *argv[]) {
   // Run hit smearing to create source links 
   runHitSmearing(rng, gctx, simResult, hitResolution, sourcelinks, surfacePtrs,
                  nSurfaces);
-  
+  for(int ss = 0; ss < nSurfaces*nTracks; ss++){
+   std::cout<<"sourcelink = " << sourcelinks[ss].localPosition()<<std::endl;
+  } 
+
   // The particle smearing resolution
   ParticleSmearingParameters seedResolution;
   // Run truth seed smearing to create starting parameters
@@ -306,7 +309,9 @@ int main(int argc, char *argv[]) {
   // Prepare to perform fit to the created tracks
   KalmanFitterType kFitter(propagator);
   KalmanFitterOptions<VoidOutlierFinder> kfOptions(
-      gctx, mctx, VoidOutlierFinder(), nullptr, multipleScattering, energyLoss);
+      gctx, mctx);
+  //KalmanFitterOptions<VoidOutlierFinder> kfOptions(
+  //    gctx, mctx, Acts::VoidOutlierFinder(), nullptr, multipleScattering, energyLoss);
   // Pinned mememory for KF fitted tracks
   TSType *fittedTracks;
   GPUERRCHK(cudaMallocHost((void **)&fittedTracks, tsBytes));
@@ -418,9 +423,9 @@ int main(int argc, char *argv[]) {
       // The fit result wrapper
       KalmanFitterResultType kfResult;
       kfResult.fittedStates =
-          CudaKernelContainer<TSType>(&fittedTracks[it * nSurfaces], nSurfaces);
+          Acts::CudaKernelContainer<TSType>(&fittedTracks[it * nSurfaces], nSurfaces);
       // The input source links wrapper
-      auto sourcelinkTrack = CudaKernelContainer<PixelSourceLink>(
+      auto sourcelinkTrack = Acts::CudaKernelContainer<PixelSourceLink>(
           sourcelinks + it * nSurfaces, nSurfaces);
       // Run the fit. The fittedTracks will be changed here
       auto fitStatus = kFitter.fit(sourcelinkTrack, startParsCollection[it],
