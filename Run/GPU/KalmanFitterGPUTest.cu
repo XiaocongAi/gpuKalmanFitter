@@ -301,7 +301,7 @@ int main(int argc, char *argv[]) {
   CurvilinearParameters *startPars;
   GPUERRCHK(cudaMallocHost((void **)&startPars, parsBytes));
   // Copy to the pinned memory
-  startPars = startParsCollection.data();
+  memcpy(startPars, startParsCollection.data(), parsBytes); 
 
   // Prepare to perform fit to the created tracks
   KalmanFitterType kFitter(propagator);
