@@ -270,7 +270,8 @@ int main(int argc, char *argv[]) {
   propOptions.action.generator = &rng;
   std::vector<Simulator::result_type> simResult(nTracks);
   auto start_propagate = std::chrono::high_resolution_clock::now();
-  // Run the simulation to generate sim hits
+  std::cout<<"start to run propagation"<<std::endl; 
+ // Run the simulation to generate sim hits
   runSimulation(propagator, propOptions, particles, simResult);
   auto end_propagate = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed_seconds = end_propagate - start_propagate;
