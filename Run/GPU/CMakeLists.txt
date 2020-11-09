@@ -1,6 +1,13 @@
 add_executable(KalmanFitterGPUTest KalmanFitterGPUTest.cu)
 target_link_libraries(KalmanFitterGPUTest Actscore)
 
+target_include_directories(
+  KalmanFitterGPUTest 
+  PUBLIC 
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../Common>
+)
+
+
 install(TARGETS KalmanFitterGPUTest
   EXPORT ${PROJECT_NAME}Targets
   RUNTIME       DESTINATION bin      COMPONENT runtime

@@ -45,7 +45,6 @@ using PlaneSurfaceType = Acts::PlaneSurface<Acts::InfiniteBounds>;
 using KalmanFitterType = Acts::KalmanFitter<PropagatorType, Acts::GainMatrixUpdater>;
 using KalmanFitterResultType =
     Acts::KalmanFitterResult<Acts::PixelSourceLink, Acts::BoundParameters>;
-
 using TSType = typename KalmanFitterResultType::TrackStateType;
 
 

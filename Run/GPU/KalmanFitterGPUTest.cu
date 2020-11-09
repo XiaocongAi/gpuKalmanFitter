@@ -1,21 +1,22 @@
-#include "ActsFatras/Kernel/MinimalSimulator.hpp"
 #include "EventData/PixelSourceLink.hpp"
 #include "EventData/TrackParameters.hpp"
 #include "Fitter/GainMatrixUpdater.hpp"
 #include "Fitter/KalmanFitter.hpp"
-#include "Geometry/GeometryContext.hpp"
-#include "MagneticField/MagneticFieldContext.hpp"
-#include "Plugins/BFieldOptions.hpp"
-#include "Plugins/BFieldUtils.hpp"
 #include "Propagator/EigenStepper.hpp"
 #include "Propagator/Propagator.hpp"
-#include "Test/Helper.hpp"
-#include "Utilities/CudaHelper.hpp"
 #include "Utilities/Logger.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
-#include "Utilities/Profiling.hpp"
 #include "Utilities/Units.hpp"
+#include "Utilities/CudaHelper.hpp"
+#include "Utilities/Profiling.hpp"
+
 #include "ActsExamples/RandomNumbers.hpp"
+#include "ActsExamples/Generator.hpp"
+#include "ActsExamples/VertexGenerators.hpp"
+#include "ActsExamples/ParametricParticleGenerator.hpp"
+#include "ActsExamples/MultiplicityGenerators.hpp"
+#include "Test/Helper.hpp"
+#include "Processor.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -47,21 +48,17 @@ static void show_usage(std::string name) {
             << std::endl;
 }
 
-using namespace Acts;
 
-using Stepper = EigenStepper<Test::ConstantBField>;
-// using Stepper = EigenStepper<InterpolatedBFieldMap3D>;
-using PropagatorType = Propagator<Stepper>;
-using PropResultType = PropagatorResult;
-using Simulator = ActsFatras::MinimalSimulator<RandomEngine>;
-using SimPropOptionsType = PropagatorOptions<Simulator, Test::VoidAborter>;
-using PropState = PropagatorType::State<SimPropOptionsType>;
-using KalmanFitterType = KalmanFitter<PropagatorType, GainMatrixUpdater>;
+using Stepper = Acts::EigenStepper<Test::ConstantBField>;
+using PropagatorType = Acts::Propagator<Stepper>;
+using PropResultType = Acts::PropagatorResult;
+using PropOptionsType = Acts::PropagatorOptions<Simulator, Test::VoidAborter>;
+using PropState = PropagatorType::State<PropOptionsType>;
+using PlaneSurfaceType = Acts::PlaneSurface<InfiniteBounds>;
+using KalmanFitterType = Acts::KalmanFitter<PropagatorType, Acts::GainMatrixUpdater>;
 using KalmanFitterResultType =
-    KalmanFitterResult<PixelSourceLink, BoundParameters>;
+    Acts::KalmanFitterResult<Acts::PixelSourceLink, Acts::BoundParameters>;
 using TSType = typename KalmanFitterResultType::TrackStateType;
-
-using PlaneSurfaceType = PlaneSurface<InfiniteBounds>;
 
 // Device code
 __global__ void __launch_bounds__(256, 2)
@@ -205,21 +202,20 @@ int main(int argc, char *argv[]) {
   const int sourcelinksBytes = sizeof(PixelSourceLink) * nSurfaces * nTracks;
   const int parsBytes = sizeof(CurvilinearParameters) * nTracks;
   const int tsBytes = sizeof(TSType) * nSurfaces * nTracks;
-  const int perStreamSourcelinksBytes =
-      sizeof(PixelSourceLink) * nSurfaces * tracksPerStream;
-  const int perStreamParsBytes =
-      sizeof(CurvilinearParameters) * tracksPerStream;
-  const int perStreamTSsBytes = sizeof(TSType) * nSurfaces * tracksPerStream;
-
   std::cout << "surface Bytes = " << surfaceBytes << std::endl;
   std::cout << "source links Bytes = " << sourcelinksBytes << std::endl;
   std::cout << "startPars Bytes = " << parsBytes << std::endl;
   std::cout << "TSs Bytes = " << tsBytes << std::endl;
 
+  const int perStreamSourcelinksBytes =
+      sizeof(PixelSourceLink) * nSurfaces * tracksPerStream;
   const int lastStreamSourcelinksBytes =
       sizeof(PixelSourceLink) * nSurfaces * tracksLastStream;
+  const int perStreamParsBytes =
+      sizeof(CurvilinearParameters) * tracksPerStream;
   const int lastStreamParsBytes =
       sizeof(CurvilinearParameters) * tracksLastStream;
+  const int perStreamTSsBytes = sizeof(TSType) * nSurfaces * tracksPerStream;
   const int lastStreamTSsBytes = sizeof(TSType) * nSurfaces * tracksLastStream;
 
   // Create a test context
@@ -230,8 +226,7 @@ int main(int argc, char *argv[]) {
   ActsExamples::RandomNumbers::Config config;
   config.seed = static_cast<uint64_t>(1234567890u);
   auto randomNumbers = std::make_shared<ActsExamples::RandomNumbers>(config);
-  auto generator = randomNumbers->spawnGenerator(0);
-  std::normal_distribution<double> gauss(0, 1);
+  auto rng = randomNumbers->spawnGenerator(0);
 
   // Create the geometry
   // Set translation vectors
@@ -239,98 +234,80 @@ int main(int argc, char *argv[]) {
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
     translations.push_back({(isur * 30. + 19) * Acts::units::_mm, 0., 0.});
   }
-
+  // Create plane surfaces without boundaries
   PlaneSurfaceType *surfaces;
-  // Unifited memory allocation for geometry
+  // Unified memory allocation for geometry
   GPUERRCHK(cudaMallocManaged(&surfaces, sizeof(PlaneSurfaceType) * nSurfaces));
   std::cout << "Allocating the memory for the surfaces" << std::endl;
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
     surfaces[isur] =
         PlaneSurfaceType(translations[isur], Acts::Vector3D(1, 0, 0));
-  }
+  } 
+  const Acts::Surface *surfacePtrs = surfaces;
   std::cout << "Creating " << nSurfaces << " boundless plane surfaces"
             << std::endl;
 
-  // Test the pointers to surfaces
-  for (unsigned int isur = 0; isur < nSurfaces; isur++) {
-    auto surface = surfaces[isur];
-    std::cout << "surface " << isur << " has center at: \n"
-              << surface.center(gctx) << std::endl;
-  }
+  // Prepare to run the particles generation
+  ActsExamples::GaussianVertexGenerator vertexGen;
+  vertexGen.stddev[Acts::eFreePos0] = 1.0 * Acts::units::_mm;
+  vertexGen.stddev[Acts::eFreePos1] = 1.0 * Acts::units::_mm;
+  vertexGen.stddev[Acts::eFreePos2] = 5.0 * Acts::units::_mm;
+  vertexGen.stddev[Acts::eFreeTime] = 1.0 * Acts::units::_ns;
+  ActsExamples::ParametricParticleGenerator::Config pgCfg;
+  ActsExamples::Generator generator = ActsExamples::Generator{ActsExamples::FixedMultiplicityGenerator{nTracks}, std::move(vertexGen),ActsExamples::ParametricParticleGenerator(pgCfg)};
+  // Run the generation to generate particles
+  std::vector<ActsFatras::Particle> particles;
+  runGeneration(rng, generator, particles);
 
-  std::cout << "----- Starting Kalman fitter test of " << nTracks
-            << " tracks on " << device << std::endl;
-
-  const Acts::Surface *surfacePtrs = surfaces;
-
-  // InterpolatedBFieldMap3D bField = Options::readBField(bFieldFileName);
-
-  // Construct a stepper with the bField
+  // Prepare to run the simulation
   Stepper stepper;
   PropagatorType propagator(stepper);
-  SimPropOptionsType propOptions(gctx, mctx);
+  PropOptionsType propOptions(gctx, mctx);
   propOptions.maxSteps = 100;
   propOptions.initializer.surfaceSequence = surfacePtrs;
   propOptions.initializer.surfaceSequenceSize = nSurfaces;
-  propOptions.action.generator = &generator;
-
-  // Construct random starting track parameters
-  CurvilinearParameters *startPars;
-  GPUERRCHK(cudaMallocHost((void **)&startPars, parsBytes)); // use pinned
-                                                             // memory
-  double resLoc1 = 0.1 * Acts::units::_mm;
-  double resLoc2 = 0.1 * Acts::units::_mm;
-  double resPhi = 0.01;
-  double resTheta = 0.01;
-
-  const BoundSymMatrix cov = [=]() {
-    BoundSymMatrix cov = BoundSymMatrix::Zero();
-    cov << resLoc1 * resLoc1, 0., 0., 0., 0., 0., 0., resLoc2 * resLoc2, 0., 0.,
-        0., 0., 0., 0., resPhi * resPhi, 0., 0., 0., 0., 0., 0.,
-        resTheta * resTheta, 0., 0., 0., 0., 0., 0., 0.0001, 0., 0., 0., 0., 0.,
-        0., 1.;
-    return cov;
-  }();
-
-  for (int i = 0; i < nTracks; i++) {
-    // @note Add random for a range of kinematics
-    double q = 1;
-    double time = 0;
-    double phi = gauss(generator) * resPhi;
-    double theta = M_PI / 2 + gauss(generator) * resTheta;
-    Vector3D pos(0, resLoc1 * gauss(generator),
-                 resLoc2 * gauss(generator)); // Units: mm
-    Vector3D mom(p * sin(theta) * cos(phi), p * sin(theta) * sin(phi),
-                 p * cos(theta)); // Units: GeV
-    startPars[i] = CurvilinearParameters(cov, pos, mom, q, time);
-  }
-  std::cout << "Finish creating starting parameters" << std::endl;
-
-  // Propagation result
+  propOptions.action.generator = &rng;
   std::vector<Simulator::result_type> simResult(nTracks);
-
-  std::cout << "Start to run propagation to create measurements" << std::endl;
-  auto start_propagate = std::chrono::high_resolution_clock::now();
-
-// Run propagation to create the measurements
-// @todo The material effects have to be considered during the simulation
-#pragma omp parallel for
-  for (int it = 0; it < nTracks; it++) {
-    propagator.propagate(startPars[it], propOptions, simResult[it]);
-  }
-
+  auto start = std::chrono::high_resolution_clock::now();
+  // Run the simulation to generate sim hits 
+  runSimulation(propagator, propOptions, particles, simResult);
   auto end_propagate = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> elapsed_seconds =
-      end_propagate - start_propagate;
-  std::cout << "Time (ms) to run propagation tests: "
-            << elapsed_seconds.count() * 1000 << std::endl;
-
+  std::chrono::duration<double> elapsed_seconds = end_propagate - start;
+  std::cout << "Time (sec) to run propagation tests: "
+            << elapsed_seconds.count() << std::endl;
   if (output) {
     std::cout << "writing propagation results" << std::endl;
-    Test::writeSimHits(simResult); 
+    Test::writeSimHits(simResult);
   }
 
+ // The hit smearing resolution
+ std::array<double, 2> hitResolution = {30. * Acts::units::_mm, 30. * Acts::units::_mm};
+ // Run sim hits smearing to create source links 
+  Acts::PixelSourceLink *sourcelinks;
+  // Use pinned memory 
+  GPUERRCHK(cudaMallocHost((void **)&sourcelinks,
+                           sourcelinksBytes));
+ runHitSmearing(rng, gctx, simResult, hitResolution, sourcelinks, surfacePtrs, nSurfaces);
+
+ // The particle smearing resolution
+ ParticleSmearingParameters seedResolution;
+ // Run truth seed smearing to create starting parameters 
+ auto startParsCollection = runParticleSmearing(rng, gctx, particles, seedResolution, nTracks);
+
+  // Pinned memory for starting track parameters to be transferred to GPU 
+  CurvilinearParameters *startPars;
+  GPUERRCHK(cudaMallocHost((void **)&startPars, parsBytes));
+  // Copy to the pinned memory 
+  startPars = startParsCollection.data();   
+
   // Prepare to perform fit to the created tracks
+  KalmanFitterType kFitter(propagator);
+  KalmanFitterOptions<VoidOutlierFinder> kfOptions(
+      gctx, mctx, VoidOutlierFinder(), nullptr, multipleScattering, energyLoss);
+  // Pinned mememory for KF fitted tracks
+  TSType *fittedTracks;
+  GPUERRCHK(cudaMallocHost((void **)&fittedTracks, tsBytes));
+
   float ms; // elapsed time in milliseconds
 
   // Create events and streams
@@ -341,51 +318,6 @@ int main(int argc, char *argv[]) {
   for (int i = 0; i < nStreams; ++i) {
     GPUERRCHK(cudaStreamCreate(&stream[i]));
   }
-
-  // Restore the source links
-  PixelSourceLink *sourcelinks;
-  GPUERRCHK(cudaMallocHost((void **)&sourcelinks,
-                           sourcelinksBytes)); // use pinned memory
-
-  // Perform smearing to the simulated hits
-  double resX = 30. * Acts::units::_mm, resY = 30. * Acts::units::_mm;
-  for (int it = 0; it < nTracks; it++) {
-    auto hits = simResult[it].hits;
-    for (unsigned int ih = 0; ih < hits.size(); ih++) {
-      // Apply global to local
-      Acts::Vector2D lPos;
-      // find the surface for this hit
-      surfaces[ih].globalToLocal(gctx, hits[ih].position(),
-                                 hits[ih].unitDirection(), lPos);
-      // Perform the smearing to truth
-      double dx = std::normal_distribution<double>(0., resX)(generator);
-      double dy = std::normal_distribution<double>(0., resY)(generator);
-
-      // The measurement values
-      Acts::Vector2D values;
-      values << lPos[0] + dx, lPos[1] + dy;
-
-      // The measurement covariance
-      Acts::SymMatrix2D cov;
-      cov << resX * resX, 0., 0., resY * resY;
-
-      // Push back to the container
-      sourcelinks[it * nSurfaces + ih] =
-          PixelSourceLink(values, cov, &surfaces[ih]);
-    }
-  }
-
-  // Create an KFitter
-  PropagatorType rPropagator(stepper);
-  KalmanFitterType kFitter(rPropagator);
-
-  // The KF options
-  KalmanFitterOptions<VoidOutlierFinder> kfOptions(
-      gctx, mctx, VoidOutlierFinder(), nullptr, multipleScattering, energyLoss);
-
-  // Allocate memory for KF fitted tracks
-  TSType *fittedTracks;
-  GPUERRCHK(cudaMallocHost((void **)&fittedTracks, tsBytes));
 
   // Running directly on host or offloading to GPU
   bool useGPU = (device == "gpu");
@@ -407,21 +339,21 @@ int main(int argc, char *argv[]) {
                          cudaMemcpyHostToDevice));
 
     // Run on device
-    //    for (int _ : {1, 2, 3, 4, 5}) {
+    // for (int _ : {1, 2, 3, 4, 5}) {
     for (int i = 0; i < nStreams; ++i) {
       int offset = i * tracksPerStream;
       // Note: need special handling here
-      const int nTracks =
-          (i == (nStreams - 1) ? tracksLastStream : tracksPerStream);
+      const int streamTracks=
+          i == (nStreams - 1) ? tracksLastStream : tracksPerStream;
       // The bytes per stream for source links
-      const int sBytes = (i == (nStreams - 1) ? lastStreamSourcelinksBytes
-                                              : perStreamSourcelinksBytes);
+      const int sBytes = i == (nStreams - 1) ? lastStreamSourcelinksBytes
+                                              : perStreamSourcelinksBytes;
       // The bytes per stream for starting parameters
       const int pBytes =
-          (i == (nStreams - 1) ? lastStreamParsBytes : perStreamParsBytes);
+          i == (nStreams - 1) ? lastStreamParsBytes : perStreamParsBytes;
       // The bytes per stream for fitted tracks
       const int tBytes =
-          (i == (nStreams - 1) ? lastStreamTSsBytes : perStreamTSsBytes);
+          i == (nStreams - 1) ? lastStreamTSsBytes : perStreamTSsBytes;
 
       if (i == 0) {
         // @note: prefetch the surface or not
@@ -440,11 +372,11 @@ int main(int argc, char *argv[]) {
       if (useSharedMemory) {
         fitKernelBlockPerTrack<<<grid, block, 0, stream[i]>>>(
             d_kFitter, d_sourcelinks, d_pars, kfOptions, d_fittedTracks,
-            surfacePtrs, nSurfaces, nTracks, offset);
+            surfacePtrs, nSurfaces, streamTracks, offset);
       } else {
         fitKernelThreadPerTrack<<<grid, block, 0, stream[i]>>>(
             d_kFitter, d_sourcelinks, d_pars, kfOptions, d_fittedTracks,
-            surfacePtrs, nSurfaces, nTracks, offset);
+            surfacePtrs, nSurfaces, streamTracks, offset);
       }
       GPUERRCHK(cudaEventRecord(stopEvent, stream[i]));
       GPUERRCHK(cudaEventSynchronize(stopEvent));
@@ -452,7 +384,6 @@ int main(int argc, char *argv[]) {
       GPUERRCHK(cudaMemcpyAsync(&fittedTracks[offset], &d_fittedTracks[offset],
                                 tBytes, cudaMemcpyDeviceToHost, stream[i]));
     }
-    //    }
 
     GPUERRCHK(cudaPeekAtLastError());
     GPUERRCHK(cudaDeviceSynchronize());
@@ -462,16 +393,13 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaFree(d_pars));
     GPUERRCHK(cudaFree(d_fittedTracks));
     GPUERRCHK(cudaFree(d_kFitter));
-    GPUERRCHK(cudaFree(surfaces));
-    GPUERRCHK(cudaFreeHost(sourcelinks));
-    GPUERRCHK(cudaFreeHost(startPars));
 
     GPUERRCHK(cudaEventRecord(stopEvent, 0));
     GPUERRCHK(cudaEventSynchronize(stopEvent));
     GPUERRCHK(cudaEventElapsedTime(&ms, startEvent, stopEvent));
     printf("Time (ms) for KF memory transfer and execution: %f\n", ms);
 
-    // Log the execution time in seconds
+    // Log the execution time in seconds (not including the managed memory allocation time for the surfaces)
     Logger::logTime(Logger::buildFilename("nTracks", std::to_string(nTracks),
                                           "gridSize", dim3ToString(grid),
                                           "blockSize", dim3ToString(block)),
@@ -483,32 +411,15 @@ int main(int argc, char *argv[]) {
 
 #pragma omp parallel for
     for (int it = 0; it < nTracks; it++) {
-      //     BoundSymMatrix cov = BoundSymMatrix::Zero();
-      //     cov << resLoc1 * resLoc1, 0., 0., 0., 0., 0., 0., resLoc2 *
-      //     resLoc2, 0.,
-      //         0., 0., 0., 0., 0., resPhi * resPhi, 0., 0., 0., 0., 0., 0.,
-      //         resTheta * resTheta, 0., 0., 0., 0., 0., 0., 0.0001, 0., 0.,
-      //         0., 0., 0., 0., 1.;
-
-      //     double q = 1;
-      //     double time = 0;
-      //     Vector3D pos(0, 0, 0); // Units: mm
-      //     Vector3D mom(p, 0, 0); // Units: GeV
-
-      //     CurvilinearParameters rStart(cov, pos, mom, q, time);
-
-      // Dynamically allocating memory for the fitted states here
+      // The fit result wrapper 
       KalmanFitterResultType kfResult;
       kfResult.fittedStates =
           CudaKernelContainer<TSType>(&fittedTracks[it * nSurfaces], nSurfaces);
-
+      // The input source links wrapper
       auto sourcelinkTrack = CudaKernelContainer<PixelSourceLink>(
           sourcelinks + it * nSurfaces, nSurfaces);
-
-      // The fittedTracks will be changed here
-      // Note that we are using exacty the truth starting parameters here (which
-      // should be added smearing)
-      auto fitStatus = kFitter.fit(sourcelinkTrack, startPars[it], kfOptions,
+      // Run the fit. The fittedTracks will be changed here
+      auto fitStatus = kFitter.fit(sourcelinkTrack, startParsCollection[it], kfOptions,
                                    kfResult, surfacePtrs, nSurfaces);
       if (not fitStatus) {
         std::cout << "fit failure for track " << it << std::endl;
@@ -527,7 +438,11 @@ int main(int argc, char *argv[]) {
 
   std::cout << "------------------------  ending  -----------------------"
             << std::endl;
-
+ 
+  // Free the managed/pinned memory 
+  GPUERRCHK(cudaFree(surfaces));
+  GPUERRCHK(cudaFreeHost(sourcelinks));
+  GPUERRCHK(cudaFreeHost(startPars));
   GPUERRCHK(cudaFreeHost(fittedTracks));
 
   return 0;

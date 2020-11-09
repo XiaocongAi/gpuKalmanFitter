@@ -162,8 +162,10 @@ parameters.reserve(nParticles);
       params[Acts::eBoundLoc1] = sigmaZ0 * stdNormal(rng);
       params[Acts::eBoundTime] = time + sigmaT0 * stdNormal(rng);
       // smear direction angles phi,theta ensuring correct bounds
-      const auto [newPhi, newTheta] = Acts::detail::normalizePhiTheta(
+      const auto phiTheta = Acts::detail::normalizePhiTheta(
           phi + sigmaPhi * stdNormal(rng), theta + sigmaTheta * stdNormal(rng));
+      const double newPhi = phiTheta.first;
+      const double newTheta = phiTheta.second;
       params[Acts::eBoundPhi] = newPhi;
       params[Acts::eBoundTheta] = newTheta;
       // compute smeared absolute momentum vector
