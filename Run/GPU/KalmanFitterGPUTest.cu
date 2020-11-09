@@ -269,11 +269,11 @@ int main(int argc, char *argv[]) {
   propOptions.initializer.surfaceSequenceSize = nSurfaces;
   propOptions.action.generator = &rng;
   std::vector<Simulator::result_type> simResult(nTracks);
-  auto start = std::chrono::high_resolution_clock::now();
+  auto start_propagate = std::chrono::high_resolution_clock::now();
   // Run the simulation to generate sim hits
   runSimulation(propagator, propOptions, particles, simResult);
   auto end_propagate = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> elapsed_seconds = end_propagate - start;
+  std::chrono::duration<double> elapsed_seconds = end_propagate - start_propagate;
   std::cout << "Time (sec) to run propagation tests: "
             << elapsed_seconds.count() << std::endl;
   if (output) {
@@ -284,19 +284,18 @@ int main(int argc, char *argv[]) {
   // The hit smearing resolution
   std::array<double, 2> hitResolution = {30. * Acts::units::_mm,
                                          30. * Acts::units::_mm};
-  // Run sim hits smearing to create source links
+  // Pinned memory for source links
   Acts::PixelSourceLink *sourcelinks;
-  // Use pinned memory
   GPUERRCHK(cudaMallocHost((void **)&sourcelinks, sourcelinksBytes));
+  // Run hit smearing to create source links 
   runHitSmearing(rng, gctx, simResult, hitResolution, sourcelinks, surfacePtrs,
                  nSurfaces);
-
+  
   // The particle smearing resolution
   ParticleSmearingParameters seedResolution;
   // Run truth seed smearing to create starting parameters
   auto startParsCollection =
       runParticleSmearing(rng, gctx, particles, seedResolution, nTracks);
-
   // Pinned memory for starting track parameters to be transferred to GPU
   CurvilinearParameters *startPars;
   GPUERRCHK(cudaMallocHost((void **)&startPars, parsBytes));
