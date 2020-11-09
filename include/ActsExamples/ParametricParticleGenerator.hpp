@@ -12,7 +12,6 @@
 #include "Utilities/Units.hpp"
 #include "ActsExamples/RandomNumbers.hpp"
 #include "ActsFatras/EventData/Barcode.hpp"
-#include "ActsFatras/Utilities/ParticleData.hpp"
 
 #include <array>
 #include <cmath>
@@ -67,8 +66,8 @@ class ParametricParticleGenerator {
 inline ParametricParticleGenerator::ParametricParticleGenerator(
     const Config& cfg)
     : m_cfg(cfg),
-      m_charge(ActsFatras::findCharge(m_cfg.pdg)),
-      m_mass(ActsFatras::findMass(m_cfg.pdg)),
+      //m_charge(ActsFatras::findCharge(m_cfg.pdg)),
+      //m_mass(ActsFatras::findMass(m_cfg.pdg)),
       // since we want to draw the direction uniform on the unit sphere, we must
       // draw from cos(theta) instead of theta. see e.g.
       // https://mathworld.wolfram.com/SpherePointPicking.html
@@ -76,7 +75,13 @@ inline ParametricParticleGenerator::ParametricParticleGenerator(
       // ensure upper bound is included. see e.g.
       // https://en.cppreference.com/w/cpp/numeric/random/uniform_real_distribution
       m_cosThetaMax(std::nextafter(std::cos(m_cfg.thetaMax),
-                                   std::numeric_limits<double>::max())) {} 
+                                   std::numeric_limits<double>::max())) {
+     if(m_cfg.pdg != Acts::PdgParticle::eMuon){
+       throw std::invalid_argument("Sorry. Only eMuon is supported.");
+     }
+     m_charge = -1;
+     m_mass = 105.6583755 * Acts::UnitConstants::MeV;
+  } 
 
 inline SimParticleContainer ParametricParticleGenerator::operator()(RandomEngine& rng) const {
   using UniformIndex = std::uniform_int_distribution<unsigned int>;
