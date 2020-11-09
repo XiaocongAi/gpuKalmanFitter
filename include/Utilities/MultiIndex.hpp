@@ -114,8 +114,9 @@ public:
 
 private:
   // per-level mask and right-most bit position for shifting
-  static constexpr std::array<std::size_t, NumLevels> s_bits{BitsPerLevel...};
+  //static constexpr std::array<std::size_t, NumLevels> s_bits = {BitsPerLevel...};
   static constexpr std::size_t shift(std::size_t lvl) {
+    constexpr std::array<std::size_t, NumLevels> s_bits = {BitsPerLevel...}; 
     std::size_t s = 0u;
     // sum up all bits below the requested level
     for (std::size_t i = (lvl + 1); i < s_bits.size(); ++i) {
@@ -124,6 +125,7 @@ private:
     return s;
   }
   static constexpr Value mask(std::size_t lvl) {
+    constexpr std::array<std::size_t, NumLevels> s_bits = {BitsPerLevel...}; 
     return (Value(1u) << s_bits[lvl]) - 1u;
   }
 

@@ -62,7 +62,6 @@ template <typename generator_t> struct MinimalSimulator {
     if (state.navigation.currentSurface == nullptr) {
       return;
     }
-
     const Acts::Surface &surface = *state.navigation.currentSurface;
 
     // avoid having a clumsy `initialized` flag by reconstructing the particle
@@ -81,13 +80,14 @@ template <typename generator_t> struct MinimalSimulator {
     // since the particle is modified in-place we need a copy.
     auto after = before;
 
-    if (surface.surfaceMaterial()) {
+     bool hasMaterial = surface.surfaceMaterial();
+    if (hasMaterial) {
       // Apply global to local
       Acts::Vector2D local(0., 0.);
       surface.globalToLocal(state.options.geoContext,
                             stepper.position(state.stepping),
                             stepper.direction(state.stepping), local);
-
+  
       Acts::MaterialSlab slab = surface.surfaceMaterial().materialSlab(local);
 
       if (slab) {
@@ -121,11 +121,10 @@ template <typename generator_t> struct MinimalSimulator {
                                 before.pathInL0() + slab.thicknessInL0());
       }
     }
-
     // store results of this interaction step, including potential hits
     result.particle = after;
     result.hits.emplace_back(
-        surface.geoID(), before.particleId(),
+        Acts::GeometryID(), before.particleId(),
         // the interaction could potentially modify the particle position
         Hit::Scalar(0.5) * (before.position4() + after.position4()),
         before.momentum4(), after.momentum4(), result.hits.size());
