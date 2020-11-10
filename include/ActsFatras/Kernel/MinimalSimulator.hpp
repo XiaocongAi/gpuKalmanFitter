@@ -80,14 +80,14 @@ template <typename generator_t> struct MinimalSimulator {
     // since the particle is modified in-place we need a copy.
     auto after = before;
 
-     bool hasMaterial = surface.surfaceMaterial();
+    bool hasMaterial = surface.surfaceMaterial();
     if (hasMaterial) {
       // Apply global to local
       Acts::Vector2D local(0., 0.);
       surface.globalToLocal(state.options.geoContext,
                             stepper.position(state.stepping),
                             stepper.direction(state.stepping), local);
-  
+
       Acts::MaterialSlab slab = surface.surfaceMaterial().materialSlab(local);
 
       if (slab) {

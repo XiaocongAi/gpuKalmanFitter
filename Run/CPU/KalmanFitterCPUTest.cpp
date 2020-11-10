@@ -128,9 +128,10 @@ int main(int argc, char *argv[]) {
   // Run the simulation to generate sim hits
   runSimulation(propagator, propOptions, particles, simResult);
   auto end_propagate = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> elapsed_seconds = end_propagate - start_propagate;
-  std::cout << "Time (sec) to run propagation tests: "
-            << elapsed_seconds.count() << std::endl;
+  std::chrono::duration<double> elapsed_seconds =
+      end_propagate - start_propagate;
+  std::cout << "Time (ms) to run propagation tests: "
+            << elapsed_seconds.count() * 1000 << std::endl;
   if (output) {
     std::cout << "writing propagation results" << std::endl;
     Test::writeSimHits(simResult);
@@ -141,10 +142,10 @@ int main(int argc, char *argv[]) {
                                          30. * Acts::units::_mm};
   // Run sim hits smearing to create source links
   Acts::PixelSourceLink sourcelinks[nTracks * nSurfaces];
-  // @note pass the concreate PlaneSurfaceType pointer here 
-  runHitSmearing(rng, gctx, simResult, hitResolution, sourcelinks, surfaces.data(),
-                 nSurfaces);
-  
+  // @note pass the concreate PlaneSurfaceType pointer here
+  runHitSmearing(rng, gctx, simResult, hitResolution, sourcelinks,
+                 surfaces.data(), nSurfaces);
+
   // The particle smearing resolution
   ParticleSmearingParameters seedResolution;
   // Run truth seed smearing to create starting parameters
@@ -178,8 +179,8 @@ int main(int argc, char *argv[]) {
   threads = omp_get_num_threads();
   auto end_fit = std::chrono::high_resolution_clock::now();
   elapsed_seconds = end_fit - start_fit;
-  std::cout << "Time (sec) to run KalmanFitter for " << nTracks << " : "
-            << elapsed_seconds.count() << std::endl;
+  std::cout << "Time (ms) to run KalmanFitter for " << nTracks << " : "
+            << elapsed_seconds.count() * 1000 << std::endl;
 
   // Log execution time in csv file
   Logger::logTime(Logger::buildFilename("nTracks", std::to_string(nTracks),

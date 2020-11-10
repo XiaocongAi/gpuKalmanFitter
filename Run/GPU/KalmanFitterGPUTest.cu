@@ -38,6 +38,7 @@ static void show_usage(std::string name) {
             << "Options:\n"
             << "\t-h,--help\t\tShow this help message\n"
             << "\t-t,--tracks \tSpecify the number of tracks\n"
+            << "\t-r,--streams \tSpecify number of streams\n"
             << "\t-p,--pt \tSpecify the pt of particle\n"
             << "\t-o,--output \tIndicator for writing propagation results\n"
             << "\t-d,--device \tSpecify the device: 'gpu' or 'cpu'\n"
@@ -60,13 +61,12 @@ using KalmanFitterResultType =
 using TSType = typename KalmanFitterResultType::TrackStateType;
 
 // Device code
-__global__ void __launch_bounds__(256, 2)
-    fitKernelThreadPerTrack(KalmanFitterType *kFitter,
-                            Acts::PixelSourceLink *sourcelinks,
-                            Acts::CurvilinearParameters *tpars,
-                            Acts::KalmanFitterOptions<Acts::VoidOutlierFinder> kfOptions,
-                            TSType *fittedTracks, const Acts::Surface *surfacePtrs,
-                            int nSurfaces, int nTracks, int offset) {
+__global__ void __launch_bounds__(256, 2) fitKernelThreadPerTrack(
+    KalmanFitterType *kFitter, Acts::PixelSourceLink *sourcelinks,
+    Acts::CurvilinearParameters *tpars,
+    Acts::KalmanFitterOptions<Acts::VoidOutlierFinder> kfOptions,
+    TSType *fittedTracks, const Acts::Surface *surfacePtrs, int nSurfaces,
+    int nTracks, int offset) {
   // In case of 1D grid and 1D block, the threadId = blockDim.x*blockIdx.x +
   // threadIdx.x + offset
   int threadId =
@@ -85,13 +85,12 @@ __global__ void __launch_bounds__(256, 2)
   }
 }
 
-__global__ void __launch_bounds__(256, 2)
-    fitKernelBlockPerTrack(KalmanFitterType *kFitter,
-                           Acts::PixelSourceLink *sourcelinks,
-                           Acts::CurvilinearParameters *tpars,
-                           Acts::KalmanFitterOptions<Acts::VoidOutlierFinder> kfOptions,
-                           TSType *fittedTracks, const Acts::Surface *surfacePtrs,
-                           int nSurfaces, int nTracks, int offset) {
+__global__ void __launch_bounds__(256, 2) fitKernelBlockPerTrack(
+    KalmanFitterType *kFitter, Acts::PixelSourceLink *sourcelinks,
+    Acts::CurvilinearParameters *tpars,
+    Acts::KalmanFitterOptions<Acts::VoidOutlierFinder> kfOptions,
+    TSType *fittedTracks, const Acts::Surface *surfacePtrs, int nSurfaces,
+    int nTracks, int offset) {
   int blockId = gridDim.x * blockIdx.y + blockIdx.x + offset;
 
   // All threads in this block handles the same track
@@ -108,13 +107,15 @@ __global__ void __launch_bounds__(256, 2)
 }
 
 int main(int argc, char *argv[]) {
-  unsigned int nTracks = 10240;
+  const unsigned int nTracks = 10240;
+  const unsigned int nStreams = 1;
   bool output = false;
   bool useSharedMemory = false;
   std::string device = "cpu";
   std::string bFieldFileName;
   double p = 1 * Acts::units::_GeV;
   dim3 grid(40), block(8, 8);
+  // This should always be included
   bool multipleScattering = false;
   bool energyLoss = false;
   for (int i = 1; i < argc; ++i) {
@@ -125,6 +126,8 @@ int main(int argc, char *argv[]) {
     } else if (i + 1 < argc) {
       if ((arg == "-t") or (arg == "--tracks")) {
         nTracks = atoi(argv[++i]);
+      } else if ((arg == "-r") or (arg == "--streams")) {
+        streams = atoi(argv[++i];
       } else if ((arg == "-p") or (arg == "--pt")) {
         p = atof(argv[++i]) * Acts::units::_GeV;
       } else if ((arg == "-o") or (arg == "--output")) {
@@ -137,10 +140,6 @@ int main(int argc, char *argv[]) {
         block = stringToDim3(argv[++i]);
       } else if ((arg == "-s") or (arg == "--shared-memory")) {
         useSharedMemory = (atoi(argv[++i]) == 1);
-      } else if ((arg == "-m") or (arg == "--multiple-scattering")) {
-        multipleScattering = (atoi(argv[++i]) == 1);
-      } else if ((arg == "-e") or (arg == "--energy-loss")) {
-        energyLoss = (atoi(argv[++i]) == 1);
       } else {
         std::cerr << "Unknown argument." << std::endl;
         return 1;
@@ -178,7 +177,6 @@ int main(int argc, char *argv[]) {
     tracksPerBlock = 1;
   }
 
-  const int nStreams = 4;
   // The last stream could could less tracks
   const int tracksPerStream = (nTracks + nStreams - 1) / nStreams;
   const int overflowTracks = tracksPerStream * nStreams - nTracks;
@@ -196,7 +194,7 @@ int main(int argc, char *argv[]) {
   std::cout << "shared memory is " << sharedMemoryPerTrack << std::endl;
 
   // The number of test surfaces
-  size_t nSurfaces = 10;
+  const unsigned int nSurfaces = 10;
   const int surfaceBytes = sizeof(PlaneSurfaceType) * nSurfaces;
   const int sourcelinksBytes = sizeof(PixelSourceLink) * nSurfaces * nTracks;
   const int parsBytes = sizeof(CurvilinearParameters) * nTracks;
@@ -206,16 +204,14 @@ int main(int argc, char *argv[]) {
   std::cout << "startPars Bytes = " << parsBytes << std::endl;
   std::cout << "TSs Bytes = " << tsBytes << std::endl;
 
-  const int perStreamSourcelinksBytes =
+  const int perSourcelinksBytes =
       sizeof(PixelSourceLink) * nSurfaces * tracksPerStream;
-  const int lastStreamSourcelinksBytes =
+  const int lastSourcelinksBytes =
       sizeof(PixelSourceLink) * nSurfaces * tracksLastStream;
-  const int perStreamParsBytes =
-      sizeof(CurvilinearParameters) * tracksPerStream;
-  const int lastStreamParsBytes =
-      sizeof(CurvilinearParameters) * tracksLastStream;
-  const int perStreamTSsBytes = sizeof(TSType) * nSurfaces * tracksPerStream;
-  const int lastStreamTSsBytes = sizeof(TSType) * nSurfaces * tracksLastStream;
+  const int perParsBytes = sizeof(CurvilinearParameters) * tracksPerStream;
+  const int lastParsBytes = sizeof(CurvilinearParameters) * tracksLastStream;
+  const int perTSsBytes = sizeof(TSType) * nSurfaces * tracksPerStream;
+  const int lastTSsBytes = sizeof(TSType) * nSurfaces * tracksLastStream;
 
   // Create a test context
   Acts::GeometryContext gctx(0);
@@ -269,13 +265,14 @@ int main(int argc, char *argv[]) {
   propOptions.action.generator = &rng;
   std::vector<Simulator::result_type> simResult(nTracks);
   auto start_propagate = std::chrono::high_resolution_clock::now();
-  std::cout<<"start to run propagation"<<std::endl; 
- // Run the simulation to generate sim hits
+  std::cout << "start to run propagation" << std::endl;
+  // Run the simulation to generate sim hits
   runSimulation(propagator, propOptions, particles, simResult);
   auto end_propagate = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> elapsed_seconds = end_propagate - start_propagate;
-  std::cout << "Time (sec) to run propagation tests: "
-            << elapsed_seconds.count() << std::endl;
+  std::chrono::duration<double> elapsed_seconds =
+      end_propagate - start_propagate;
+  std::cout << "Time (ms) to run propagation tests: "
+            << elapsed_seconds.count() * 1000 << std::endl;
   if (output) {
     std::cout << "writing propagation results" << std::endl;
     Test::writeSimHits(simResult);
@@ -287,8 +284,8 @@ int main(int argc, char *argv[]) {
   // Pinned memory for source links
   Acts::PixelSourceLink *sourcelinks;
   GPUERRCHK(cudaMallocHost((void **)&sourcelinks, sourcelinksBytes));
-  // Run hit smearing to create source links 
-  // @note pass the concreate PlaneSurfaceType pointer here 
+  // Run hit smearing to create source links
+  // @note pass the concreate PlaneSurfaceType pointer here
   runHitSmearing(rng, gctx, simResult, hitResolution, sourcelinks, surfaces,
                  nSurfaces);
 
@@ -301,14 +298,14 @@ int main(int argc, char *argv[]) {
   CurvilinearParameters *startPars;
   GPUERRCHK(cudaMallocHost((void **)&startPars, parsBytes));
   // Copy to the pinned memory
-  memcpy(startPars, startParsCollection.data(), parsBytes); 
+  memcpy(startPars, startParsCollection.data(), parsBytes);
 
   // Prepare to perform fit to the created tracks
   KalmanFitterType kFitter(propagator);
-  KalmanFitterOptions<VoidOutlierFinder> kfOptions(
-      gctx, mctx);
-  //KalmanFitterOptions<VoidOutlierFinder> kfOptions(
-  //    gctx, mctx, Acts::VoidOutlierFinder(), nullptr, multipleScattering, energyLoss);
+  KalmanFitterOptions<VoidOutlierFinder> kfOptions(gctx, mctx);
+  // KalmanFitterOptions<VoidOutlierFinder> kfOptions(
+  //    gctx, mctx, Acts::VoidOutlierFinder(), nullptr, multipleScattering,
+  //    energyLoss);
   // Pinned mememory for KF fitted tracks
   TSType *fittedTracks;
   GPUERRCHK(cudaMallocHost((void **)&fittedTracks, tsBytes));
@@ -347,24 +344,25 @@ int main(int argc, char *argv[]) {
     // for (int _ : {1, 2, 3, 4, 5}) {
     for (int i = 0; i < nStreams; ++i) {
       int offset = i * tracksPerStream;
-      // Note: need special handling here
-      const int streamTracks =
-          i == (nStreams - 1) ? tracksLastStream : tracksPerStream;
-      // The bytes per stream for source links
-      const int sBytes = i == (nStreams - 1) ? lastStreamSourcelinksBytes
-                                             : perStreamSourcelinksBytes;
-      // The bytes per stream for starting parameters
-      const int pBytes =
-          i == (nStreams - 1) ? lastStreamParsBytes : perStreamParsBytes;
-      // The bytes per stream for fitted tracks
-      const int tBytes =
-          i == (nStreams - 1) ? lastStreamTSsBytes : perStreamTSsBytes;
+      // The number of tracks handled in this stream
+      const int streamTracks = tracksPerStream;
+      const int sBytes = perSourcelinksBytes;
+      const int pBytes = perParsBytes;
+      const int tBytes = perTSsBytes;
+      if (i == (nStreams - 1)) {
+        streamTracks = lastSourcelinksBytes;
+        sBytes = lastSourcelinksBytes;
+        pBytes = lastParsBytes;
+        tBytes = lastTSsBytes;
+      }
 
       if (i == 0) {
         // @note: prefetch the surface or not
         cudaMemPrefetchAsync(surfaces, surfaceBytes, devId, stream[i]);
       }
 
+      // Copy the sourcelinsk, starting parameters and fitted tracks from host
+      // to device
       GPUERRCHK(cudaMemcpyAsync(&d_sourcelinks[offset * nSurfaces],
                                 &sourcelinks[offset * nSurfaces], sBytes,
                                 cudaMemcpyHostToDevice, stream[i]));
@@ -412,15 +410,14 @@ int main(int argc, char *argv[]) {
                     ms / 1000);
 
   } else {
-    //// Run on host
+    /// Run on host
     auto start_fit = std::chrono::high_resolution_clock::now();
-
 #pragma omp parallel for
     for (int it = 0; it < nTracks; it++) {
       // The fit result wrapper
       KalmanFitterResultType kfResult;
-      kfResult.fittedStates =
-          Acts::CudaKernelContainer<TSType>(&fittedTracks[it * nSurfaces], nSurfaces);
+      kfResult.fittedStates = Acts::CudaKernelContainer<TSType>(
+          &fittedTracks[it * nSurfaces], nSurfaces);
       // The input source links wrapper
       auto sourcelinkTrack = Acts::CudaKernelContainer<PixelSourceLink>(
           sourcelinks + it * nSurfaces, nSurfaces);

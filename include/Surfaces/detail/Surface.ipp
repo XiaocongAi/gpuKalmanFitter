@@ -18,7 +18,8 @@ inline Surface::Surface(const GeometryContext &gctx, const Surface &other,
     : GeometryObject(), m_transform(Transform3D(shift * other.transform(gctx))),
       m_surfaceMaterial(other.m_surfaceMaterial) {}
 
-inline Surface::Surface(const Vector3D &center, const Vector3D &normal):GeometryObject(),m_surfaceMaterial() {
+inline Surface::Surface(const Vector3D &center, const Vector3D &normal)
+    : GeometryObject(), m_surfaceMaterial() {
   /// the right-handed coordinate system is defined as
   /// T = normal
   /// U = Z x T if T not parallel to Z otherwise U = X x T
