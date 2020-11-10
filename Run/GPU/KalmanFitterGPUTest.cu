@@ -291,9 +291,6 @@ int main(int argc, char *argv[]) {
   // @note pass the concreate PlaneSurfaceType pointer here 
   runHitSmearing(rng, gctx, simResult, hitResolution, sourcelinks, surfaces,
                  nSurfaces);
-  for(int ss = 0; ss < nSurfaces*nTracks; ss++){
-   std::cout<<"sourcelink = " << sourcelinks[ss].localPosition()<<std::endl;
-  } 
 
   // The particle smearing resolution
   ParticleSmearingParameters seedResolution;
