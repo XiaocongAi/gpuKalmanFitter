@@ -107,8 +107,8 @@ __global__ void __launch_bounds__(256, 2) fitKernelBlockPerTrack(
 }
 
 int main(int argc, char *argv[]) {
-  const unsigned int nTracks = 10240;
-  const unsigned int nStreams = 1;
+  unsigned int nTracks = 10240;
+  unsigned int nStreams = 1;
   bool output = false;
   bool useSharedMemory = false;
   std::string device = "cpu";
@@ -127,7 +127,7 @@ int main(int argc, char *argv[]) {
       if ((arg == "-t") or (arg == "--tracks")) {
         nTracks = atoi(argv[++i]);
       } else if ((arg == "-r") or (arg == "--streams")) {
-        streams = atoi(argv[++i];
+        nStreams = atoi(argv[++i]);
       } else if ((arg == "-p") or (arg == "--pt")) {
         p = atof(argv[++i]) * Acts::units::_GeV;
       } else if ((arg == "-o") or (arg == "--output")) {
@@ -178,14 +178,14 @@ int main(int argc, char *argv[]) {
   }
 
   // The last stream could could less tracks
-  const int tracksPerStream = (nTracks + nStreams - 1) / nStreams;
-  const int tracksLastStream =
+  const unsigned int tracksPerStream = (nTracks + nStreams - 1) / nStreams;
+  const unsigned int tracksLastStream =
       tracksPerStream - (tracksPerStream * nStreams - nTracks);
   std::cout << "tracksPerStream : tracksLastStream = " << tracksPerStream
             << " : " << tracksLastStream << std::endl;
 
   // @note shall we use this for the grid size?
-  const int blocksPerGrid_multiStream =
+  const unsigned int blocksPerGrid_multiStream =
       (tracksPerStream + tracksPerBlock - 1) / tracksPerBlock;
 
   // The shared memory size
@@ -195,23 +195,23 @@ int main(int argc, char *argv[]) {
 
   // The number of test surfaces
   const unsigned int nSurfaces = 10;
-  const int surfaceBytes = sizeof(PlaneSurfaceType) * nSurfaces;
-  const int sourcelinksBytes = sizeof(PixelSourceLink) * nSurfaces * nTracks;
-  const int parsBytes = sizeof(CurvilinearParameters) * nTracks;
-  const int tsBytes = sizeof(TSType) * nSurfaces * nTracks;
+  const unsigned int surfaceBytes = sizeof(PlaneSurfaceType) * nSurfaces;
+  const unsigned int sourcelinksBytes = sizeof(PixelSourceLink) * nSurfaces * nTracks;
+  const unsigned int parsBytes = sizeof(CurvilinearParameters) * nTracks;
+  const unsigned int tsBytes = sizeof(TSType) * nSurfaces * nTracks;
   std::cout << "surface Bytes = " << surfaceBytes << std::endl;
   std::cout << "source links Bytes = " << sourcelinksBytes << std::endl;
   std::cout << "startPars Bytes = " << parsBytes << std::endl;
   std::cout << "TSs Bytes = " << tsBytes << std::endl;
 
-  const int perSourcelinksBytes =
+  const unsigned int perSourcelinksBytes =
       sizeof(PixelSourceLink) * nSurfaces * tracksPerStream;
-  const int lastSourcelinksBytes =
+  const unsigned int lastSourcelinksBytes =
       sizeof(PixelSourceLink) * nSurfaces * tracksLastStream;
-  const int perParsBytes = sizeof(CurvilinearParameters) * tracksPerStream;
-  const int lastParsBytes = sizeof(CurvilinearParameters) * tracksLastStream;
-  const int perTSsBytes = sizeof(TSType) * nSurfaces * tracksPerStream;
-  const int lastTSsBytes = sizeof(TSType) * nSurfaces * tracksLastStream;
+  const unsigned int perParsBytes = sizeof(CurvilinearParameters) * tracksPerStream;
+  const unsigned int lastParsBytes = sizeof(CurvilinearParameters) * tracksLastStream;
+  const unsigned int perTSsBytes = sizeof(TSType) * nSurfaces * tracksPerStream;
+  const unsigned int lastTSsBytes = sizeof(TSType) * nSurfaces * tracksLastStream;
 
   // Create a test context
   Acts::GeometryContext gctx(0);
@@ -342,13 +342,13 @@ int main(int argc, char *argv[]) {
 
     // Run on device
     // for (int _ : {1, 2, 3, 4, 5}) {
-    for (int i = 0; i < nStreams; ++i) {
-      int offset = i * tracksPerStream;
+    for (unsigned int i = 0; i < nStreams; ++i) {
+      unsigned int offset = i * tracksPerStream;
       // The number of tracks handled in this stream
-      const int streamTracks = tracksPerStream;
-      const int sBytes = perSourcelinksBytes;
-      const int pBytes = perParsBytes;
-      const int tBytes = perTSsBytes;
+      unsigned int streamTracks = tracksPerStream;
+      unsigned int sBytes = perSourcelinksBytes;
+      unsigned int pBytes = perParsBytes;
+      unsigned int tBytes = perTSsBytes;
       if (i == (nStreams - 1)) {
         streamTracks = tracksLastStream;
         sBytes = lastSourcelinksBytes;
