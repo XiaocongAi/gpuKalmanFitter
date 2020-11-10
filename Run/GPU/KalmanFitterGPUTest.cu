@@ -39,7 +39,7 @@ static void show_usage(std::string name) {
             << "\t-h,--help\t\tShow this help message\n"
             << "\t-t,--tracks \tSpecify the number of tracks\n"
             << "\t-r,--streams \tSpecify number of streams\n"
-            << "\t-p,--pt \tSpecify the pt of particle\n"
+           // << "\t-p,--pt \tSpecify the pt of particle\n"
             << "\t-o,--output \tIndicator for writing propagation results\n"
             << "\t-d,--device \tSpecify the device: 'gpu' or 'cpu'\n"
             << "\t-g,--grid-size \tSpecify GPU grid size: 'x*y'\n"
@@ -113,7 +113,7 @@ int main(int argc, char *argv[]) {
   bool useSharedMemory = false;
   std::string device = "cpu";
   std::string bFieldFileName;
-  double p = 1 * Acts::units::_GeV;
+  //double p = 1 * Acts::units::_GeV;
   dim3 grid(40), block(8, 8);
   // This should always be included
   bool multipleScattering = false;
@@ -128,8 +128,8 @@ int main(int argc, char *argv[]) {
         nTracks = atoi(argv[++i]);
       } else if ((arg == "-r") or (arg == "--streams")) {
         nStreams = atoi(argv[++i]);
-      } else if ((arg == "-p") or (arg == "--pt")) {
-        p = atof(argv[++i]) * Acts::units::_GeV;
+      //} else if ((arg == "-p") or (arg == "--pt")) {
+      //  p = atof(argv[++i]) * Acts::units::_GeV;
       } else if ((arg == "-o") or (arg == "--output")) {
         output = (atoi(argv[++i]) == 1);
       } else if ((arg == "-d") or (arg == "--device")) {
