@@ -179,10 +179,10 @@ int main(int argc, char *argv[]) {
 
   // The last stream could could less tracks
   const int tracksPerStream = (nTracks + nStreams - 1) / nStreams;
-  const int overflowTracks = tracksPerStream * nStreams - nTracks;
-  const int tracksLastStream = tracksPerStream - overflowTracks;
-  std::cout << "tracksPerStream = " << tracksPerStream << std::endl;
-  std::cout << "tracksLastStream = " << tracksLastStream << std::endl;
+  const int tracksLastStream =
+      tracksPerStream - (tracksPerStream * nStreams - nTracks);
+  std::cout << "tracksPerStream : tracksLastStream = " << tracksPerStream
+            << " : " << tracksLastStream << std::endl;
 
   // @note shall we use this for the grid size?
   const int blocksPerGrid_multiStream =
@@ -350,7 +350,7 @@ int main(int argc, char *argv[]) {
       const int pBytes = perParsBytes;
       const int tBytes = perTSsBytes;
       if (i == (nStreams - 1)) {
-        streamTracks = lastSourcelinksBytes;
+        streamTracks = tracksLastStream;
         sBytes = lastSourcelinksBytes;
         pBytes = lastParsBytes;
         tBytes = lastTSsBytes;
