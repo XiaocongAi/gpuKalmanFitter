@@ -40,7 +40,6 @@ using Stepper = Acts::EigenStepper<Test::ConstantBField>;
 using PropagatorType = Acts::Propagator<Stepper>;
 using PropResultType = Acts::PropagatorResult;
 using PropOptionsType = Acts::PropagatorOptions<Simulator, Test::VoidAborter>;
-using PlaneSurfaceType = Acts::PlaneSurface<Acts::InfiniteBounds>;
 using KalmanFitterType =
     Acts::KalmanFitter<PropagatorType, Acts::GainMatrixUpdater>;
 using KalmanFitterResultType =
@@ -142,7 +141,8 @@ int main(int argc, char *argv[]) {
                                          30. * Acts::units::_mm};
   // Run sim hits smearing to create source links
   Acts::PixelSourceLink sourcelinks[nTracks * nSurfaces];
-  runHitSmearing(rng, gctx, simResult, hitResolution, sourcelinks, surfacePtrs,
+  // @note pass the concreate PlaneSurfaceType pointer here 
+  runHitSmearing(rng, gctx, simResult, hitResolution, sourcelinks, surfaces.data(),
                  nSurfaces);
   
   // The particle smearing resolution

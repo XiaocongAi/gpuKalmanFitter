@@ -53,7 +53,6 @@ using PropagatorType = Acts::Propagator<Stepper>;
 using PropResultType = Acts::PropagatorResult;
 using PropOptionsType = Acts::PropagatorOptions<Simulator, Test::VoidAborter>;
 using PropState = PropagatorType::State<PropOptionsType>;
-using PlaneSurfaceType = Acts::PlaneSurface<InfiniteBounds>;
 using KalmanFitterType =
     Acts::KalmanFitter<PropagatorType, Acts::GainMatrixUpdater>;
 using KalmanFitterResultType =
@@ -289,7 +288,8 @@ int main(int argc, char *argv[]) {
   Acts::PixelSourceLink *sourcelinks;
   GPUERRCHK(cudaMallocHost((void **)&sourcelinks, sourcelinksBytes));
   // Run hit smearing to create source links 
-  runHitSmearing(rng, gctx, simResult, hitResolution, sourcelinks, surfacePtrs,
+  // @note pass the concreate PlaneSurfaceType pointer here 
+  runHitSmearing(rng, gctx, simResult, hitResolution, sourcelinks, surfaces,
                  nSurfaces);
   for(int ss = 0; ss < nSurfaces*nTracks; ss++){
    std::cout<<"sourcelink = " << sourcelinks[ss].localPosition()<<std::endl;

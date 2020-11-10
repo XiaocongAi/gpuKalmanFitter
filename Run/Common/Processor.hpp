@@ -22,6 +22,8 @@ using Simulator = ActsFatras::MinimalSimulator<ActsExamples::RandomEngine>;
 using SimParticleContainer = std::vector<ActsFatras::Particle>;
 using SimResultContainer = std::vector<Simulator::result_type>;
 using ParametersContainer = std::vector<Acts::CurvilinearParameters>;
+// @note using concreate surface type to avoid trivial advance of the Acts::Surface* to the PlaneSurfaceType* as in the DirectNavigator
+using PlaneSurfaceType = Acts::PlaneSurface<Acts::InfiniteBounds>;
 
 struct ParticleSmearingParameters {
   /// Constant term of the d0 resolution.
@@ -100,7 +102,7 @@ void runHitSmearing(random_engine_t &rng, const Acts::GeometryContext &gctx,
                     const SimResultContainer &simResults,
                     const std::array<double, 2> &resolution,
                     Acts::PixelSourceLink *sourcelinks,
-                    const Acts::Surface *surfaces, size_t nSurfaces) {
+                    const PlaneSurfaceType *surfaces, size_t nSurfaces) {
   // The normal dist
   std::normal_distribution<double> stdNormal(0.0, 1.0);
   // Perform smearing to the simulated hits
@@ -114,6 +116,7 @@ void runHitSmearing(random_engine_t &rng, const Acts::GeometryContext &gctx,
       // Apply global to local
       Acts::Vector2D lPos;
       // find the surface for this hit
+      // @note Using operator[] to get the object might be dangerous if there is implicit type conversion of the pointer
       surfaces[ih].globalToLocal(gctx, hits[ih].position(),
                                  hits[ih].unitDirection(), lPos);
       // Perform the smearing to truth
