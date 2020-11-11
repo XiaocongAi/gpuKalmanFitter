@@ -337,6 +337,10 @@ int main(int argc, char *argv[]) {
   // Pinned memory for KF fit status
   bool *fitStatus;
   GPUERRCHK(cudaMallocHost((void **)&fitStatus, statusBytes));
+  // Initialize the status to false
+  for (unsigned int it = 0; it < nTracks; it++) {
+    fitStatus[it] = false;
+  }
 
   float ms; // elapsed time in milliseconds
 
@@ -371,7 +375,6 @@ int main(int argc, char *argv[]) {
                          cudaMemcpyHostToDevice));
 
     // Run on device
-    // for (int _ : {1, 2, 3, 4, 5}) {
     for (unsigned int i = 0; i < nStreams; ++i) {
       unsigned int offset = i * tracksPerStream;
       // The number of tracks handled in this stream
@@ -441,11 +444,13 @@ int main(int argc, char *argv[]) {
 
     // Log the execution time in seconds (not including the managed memory
     // allocation time for the surfaces)
-    Test::Logger::logTime(Test::Logger::buildFilename(
-                              "timing_gpu", "nTracks", std::to_string(nTracks),
-                              "gridSize", dim3ToString(grid), "blockSize",
-                              dim3ToString(block)),
-                          ms / 1000);
+    Test::Logger::logTime(
+        Test::Logger::buildFilename(
+            "timing_gpu", "nTracks", std::to_string(nTracks), "nStreams",
+            std::to_string(nStreams), "gridSize", dim3ToString(grid),
+            "blockSize", dim3ToString(block), "sharedMemory",
+            std::to_string(static_cast<unsigned int>(useSharedMemory))),
+        ms / 1000);
 
   } else {
     /// Run on host
