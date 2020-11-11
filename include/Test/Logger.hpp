@@ -6,7 +6,7 @@
 #include <vector>
 
 // Utility functions to log execution time(s) in an output CSV file
-namespace Acts {
+namespace Test {
 
 class Logger {
 
@@ -46,4 +46,4 @@ public:
   }
 };
 
-} // end namespace Acts
+} // end namespace Test

@@ -5,7 +5,6 @@
 #include "Propagator/EigenStepper.hpp"
 #include "Propagator/Propagator.hpp"
 #include "Utilities/CudaHelper.hpp"
-#include "Utilities/Logger.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
 #include "Utilities/Profiling.hpp"
 #include "Utilities/Units.hpp"
@@ -15,8 +14,11 @@
 #include "ActsExamples/ParametricParticleGenerator.hpp"
 #include "ActsExamples/RandomNumbers.hpp"
 #include "ActsExamples/VertexGenerators.hpp"
-#include "Processor.hpp"
+
 #include "Test/Helper.hpp"
+#include "Test/Logger.hpp"
+
+#include "Processor.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -39,7 +41,7 @@ static void show_usage(std::string name) {
             << "\t-h,--help\t\tShow this help message\n"
             << "\t-t,--tracks \tSpecify the number of tracks\n"
             << "\t-r,--streams \tSpecify number of streams\n"
-           // << "\t-p,--pt \tSpecify the pt of particle\n"
+            // << "\t-p,--pt \tSpecify the pt of particle\n"
             << "\t-o,--output \tIndicator for writing propagation results\n"
             << "\t-d,--device \tSpecify the device: 'gpu' or 'cpu'\n"
             << "\t-g,--grid-size \tSpecify GPU grid size: 'x*y'\n"
@@ -69,7 +71,8 @@ __global__ void __launch_bounds__(256, 2) fitKernelThreadPerTrack(
     int nTracks, int offset) {
   // In case of 1D grid and 1D block, the threadId = blockDim.x*blockIdx.x +
   // threadIdx.x + offset
-  // @note This might have problem if the number of threads is smaller than the number of tracks!!! 
+  // @note This might have problem if the number of threads is smaller than the
+  // number of tracks!!!
   int threadId =
       blockDim.x * blockDim.y * (gridDim.x * blockIdx.y + blockIdx.x) +
       blockDim.x * threadIdx.y + threadIdx.x + offset;
@@ -92,12 +95,12 @@ __global__ void __launch_bounds__(256, 2) fitKernelBlockPerTrack(
     Acts::KalmanFitterOptions<Acts::VoidOutlierFinder> kfOptions,
     TSType *fittedTracks, const Acts::Surface *surfacePtrs, int nSurfaces,
     int nTracks, int offset) {
-  // @note This will have problem if the number of blocks is smaller than the number of tracks!!! 
+  // @note This will have problem if the number of blocks is smaller than the
+  // number of tracks!!!
   int blockId = gridDim.x * blockIdx.y + blockIdx.x + offset;
 
   // All threads in this block handles the same track
   if (blockId < (nTracks + offset)) {
-    printf("blockId = %d\n", blockId); 
     // Use the CudaKernelContainer for the source links and fitted tracks
     KalmanFitterResultType kfResult;
     kfResult.fittedStates = CudaKernelContainer<TSType>(
@@ -116,7 +119,7 @@ int main(int argc, char *argv[]) {
   bool useSharedMemory = false;
   std::string device = "cpu";
   std::string bFieldFileName;
-  //double p = 1 * Acts::units::_GeV;
+  // double p = 1 * Acts::units::_GeV;
   dim3 grid(20000), block(8, 8);
   // This should always be included
   bool multipleScattering = false;
@@ -131,8 +134,8 @@ int main(int argc, char *argv[]) {
         nTracks = atoi(argv[++i]);
       } else if ((arg == "-r") or (arg == "--streams")) {
         nStreams = atoi(argv[++i]);
-      //} else if ((arg == "-p") or (arg == "--pt")) {
-      //  p = atof(argv[++i]) * Acts::units::_GeV;
+        //} else if ((arg == "-p") or (arg == "--pt")) {
+        //  p = atof(argv[++i]) * Acts::units::_GeV;
       } else if ((arg == "-o") or (arg == "--output")) {
         output = (atoi(argv[++i]) == 1);
       } else if ((arg == "-d") or (arg == "--device")) {
@@ -190,8 +193,9 @@ int main(int argc, char *argv[]) {
   // @note shall we use this for the grid size?
   const unsigned int blocksPerGrid =
       (tracksPerStream + tracksPerBlock - 1) / tracksPerBlock;
-  if( grid.x*grid.y < blocksPerGrid) {
-    std::cout<<"Grid size too small. It should be at least "<< blocksPerGrid << std::endl; 
+  if (grid.x * grid.y < blocksPerGrid) {
+    std::cout << "Grid size too small. It should be at least " << blocksPerGrid
+              << std::endl;
     return 1;
   }
 
@@ -203,7 +207,8 @@ int main(int argc, char *argv[]) {
   // The number of test surfaces
   const unsigned int nSurfaces = 10;
   const unsigned int surfaceBytes = sizeof(PlaneSurfaceType) * nSurfaces;
-  const unsigned int sourcelinksBytes = sizeof(PixelSourceLink) * nSurfaces * nTracks;
+  const unsigned int sourcelinksBytes =
+      sizeof(PixelSourceLink) * nSurfaces * nTracks;
   const unsigned int parsBytes = sizeof(CurvilinearParameters) * nTracks;
   const unsigned int tsBytes = sizeof(TSType) * nSurfaces * nTracks;
   std::cout << "surface Bytes = " << surfaceBytes << std::endl;
@@ -215,10 +220,13 @@ int main(int argc, char *argv[]) {
       sizeof(PixelSourceLink) * nSurfaces * tracksPerStream;
   const unsigned int lastSourcelinksBytes =
       sizeof(PixelSourceLink) * nSurfaces * tracksLastStream;
-  const unsigned int perParsBytes = sizeof(CurvilinearParameters) * tracksPerStream;
-  const unsigned int lastParsBytes = sizeof(CurvilinearParameters) * tracksLastStream;
+  const unsigned int perParsBytes =
+      sizeof(CurvilinearParameters) * tracksPerStream;
+  const unsigned int lastParsBytes =
+      sizeof(CurvilinearParameters) * tracksLastStream;
   const unsigned int perTSsBytes = sizeof(TSType) * nSurfaces * tracksPerStream;
-  const unsigned int lastTSsBytes = sizeof(TSType) * nSurfaces * tracksLastStream;
+  const unsigned int lastTSsBytes =
+      sizeof(TSType) * nSurfaces * tracksLastStream;
 
   // Create a test context
   Acts::GeometryContext gctx(0);
@@ -411,10 +419,11 @@ int main(int argc, char *argv[]) {
 
     // Log the execution time in seconds (not including the managed memory
     // allocation time for the surfaces)
-    Logger::logTime(Logger::buildFilename("timing_gpu", "nTracks", std::to_string(nTracks),
-                                          "gridSize", dim3ToString(grid),
-                                          "blockSize", dim3ToString(block)),
-                    ms / 1000);
+    Test::Logger::logTime(Test::Logger::buildFilename(
+                              "timing_gpu", "nTracks", std::to_string(nTracks),
+                              "gridSize", dim3ToString(grid), "blockSize",
+                              dim3ToString(block)),
+                          ms / 1000);
 
   } else {
     /// Run on host
@@ -444,14 +453,14 @@ int main(int argc, char *argv[]) {
 
   if (output) {
     std::cout << "writing KF results" << std::endl;
-    std::string fileName; 
-    if(useGPU){
-    fileName = "Traks_fitted_gpu_nTracks_";
+    std::string fileName;
+    if (useGPU) {
+      fileName = "Traks_fitted_gpu_nTracks_";
     } else {
-    fileName = "Tracks_fitted_semi_cpu_nTracks_";
-    } 
+      fileName = "Tracks_fitted_semi_cpu_nTracks_";
+    }
     fileName.append(std::to_string(nTracks)).append(".obj");
-    Test::writeTracks(fittedTracks, nTracks, nSurfaces,fileName);
+    Test::writeTracks(fittedTracks, nTracks, nSurfaces, fileName);
   }
 
   std::cout << "------------------------  ending  -----------------------"

@@ -4,7 +4,6 @@
 #include "Fitter/KalmanFitter.hpp"
 #include "Propagator/EigenStepper.hpp"
 #include "Propagator/Propagator.hpp"
-#include "Utilities/Logger.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
 #include "Utilities/Units.hpp"
 
@@ -13,8 +12,11 @@
 #include "ActsExamples/ParametricParticleGenerator.hpp"
 #include "ActsExamples/RandomNumbers.hpp"
 #include "ActsExamples/VertexGenerators.hpp"
-#include "Processor.hpp"
+
 #include "Test/Helper.hpp"
+#include "Test/Logger.hpp"
+
+#include "Processor.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -183,15 +185,16 @@ int main(int argc, char *argv[]) {
             << elapsed_seconds.count() * 1000 << std::endl;
 
   // Log execution time in csv file
-  Logger::logTime(Logger::buildFilename("timing_cpu", "nTracks", std::to_string(nTracks),
-                                        "OMP_NumThreads",
-                                        std::to_string(threads)),
-                  elapsed_seconds.count());
+  Test::Logger::logTime(Test::Logger::buildFilename(
+                            "timing_cpu", "nTracks", std::to_string(nTracks),
+                            "OMP_NumThreads", std::to_string(threads)),
+                        elapsed_seconds.count());
 
   if (output) {
     std::cout << "writing fitting results" << std::endl;
-    std::string fileName = "Fitted_tracks_cpu_nTracks_"+std::to_string(nTracks)+".obj";
-    Test::writeTracks(fittedTracks.data(), nTracks, nSurfaces,fileName);
+    std::string fileName =
+        "Fitted_tracks_cpu_nTracks_" + std::to_string(nTracks) + ".obj";
+    Test::writeTracks(fittedTracks.data(), nTracks, nSurfaces, fileName);
   }
 
   // @todo Write the residual and pull of track parameters to ntuple

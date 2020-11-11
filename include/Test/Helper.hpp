@@ -117,9 +117,9 @@ void writeTracks(const track_state_t *states, unsigned int nTracks,
                  unsigned int nSurfaces, std::string fileName) {
   // Write all of the created tracks to one obj file
   std::ofstream obj_tracks;
-  if(fileName.empty()){
-   fileName = "tracks-fitted.obj"; 
-  } 
+  if (fileName.empty()) {
+    fileName = "tracks-fitted.obj";
+  }
   obj_tracks.open(fileName.c_str());
 
   // Initialize the vertex counter
