@@ -69,6 +69,7 @@ __global__ void __launch_bounds__(256, 2) fitKernelThreadPerTrack(
     int nTracks, int offset) {
   // In case of 1D grid and 1D block, the threadId = blockDim.x*blockIdx.x +
   // threadIdx.x + offset
+  // @note This might have problem if the number of threads is smaller than the number of tracks!!! 
   int threadId =
       blockDim.x * blockDim.y * (gridDim.x * blockIdx.y + blockIdx.x) +
       blockDim.x * threadIdx.y + threadIdx.x + offset;
@@ -91,10 +92,12 @@ __global__ void __launch_bounds__(256, 2) fitKernelBlockPerTrack(
     Acts::KalmanFitterOptions<Acts::VoidOutlierFinder> kfOptions,
     TSType *fittedTracks, const Acts::Surface *surfacePtrs, int nSurfaces,
     int nTracks, int offset) {
+  // @note This will have problem if the number of blocks is smaller than the number of tracks!!! 
   int blockId = gridDim.x * blockIdx.y + blockIdx.x + offset;
 
   // All threads in this block handles the same track
   if (blockId < (nTracks + offset)) {
+    printf("blockId = %d\n", blockId); 
     // Use the CudaKernelContainer for the source links and fitted tracks
     KalmanFitterResultType kfResult;
     kfResult.fittedStates = CudaKernelContainer<TSType>(
@@ -114,7 +117,7 @@ int main(int argc, char *argv[]) {
   std::string device = "cpu";
   std::string bFieldFileName;
   //double p = 1 * Acts::units::_GeV;
-  dim3 grid(40), block(8, 8);
+  dim3 grid(20000), block(8, 8);
   // This should always be included
   bool multipleScattering = false;
   bool energyLoss = false;
@@ -185,8 +188,12 @@ int main(int argc, char *argv[]) {
             << " : " << tracksLastStream << std::endl;
 
   // @note shall we use this for the grid size?
-  const unsigned int blocksPerGrid_multiStream =
+  const unsigned int blocksPerGrid =
       (tracksPerStream + tracksPerBlock - 1) / tracksPerBlock;
+  if( grid.x*grid.y < blocksPerGrid) {
+    std::cout<<"Grid size too small. It should be at least "<< blocksPerGrid << std::endl; 
+    return 1;
+  }
 
   // The shared memory size
   int sharedMemoryPerTrack = sizeof(PathLimitReached) + sizeof(PropState) +
