@@ -183,14 +183,15 @@ int main(int argc, char *argv[]) {
             << elapsed_seconds.count() * 1000 << std::endl;
 
   // Log execution time in csv file
-  Logger::logTime(Logger::buildFilename("nTracks", std::to_string(nTracks),
+  Logger::logTime(Logger::buildFilename("timing_cpu", "nTracks", std::to_string(nTracks),
                                         "OMP_NumThreads",
                                         std::to_string(threads)),
                   elapsed_seconds.count());
 
   if (output) {
     std::cout << "writing fitting results" << std::endl;
-    Test::writeTracks(fittedTracks.data(), nTracks, nSurfaces);
+    std::string fileName = "Fitted_tracks_cpu_nTracks_"+std::to_string(nTracks)+".obj";
+    Test::writeTracks(fittedTracks.data(), nTracks, nSurfaces,fileName);
   }
 
   // @todo Write the residual and pull of track parameters to ntuple

@@ -411,7 +411,7 @@ int main(int argc, char *argv[]) {
 
     // Log the execution time in seconds (not including the managed memory
     // allocation time for the surfaces)
-    Logger::logTime(Logger::buildFilename("nTracks", std::to_string(nTracks),
+    Logger::logTime(Logger::buildFilename("timing_gpu", "nTracks", std::to_string(nTracks),
                                           "gridSize", dim3ToString(grid),
                                           "blockSize", dim3ToString(block)),
                     ms / 1000);
@@ -419,7 +419,7 @@ int main(int argc, char *argv[]) {
   } else {
     /// Run on host
     auto start_fit = std::chrono::high_resolution_clock::now();
-#pragma omp parallel for
+#pragma omp parallel for num_threads(250)
     for (int it = 0; it < nTracks; it++) {
       // The fit result wrapper
       KalmanFitterResultType kfResult;
@@ -440,10 +440,18 @@ int main(int argc, char *argv[]) {
     std::cout << "Time (ms) to run KalmanFitter for " << nTracks << " : "
               << elapsed_seconds.count() * 1000 << std::endl;
   }
+  int threads = omp_get_num_threads();
 
   if (output) {
     std::cout << "writing KF results" << std::endl;
-    Test::writeTracks(fittedTracks, nTracks, nSurfaces);
+    std::string fileName; 
+    if(useGPU){
+    fileName = "Traks_fitted_gpu_nTracks_";
+    } else {
+    fileName = "Tracks_fitted_semi_cpu_nTracks_";
+    } 
+    fileName.append(std::to_string(nTracks)).append(".obj");
+    Test::writeTracks(fittedTracks, nTracks, nSurfaces,fileName);
   }
 
   std::cout << "------------------------  ending  -----------------------"
