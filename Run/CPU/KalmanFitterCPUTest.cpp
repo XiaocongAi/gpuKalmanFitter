@@ -177,6 +177,7 @@ int main(int argc, char *argv[]) {
     // The input source links wrapper
     auto sourcelinkTrack = CudaKernelContainer<PixelSourceLink>(
         sourcelinks + it * nSurfaces, nSurfaces);
+    // @note when it >=35, we got different startPars[i] between CPU and GPU
     // Run the fit. The fittedTracks will be changed here
     auto status = kFitter.fit(sourcelinkTrack, startPars[it], kfOptions,
                               kfResult, surfacePtrs, nSurfaces);

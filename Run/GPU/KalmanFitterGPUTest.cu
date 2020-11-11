@@ -248,13 +248,7 @@ int main(int argc, char *argv[]) {
   }
   // The silicon material
   Acts::MaterialSlab matProp(Test::makeSilicon(), 0.5 * Acts::units::_mm);
-  if (matProp) {
-    std::cout << "matProp has material" << std::endl;
-  }
   Acts::HomogeneousSurfaceMaterial surfaceMaterial(matProp);
-  if (surfaceMaterial.materialSlab()) {
-    std::cout << "surfaceMaterial has material" << std::endl;
-  }
   // Create plane surfaces without boundaries
   PlaneSurfaceType *surfaces;
   // Unified memory allocation for geometry
@@ -263,8 +257,8 @@ int main(int argc, char *argv[]) {
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
     surfaces[isur] = PlaneSurfaceType(translations[isur],
                                       Acts::Vector3D(1, 0, 0), surfaceMaterial);
-    if (surfaces[isur].surfaceMaterial().materialSlab()) {
-      std::cout << "has material " << std::endl;
+    if (not surfaces[isur].surfaceMaterial().materialSlab()) {
+      std::cerr << "No surface material" << std::endl;
     }
   }
   const Acts::Surface *surfacePtrs = surfaces;
@@ -408,10 +402,10 @@ int main(int argc, char *argv[]) {
                                 cudaMemcpyHostToDevice, stream[i]));
       GPUERRCHK(cudaMemcpyAsync(&d_fittedTracks[offset], &fittedTracks[offset],
                                 tBytes, cudaMemcpyHostToDevice, stream[i]));
-      GPUERRCHK(cudaMemcpyAsync(&d_fitStatus[offset], &fitStatus[offset],
-                                stBytes, cudaMemcpyHostToDevice, stream[i]));
-
-      // Use shared memory for one track if requested
+      GPUERRCHK(cudaMemcpyAsync(
+          &d_fitStatus[offset], &fitStatus[offset], stBytes,
+          cudaMemcpyHostToDevice,
+          stream[i])); // Use shared memory for one track if requested
       if (useSharedMemory) {
         fitKernelBlockPerTrack<<<grid, block, 0, stream[i]>>>(
             d_kFitter, d_sourcelinks, d_pars, kfOptions, d_fittedTracks,
@@ -462,6 +456,7 @@ int main(int argc, char *argv[]) {
       KalmanFitterResultType kfResult;
       kfResult.fittedStates = Acts::CudaKernelContainer<TSType>(
           &fittedTracks[it * nSurfaces], nSurfaces);
+      // @note when it >=35, we got different startPars[i] between CPU and GPU
       // The input source links wrapper
       auto sourcelinkTrack = Acts::CudaKernelContainer<PixelSourceLink>(
           sourcelinks + it * nSurfaces, nSurfaces);
