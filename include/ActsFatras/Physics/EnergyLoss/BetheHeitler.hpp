@@ -40,13 +40,13 @@ struct BetheHeitler {
     // Take a random gamma-distributed value - depending on t/X0
     std::gamma_distribution<double> gDist(slab.thicknessInX0() / std::log(2.0),
                                           1.0);
-
     const auto u = gDist(generator);
     const auto z = std::exp(-u);
     const auto sampledEnergyLoss =
         std::abs(scaleFactor * particle.energy() * (z - 1.));
 
     // apply the energy loss
+    // The corrected momentum might be zero
     particle.correctEnergy(-sampledEnergyLoss);
 
     // TODO return the lost energy as a photon

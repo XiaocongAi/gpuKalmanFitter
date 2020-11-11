@@ -51,9 +51,9 @@ struct ParticleSmearingParameters {
 };
 
 template <typename random_engine_t>
-void runGeneration(random_engine_t &rng,
-                   const ActsExamples::Generator &generator,
-                   SimParticleContainer &particles) {
+void runParticleGeneration(random_engine_t &rng,
+                           const ActsExamples::Generator &generator,
+                           SimParticleContainer &particles) {
   size_t nPrimaryVertices = 0;
   // generate the primary vertices from this generator
   for (size_t n = generator.multiplicity(rng); 0 < n; --n) {
@@ -89,25 +89,44 @@ template <typename random_engine_t, typename propagator_t>
 void runSimulation(const Acts::GeometryContext &gctx,
                    const Acts::MagneticFieldContext &mctx, random_engine_t &rng,
                    const propagator_t &propagator,
-                   const SimParticleContainer &particles,
+                   const SimParticleContainer &generatedParticles,
+                   SimParticleContainer &validParticles,
                    SimResultContainer &simResults,
                    const Acts::Surface *surfaces, size_t nSurfaces) {
   size_t ip = 0;
-  for (const auto &particle : particles) {
-    // Construct a propagator options for each propagate
-    PropOptionsType propOptions(gctx, mctx);
-    propOptions.initializer.surfaceSequence = surfaces;
-    propOptions.initializer.surfaceSequenceSize = nSurfaces;
-    propOptions.absPdgCode = particle.pdg();
-    propOptions.mass = particle.mass();
-    propOptions.action.generator = &rng;
-    propOptions.action.particle = particle;
-    Acts::CurvilinearParameters start(
-        Acts::BoundSymMatrix::Zero(), particle.position(),
-        particle.unitDirection() * particle.absMomentum(), particle.charge(),
-        particle.time());
-    propagator.propagate(start, propOptions, simResults[ip]);
-    ip++;
+
+  for (const auto &particle : generatedParticles) {
+    if (ip < validParticles.size()) {
+      // Construct a propagator options for each propagate
+      PropOptionsType propOptions(gctx, mctx);
+      propOptions.initializer.surfaceSequence = surfaces;
+      propOptions.initializer.surfaceSequenceSize = nSurfaces;
+      propOptions.absPdgCode = particle.pdg();
+      propOptions.mass = particle.mass();
+      propOptions.action.generator = &rng;
+      propOptions.action.particle = particle;
+      Acts::CurvilinearParameters start(
+          Acts::BoundSymMatrix::Zero(), particle.position(),
+          particle.unitDirection() * particle.absMomentum(), particle.charge(),
+          particle.time());
+      Simulator::result_type simResult;
+      propagator.propagate(start, propOptions, simResult);
+      // The particles must have nSurfaces sim hits. Otherwise, skip this
+      // simulation result
+      if (simResult.hits.size() != nSurfaces) {
+        continue;
+      }
+      // store the sim particles and hits
+      validParticles[ip] = particle;
+      simResults[ip] = simResult;
+      ip++;
+    }
+  }
+  // In case we are not able to get the same size of simulated particles as
+  // requested
+  if (ip < validParticles.size()) {
+    throw std::runtime_error(
+        "Too many invalid particles! Simulation failed!\n");
   }
 }
 
@@ -124,7 +143,8 @@ void runHitSmearing(const Acts::GeometryContext &gctx, random_engine_t &rng,
     auto hits = simResults[ip].hits;
     auto nHits = hits.size();
     if (nHits != nSurfaces) {
-      throw std::runtime_error("Sim hits size should be exactly" + nSurfaces);
+      throw std::invalid_argument("Sim hits size should be exactly" +
+                                  nSurfaces);
     }
     for (unsigned int ih = 0; ih < nHits; ih++) {
       // Apply global to local
@@ -157,7 +177,7 @@ void runHitSmearing(const Acts::GeometryContext &gctx, random_engine_t &rng,
 template <typename random_engine_t>
 ParametersContainer
 runParticleSmearing(random_engine_t &rng, const Acts::GeometryContext &gctx,
-                    const SimParticleContainer &particles,
+                    const SimParticleContainer &validParticles,
                     const ParticleSmearingParameters &resolution,
                     size_t nParticles) {
   // The normal dist
@@ -168,7 +188,7 @@ runParticleSmearing(random_engine_t &rng, const Acts::GeometryContext &gctx,
   parameters.reserve(nParticles);
 
   // Perform smearing to the sim particles
-  for (const auto particle : particles) {
+  for (const auto particle : validParticles) {
     const auto time = particle.time();
     const auto phi = Acts::VectorHelpers::phi(particle.unitDirection());
     const auto theta = Acts::VectorHelpers::theta(particle.unitDirection());

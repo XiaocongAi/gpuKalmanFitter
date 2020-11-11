@@ -122,8 +122,9 @@ void writeSimHits(const hits_collection_t &simHits) {
 }
 
 template <typename track_state_t>
-void writeTracks(const track_state_t *states, unsigned int nTracks,
-                 unsigned int nSurfaces, std::string fileName) {
+void writeTracks(const track_state_t *states, const bool *status,
+                 unsigned int nTracks, unsigned int nSurfaces,
+                 std::string fileName) {
   // Write all of the created tracks to one obj file
   std::ofstream obj_tracks;
   if (fileName.empty()) {
@@ -134,6 +135,10 @@ void writeTracks(const track_state_t *states, unsigned int nTracks,
   // Initialize the vertex counter
   unsigned int vCounter = 0;
   for (unsigned int it = 0; it < nTracks; it++) {
+    // we skip the unsuccessful tracks
+    if (not status[it]) {
+      continue;
+    }
     ++vCounter;
     for (int is = 0; is < nSurfaces; is++) {
       const auto &pos =

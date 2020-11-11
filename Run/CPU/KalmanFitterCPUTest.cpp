@@ -114,21 +114,26 @@ int main(int argc, char *argv[]) {
   vertexGen.stddev[Acts::eFreePos2] = 5.0 * Acts::units::_mm;
   vertexGen.stddev[Acts::eFreeTime] = 1.0 * Acts::units::_ns;
   ActsExamples::ParametricParticleGenerator::Config pgCfg;
+  // @note We are generating 20% more particles to make sure we could get enough
+  // valid particles
+  size_t nGeneratedParticles = nTracks * 1.2;
   ActsExamples::Generator generator = ActsExamples::Generator{
-      ActsExamples::FixedMultiplicityGenerator{nTracks}, std::move(vertexGen),
-      ActsExamples::ParametricParticleGenerator(pgCfg)};
+      ActsExamples::FixedMultiplicityGenerator{nGeneratedParticles},
+      std::move(vertexGen), ActsExamples::ParametricParticleGenerator(pgCfg)};
   // Run the generation to generate particles
-  std::vector<ActsFatras::Particle> particles;
-  runGeneration(rng, generator, particles);
+  std::vector<ActsFatras::Particle> generatedParticles;
+  runParticleGeneration(rng, generator, generatedParticles);
 
   // Prepare to run the simulation
   Stepper stepper;
   PropagatorType propagator(stepper);
+  std::vector<ActsFatras::Particle> validParticles(nTracks);
   std::vector<Simulator::result_type> simResult(nTracks);
   auto start_propagate = std::chrono::high_resolution_clock::now();
   // Run the simulation to generate sim hits
-  runSimulation(gctx, mctx, rng, propagator, particles, simResult, surfacePtrs,
-                nSurfaces);
+  // @note We will pick up the valid particles
+  runSimulation(gctx, mctx, rng, propagator, generatedParticles, validParticles,
+                simResult, surfacePtrs, nSurfaces);
   auto end_propagate = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed_seconds =
       end_propagate - start_propagate;
@@ -151,13 +156,14 @@ int main(int argc, char *argv[]) {
   // The particle smearing resolution
   ParticleSmearingParameters seedResolution;
   // Run truth seed smearing to create starting parameters
-  auto startPars =
-      runParticleSmearing(rng, gctx, particles, seedResolution, nTracks);
+  auto startPars = runParticleSmearing(rng, gctx, generatedParticles,
+                                       seedResolution, nTracks);
 
   // Prepare to perform fit to the created tracks
   KalmanFitterType kFitter(propagator);
   KalmanFitterOptions<VoidOutlierFinder> kfOptions(gctx, mctx);
   std::vector<TSType> fittedTracks(nSurfaces * nTracks);
+  bool fitStatus[nTracks];
 
   int threads = 1;
   auto start_fit = std::chrono::high_resolution_clock::now();
@@ -172,11 +178,13 @@ int main(int argc, char *argv[]) {
     auto sourcelinkTrack = CudaKernelContainer<PixelSourceLink>(
         sourcelinks + it * nSurfaces, nSurfaces);
     // Run the fit. The fittedTracks will be changed here
-    auto fitStatus = kFitter.fit(sourcelinkTrack, startPars[it], kfOptions,
-                                 kfResult, surfacePtrs, nSurfaces);
-    if (not fitStatus) {
+    auto status = kFitter.fit(sourcelinkTrack, startPars[it], kfOptions,
+                              kfResult, surfacePtrs, nSurfaces);
+    if (not status) {
       std::cout << "fit failure for track " << it << std::endl;
     }
+    // store the fit status
+    fitStatus[it] = status;
   }
   threads = omp_get_num_threads();
   auto end_fit = std::chrono::high_resolution_clock::now();
@@ -193,8 +201,9 @@ int main(int argc, char *argv[]) {
   if (output) {
     std::cout << "writing fitting results" << std::endl;
     std::string fileName =
-        "Fitted_tracks_cpu_nTracks_" + std::to_string(nTracks) + ".obj";
-    Test::writeTracks(fittedTracks.data(), nTracks, nSurfaces, fileName);
+        "fitted_tracks_cpu_nTracks_" + std::to_string(nTracks) + ".obj";
+    Test::writeTracks(fittedTracks.data(), fitStatus, nTracks, nSurfaces,
+                      fileName);
   }
 
   // @todo Write the residual and pull of track parameters to ntuple

@@ -506,7 +506,8 @@ public:
 
     POP_RANGE();
 
-    if (!kfResult.result) {
+    if (!kfResult.result or (kfResult.result and kfResult.measurementStates !=
+                                                     surfaceSequenceSize)) {
       printf("KalmanFilter failed: \n");
       return false;
     }
@@ -580,13 +581,16 @@ public:
     m_propagator.template propagate(sParameters, kalmanOptions, kfResult,
                                     propRes);
 
-    if (!kfResult.result) {
-      printf("KalmanFilter failed: \n");
-      return false;
+    if (IS_MAIN_THREAD) {
+      if (!kfResult.result or (kfResult.result and kfResult.measurementStates !=
+                                                       surfaceSequenceSize)) {
+        printf("KalmanFilter failed: \n");
+        return false;
+      }
+      // Return the converted Track
+      return true;
     }
-
-    // Return the converted Track
-    return true;
+    __syncthreads();
   }
 #endif
 };
