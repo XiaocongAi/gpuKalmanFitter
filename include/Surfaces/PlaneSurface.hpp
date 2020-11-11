@@ -14,13 +14,16 @@
 
 #include "Geometry/GeometryContext.hpp"
 #include "Geometry/GeometryStatics.hpp"
-#include <limits>
 
+#include "Material/HomogeneousSurfaceMaterial.hpp"
 #include "Surfaces/InfiniteBounds.hpp"
 #include "Surfaces/PlanarBounds.hpp"
 #include "Surfaces/Surface.hpp"
 #include "Surfaces/detail/PlanarHelper.hpp"
+
 #include "Utilities/Definitions.hpp"
+
+#include <limits>
 
 namespace Acts {
 
@@ -62,8 +65,17 @@ public:
   /// This is for curvilinear surfaces which are by definition boundless
   ///
   /// @param center is the center position of the surface
-  /// @param normal is thenormal vector of the plane surface
+  /// @param normal is the normal vector of the plane surface
   ACTS_DEVICE_FUNC PlaneSurface(const Vector3D &center, const Vector3D &normal);
+
+  /// Dedicated Constructor with normal vector
+  /// This is for curvilinear surfaces which are by definition boundless
+  ///
+  /// @param center is the center position of the surface
+  /// @param normal is the normal vector of the plane surface
+  /// @param material is the surface material
+  ACTS_DEVICE_FUNC PlaneSurface(const Vector3D &center, const Vector3D &normal,
+                                const HomogeneousSurfaceMaterial &material);
 
   /// Constructor for Planes with bounds object
   ///

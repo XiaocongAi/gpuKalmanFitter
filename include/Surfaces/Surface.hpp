@@ -101,8 +101,17 @@ protected:
   /// This is for curvilinear surfaces which are by definition boundless
   ///
   /// @param center is the center position of the surface
-  /// @param normal is thenormal vector of the plane surface
+  /// @param normal is the normal vector of the plane surface
   ACTS_DEVICE_FUNC Surface(const Vector3D &center, const Vector3D &normal);
+
+  /// Dedicated Constructor with normal vector
+  /// This is for curvilinear surfaces which are by definition boundless
+  ///
+  /// @param center is the center position of the surface
+  /// @param normal is the normal vector of the plane surface
+  /// @param material is the surface material
+  ACTS_DEVICE_FUNC Surface(const Vector3D &center, const Vector3D &normal,
+                           const HomogeneousSurfaceMaterial &material);
 
 public:
   /// Destructor

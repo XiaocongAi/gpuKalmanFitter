@@ -28,6 +28,12 @@ inline PlaneSurface<surface_bounds_t>::PlaneSurface(const Vector3D &center,
     : Surface(center, normal), m_bounds(nullptr) {}
 
 template <typename surface_bounds_t>
+inline PlaneSurface<surface_bounds_t>::PlaneSurface(
+    const Vector3D &center, const Vector3D &normal,
+    const HomogeneousSurfaceMaterial &material)
+    : Surface(center, normal, material), m_bounds(nullptr) {}
+
+template <typename surface_bounds_t>
 template <typename T,
           std::enable_if_t<not std::is_same<T, InfiniteBounds>::value, int>>
 inline PlaneSurface<surface_bounds_t>::PlaneSurface(
