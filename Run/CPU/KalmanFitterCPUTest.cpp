@@ -2,6 +2,7 @@
 #include "EventData/TrackParameters.hpp"
 #include "Fitter/GainMatrixUpdater.hpp"
 #include "Fitter/KalmanFitter.hpp"
+#include "Material/HomogeneousSurfaceMaterial.hpp"
 #include "Propagator/EigenStepper.hpp"
 #include "Propagator/Propagator.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
@@ -93,11 +94,14 @@ int main(int argc, char *argv[]) {
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
     translations.push_back({(isur * 30. + 19) * Acts::units::_mm, 0., 0.});
   }
+  // The silicon material
+  Acts::MaterialSlab matProp(Test::makeSilicon(), 0.5 * Acts::units::_mm);
+  Acts::HomogeneousSurfaceMaterial surfaceMaterial(matProp);
   // Create plane surfaces without boundaries
   std::vector<PlaneSurfaceType> surfaces;
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
-    surfaces.push_back(
-        PlaneSurfaceType(translations[isur], Acts::Vector3D(1, 0, 0)));
+    surfaces.push_back(PlaneSurfaceType(
+        translations[isur], Acts::Vector3D(1, 0, 0), surfaceMaterial));
   }
   const Acts::Surface *surfacePtrs = surfaces.data();
   std::cout << "Creating " << surfaces.size() << " boundless plane surfaces"
@@ -120,15 +124,11 @@ int main(int argc, char *argv[]) {
   // Prepare to run the simulation
   Stepper stepper;
   PropagatorType propagator(stepper);
-  PropOptionsType propOptions(gctx, mctx);
-  propOptions.maxSteps = 100;
-  propOptions.initializer.surfaceSequence = surfacePtrs;
-  propOptions.initializer.surfaceSequenceSize = nSurfaces;
-  propOptions.action.generator = &rng;
   std::vector<Simulator::result_type> simResult(nTracks);
   auto start_propagate = std::chrono::high_resolution_clock::now();
   // Run the simulation to generate sim hits
-  runSimulation(propagator, propOptions, particles, simResult);
+  runSimulation(gctx, mctx, rng, propagator, particles, simResult, surfacePtrs,
+                nSurfaces);
   auto end_propagate = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed_seconds =
       end_propagate - start_propagate;
@@ -145,7 +145,7 @@ int main(int argc, char *argv[]) {
   // Run sim hits smearing to create source links
   Acts::PixelSourceLink sourcelinks[nTracks * nSurfaces];
   // @note pass the concreate PlaneSurfaceType pointer here
-  runHitSmearing(rng, gctx, simResult, hitResolution, sourcelinks,
+  runHitSmearing(gctx, rng, simResult, hitResolution, sourcelinks,
                  surfaces.data(), nSurfaces);
 
   // The particle smearing resolution

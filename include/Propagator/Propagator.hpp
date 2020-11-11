@@ -66,11 +66,11 @@ template <typename action_t, typename aborter_t> struct PropagatorOptions {
   /// Propagation direction
   NavigationDirection direction = forward;
 
-  /// The |pdg| code for (eventual) material integration - pion default
-  int absPdgCode = 211;
+  /// The |pdg| code for (eventual) material integration - muon default
+  int absPdgCode = 13;
 
   /// The mass for the particle for (eventual) material integration
-  double mass = 139.57018;
+  double mass = 105.6583755 * Acts::UnitConstants::MeV;
 
   /// Maximum number of steps for one propagate call
   unsigned int maxSteps = 1000;

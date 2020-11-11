@@ -14,6 +14,8 @@
 #include "Utilities/Units.hpp"
 #include "Utilities/detail/periodic.hpp"
 
+#include "Test/Helper.hpp"
+
 #include <array>
 #include <random>
 #include <vector>
@@ -25,6 +27,7 @@ using ParametersContainer = std::vector<Acts::CurvilinearParameters>;
 // @note using concreate surface type to avoid trivial advance of the
 // Acts::Surface* to the PlaneSurfaceType* as in the DirectNavigator
 using PlaneSurfaceType = Acts::PlaneSurface<Acts::InfiniteBounds>;
+using PropOptionsType = Acts::PropagatorOptions<Simulator, Test::VoidAborter>;
 
 struct ParticleSmearingParameters {
   /// Constant term of the d0 resolution.
@@ -82,13 +85,23 @@ void runGeneration(random_engine_t &rng,
   }
 }
 
-template <typename propagator_t, typename propagator_options_t>
-void runSimulation(const propagator_t &propagator,
-                   const propagator_options_t &propOptions,
+template <typename random_engine_t, typename propagator_t>
+void runSimulation(const Acts::GeometryContext &gctx,
+                   const Acts::MagneticFieldContext &mctx, random_engine_t &rng,
+                   const propagator_t &propagator,
                    const SimParticleContainer &particles,
-                   SimResultContainer &simResults) {
+                   SimResultContainer &simResults,
+                   const Acts::Surface *surfaces, size_t nSurfaces) {
   size_t ip = 0;
   for (const auto &particle : particles) {
+    // Construct a propagator options for each propagate
+    PropOptionsType propOptions(gctx, mctx);
+    propOptions.initializer.surfaceSequence = surfaces;
+    propOptions.initializer.surfaceSequenceSize = nSurfaces;
+    propOptions.absPdgCode = particle.pdg();
+    propOptions.mass = particle.mass();
+    propOptions.action.generator = &rng;
+    propOptions.action.particle = particle;
     Acts::CurvilinearParameters start(
         Acts::BoundSymMatrix::Zero(), particle.position(),
         particle.unitDirection() * particle.absMomentum(), particle.charge(),
@@ -99,7 +112,7 @@ void runSimulation(const propagator_t &propagator,
 }
 
 template <typename random_engine_t>
-void runHitSmearing(random_engine_t &rng, const Acts::GeometryContext &gctx,
+void runHitSmearing(const Acts::GeometryContext &gctx, random_engine_t &rng,
                     const SimResultContainer &simResults,
                     const std::array<double, 2> &resolution,
                     Acts::PixelSourceLink *sourcelinks,

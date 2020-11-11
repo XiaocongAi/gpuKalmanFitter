@@ -1,6 +1,8 @@
 #pragma once
 
 #include "EventData/PixelSourceLink.hpp"
+#include "Material/Material.hpp"
+#include "Material/MaterialSlab.hpp"
 #include "Utilities/Definitions.hpp"
 #include "Utilities/Units.hpp"
 
@@ -17,6 +19,13 @@ struct ConstantBField {
     return Acts::Vector3D(0., 0., 2. * Acts::units::_T);
   }
 };
+
+// Silicon material
+Acts::Material makeSilicon() {
+  return Acts::Material::fromMolarDensity(
+      9.370 * Acts::units::_cm, 46.52 * Acts::units::_cm, 28.0855, 14,
+      (2.329 / 28.0855) * Acts::UnitConstants::mol / Acts::UnitConstants::cm3);
+}
 
 // Measurement creator
 template <typename generator_t> struct MeasurementCreator {

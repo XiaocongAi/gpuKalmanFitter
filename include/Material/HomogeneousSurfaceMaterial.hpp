@@ -70,9 +70,7 @@ public:
   ACTS_DEVICE_FUNC bool operator==(const HomogeneousSurfaceMaterial &hsm) const;
 
   /// Check if the material is valid, i.e. it is finite and not vacuum.
-  ACTS_DEVICE_FUNC constexpr operator bool() const {
-    return bool(m_fullMaterial);
-  }
+  ACTS_DEVICE_FUNC const MaterialSlab &materialSlab() const;
 
   /// @copydoc SurfaceMaterial::materialSlab(const Vector2D&)
   ///
@@ -103,6 +101,21 @@ private:
   /// The five different MaterialSlab
   MaterialSlab m_fullMaterial = MaterialSlab();
 };
+
+inline HomogeneousSurfaceMaterial::HomogeneousSurfaceMaterial(
+    const MaterialSlab &full, double splitFactor)
+    : ISurfaceMaterial<HomogeneousSurfaceMaterial>(splitFactor),
+      m_fullMaterial(full) {}
+
+inline HomogeneousSurfaceMaterial &HomogeneousSurfaceMaterial::
+operator*=(double scale) {
+  m_fullMaterial.scaleThickness(scale);
+  return (*this);
+}
+
+inline const MaterialSlab &HomogeneousSurfaceMaterial::materialSlab() const {
+  return (m_fullMaterial);
+}
 
 inline const MaterialSlab &
 HomogeneousSurfaceMaterial::materialSlab(const Vector2D & /*lp*/) const {

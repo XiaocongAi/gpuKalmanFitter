@@ -2,6 +2,7 @@
 #include "EventData/TrackParameters.hpp"
 #include "Fitter/GainMatrixUpdater.hpp"
 #include "Fitter/KalmanFitter.hpp"
+#include "Material/HomogeneousSurfaceMaterial.hpp"
 #include "Propagator/EigenStepper.hpp"
 #include "Propagator/Propagator.hpp"
 #include "Utilities/CudaHelper.hpp"
@@ -243,14 +244,26 @@ int main(int argc, char *argv[]) {
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
     translations.push_back({(isur * 30. + 19) * Acts::units::_mm, 0., 0.});
   }
+  // The silicon material
+  Acts::MaterialSlab matProp(Test::makeSilicon(), 0.5 * Acts::units::_mm);
+  if (matProp) {
+    std::cout << "matProp has material" << std::endl;
+  }
+  Acts::HomogeneousSurfaceMaterial surfaceMaterial(matProp);
+  if (surfaceMaterial.materialSlab()) {
+    std::cout << "surfaceMaterial has material" << std::endl;
+  }
   // Create plane surfaces without boundaries
   PlaneSurfaceType *surfaces;
   // Unified memory allocation for geometry
   GPUERRCHK(cudaMallocManaged(&surfaces, sizeof(PlaneSurfaceType) * nSurfaces));
   std::cout << "Allocating the memory for the surfaces" << std::endl;
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
-    surfaces[isur] =
-        PlaneSurfaceType(translations[isur], Acts::Vector3D(1, 0, 0));
+    surfaces[isur] = PlaneSurfaceType(translations[isur],
+                                      Acts::Vector3D(1, 0, 0), surfaceMaterial);
+    if (surfaces[isur].surfaceMaterial().materialSlab()) {
+      std::cout << "has material " << std::endl;
+    }
   }
   const Acts::Surface *surfacePtrs = surfaces;
   std::cout << "Creating " << nSurfaces << " boundless plane surfaces"
@@ -273,16 +286,12 @@ int main(int argc, char *argv[]) {
   // Prepare to run the simulation
   Stepper stepper;
   PropagatorType propagator(stepper);
-  PropOptionsType propOptions(gctx, mctx);
-  propOptions.maxSteps = 100;
-  propOptions.initializer.surfaceSequence = surfacePtrs;
-  propOptions.initializer.surfaceSequenceSize = nSurfaces;
-  propOptions.action.generator = &rng;
-  std::vector<Simulator::result_type> simResult(nTracks);
   auto start_propagate = std::chrono::high_resolution_clock::now();
   std::cout << "start to run propagation" << std::endl;
   // Run the simulation to generate sim hits
-  runSimulation(propagator, propOptions, particles, simResult);
+  std::vector<Simulator::result_type> simResult(nTracks);
+  runSimulation(gctx, mctx, rng, propagator, particles, simResult, surfacePtrs,
+                nSurfaces);
   auto end_propagate = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed_seconds =
       end_propagate - start_propagate;
@@ -301,7 +310,7 @@ int main(int argc, char *argv[]) {
   GPUERRCHK(cudaMallocHost((void **)&sourcelinks, sourcelinksBytes));
   // Run hit smearing to create source links
   // @note pass the concreate PlaneSurfaceType pointer here
-  runHitSmearing(rng, gctx, simResult, hitResolution, sourcelinks, surfaces,
+  runHitSmearing(gctx, rng, simResult, hitResolution, sourcelinks, surfaces,
                  nSurfaces);
 
   // The particle smearing resolution
