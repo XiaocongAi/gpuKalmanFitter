@@ -97,6 +97,7 @@ inline Surface &Surface::operator=(const Surface &other) {
     //@Todo: active this
     // GeometryObject::operator=(other);
     // detector element, identifier & layer association are unique
+    m_surfaceMaterial = other.m_surfaceMaterial;
     m_transform = other.m_transform;
   }
   return *this;
@@ -117,6 +118,9 @@ inline bool Surface::operator==(const Surface &other) const {
   //    }
   // (e) compare transform values
   if (!m_transform.isApprox(other.m_transform, 1e-9)) {
+    return false;
+  }
+  if (!(m_surfaceMaterial == other.m_surfaceMaterial)) {
     return false;
   }
 
