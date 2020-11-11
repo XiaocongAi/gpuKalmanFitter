@@ -540,12 +540,12 @@ public:
   /// @return the output as an output track
   template <typename source_link_t, typename start_parameters_t,
             typename parameters_t = BoundParameters>
-  __device__ bool
+  __device__ void
   fitOnDevice(const CudaKernelContainer<source_link_t> &sourcelinks,
               const start_parameters_t &sParameters,
               const KalmanFitterOptions<outlier_finder_t> &kfOptions,
               KalmanFitterResult<source_link_t, parameters_t> &kfResult,
-              const Surface *surfaceSequence = nullptr,
+              bool &status, const Surface *surfaceSequence = nullptr,
               size_t surfaceSequenceSize = 0) const {
 
     const bool IS_MAIN_THREAD = threadIdx.x == 0 && threadIdx.y == 0;
@@ -581,14 +581,14 @@ public:
     m_propagator.template propagate(sParameters, kalmanOptions, kfResult,
                                     propRes);
 
+    // update the fit status with the main thread
     if (IS_MAIN_THREAD) {
+      status = true;
       if (!kfResult.result or (kfResult.result and kfResult.measurementStates !=
                                                        surfaceSequenceSize)) {
         printf("KalmanFilter failed: \n");
-        return false;
+        status = false;
       }
-      // Return the converted Track
-      return true;
     }
     __syncthreads();
   }

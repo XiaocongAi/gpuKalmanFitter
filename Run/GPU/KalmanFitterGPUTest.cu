@@ -107,10 +107,10 @@ __global__ void __launch_bounds__(256, 2) fitKernelBlockPerTrack(
     KalmanFitterResultType kfResult;
     kfResult.fittedStates = CudaKernelContainer<TSType>(
         fittedTracks + blockId * nSurfaces, nSurfaces);
-    fitStatus[blockId] = kFitter->fitOnDevice(
-        Acts::CudaKernelContainer<PixelSourceLink>(
-            sourcelinks + blockId * nSurfaces, nSurfaces),
-        tpars[blockId], kfOptions, kfResult, surfacePtrs, nSurfaces);
+    kFitter->fitOnDevice(Acts::CudaKernelContainer<PixelSourceLink>(
+                             sourcelinks + blockId * nSurfaces, nSurfaces),
+                         tpars[blockId], kfOptions, kfResult,
+                         fitStatus[blockId], surfacePtrs, nSurfaces);
   }
 }
 
