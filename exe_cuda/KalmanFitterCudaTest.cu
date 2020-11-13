@@ -1,6 +1,7 @@
 #include "EventData/PixelSourceLink.hpp"
 #include "EventData/TrackParameters.hpp"
 #include "Fitter/GainMatrixUpdater.hpp"
+#include "Fitter/GainMatrixSmoother.hpp"
 #include "Fitter/KalmanFitter.hpp"
 #include "Geometry/GeometryContext.hpp"
 #include "MagneticField/MagneticFieldContext.hpp"
@@ -53,7 +54,8 @@ using PropagatorType = Propagator<Stepper>;
 using PropResultType = PropagatorResult;
 using SimPropOptionsType = PropagatorOptions<MeasurementCreator, VoidAborter>;
 using PropState = PropagatorType::State<SimPropOptionsType>;
-using KalmanFitterType = KalmanFitter<PropagatorType, GainMatrixUpdater>;
+using Smoother = GainMatrixSmoother<BoundParameters>;
+using KalmanFitterType = KalmanFitter<PropagatorType, GainMatrixUpdater, Smoother>;
 using KalmanFitterResultType =
     KalmanFitterResult<PixelSourceLink, BoundParameters>;
 using TSType = typename KalmanFitterResultType::TrackStateType;
@@ -377,7 +379,6 @@ int main(int argc, char *argv[]) {
                                 tBytes, cudaMemcpyDeviceToHost, stream[i]));
     }
     //    }
-
     GPUERRCHK(cudaPeekAtLastError());
     GPUERRCHK(cudaDeviceSynchronize());
 

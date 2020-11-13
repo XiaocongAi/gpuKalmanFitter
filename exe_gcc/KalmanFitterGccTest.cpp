@@ -1,6 +1,7 @@
 #include "EventData/PixelSourceLink.hpp"
 #include "EventData/TrackParameters.hpp"
 #include "Fitter/GainMatrixUpdater.hpp"
+#include "Fitter/GainMatrixSmoother.hpp"
 #include "Fitter/KalmanFitter.hpp"
 #include "Geometry/GeometryContext.hpp"
 #include "MagneticField/MagneticFieldContext.hpp"
@@ -226,7 +227,8 @@ int main(int argc, char *argv[]) {
   // start to perform fit to the created tracks
   using RecoStepper = EigenStepper<ConstantBField>;
   using RecoPropagator = Propagator<RecoStepper>;
-  using KalmanFitter = KalmanFitter<RecoPropagator, GainMatrixUpdater>;
+  using Smoother = GainMatrixSmoother<BoundParameters>;
+  using KalmanFitter = KalmanFitter<RecoPropagator, GainMatrixUpdater, Smoother>;
   using KalmanFitterResult =
       KalmanFitterResult<PixelSourceLink, BoundParameters>;
   using TrackState = typename KalmanFitterResult::TrackStateType;
