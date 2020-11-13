@@ -299,7 +299,7 @@ private:
         // If the update is successful, set covariance and
         auto updateRes = m_updater(state.options.geoContext, trackState);
         if (!updateRes) {
-          printf("Update step failed:\n");
+          // printf("Update step failed:\n");
           return false;
         }
 
@@ -574,6 +574,8 @@ public:
 
       // Set config for outlier finder
       kalmanOptions.action.m_outlierFinder = kfOptions.outlierFinder;
+
+      propRes = PropagatorResult();
     }
     __syncthreads();
 

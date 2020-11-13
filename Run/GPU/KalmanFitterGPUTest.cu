@@ -88,11 +88,14 @@ __global__ void __launch_bounds__(256, 2) fitKernelThreadPerTrack(
         Acts::CudaKernelContainer<PixelSourceLink>(
             sourcelinks + threadId * nSurfaces, nSurfaces),
         tpars[threadId], kfOptions, kfResult, surfacePtrs, nSurfaces);
-    //for(int i = 0; i< nSurfaces; i++){
-    //  Acts::Vector3D position = (*(fittedStates + threadId * nSurfaces + i)).parameter.predicted.position(); 
-    //  //Acts::Vector3D position = kfResult.fittedStates[i].parameter.predicted.position(); 
-    //  printf("predicted track%d, surface%d, %f, %f, %f\n", threadId, i, position.x(), position.y(), position.z()); 
-    //} 
+    // for(int i = 0; i< nSurfaces; i++){
+    //  Acts::Vector3D position = (*(fittedStates + threadId * nSurfaces +
+    //  i)).parameter.predicted.position();
+    //  //Acts::Vector3D position =
+    //  kfResult.fittedStates[i].parameter.predicted.position();
+    //  printf("predicted track%d, surface%d, %f, %f, %f\n", threadId, i,
+    //  position.x(), position.y(), position.z());
+    //}
   }
 }
 
@@ -408,8 +411,9 @@ int main(int argc, char *argv[]) {
                                 cudaMemcpyHostToDevice, stream[i]));
       GPUERRCHK(cudaMemcpyAsync(&d_pars[offset], &startPars[offset], pBytes,
                                 cudaMemcpyHostToDevice, stream[i]));
-      GPUERRCHK(cudaMemcpyAsync(&d_fittedStates[offset*nSurfaces], &fittedStates[offset*nSurfaces],
-                                tBytes, cudaMemcpyHostToDevice, stream[i]));
+      GPUERRCHK(cudaMemcpyAsync(&d_fittedStates[offset * nSurfaces],
+                                &fittedStates[offset * nSurfaces], tBytes,
+                                cudaMemcpyHostToDevice, stream[i]));
       GPUERRCHK(cudaMemcpyAsync(
           &d_fitStatus[offset], &fitStatus[offset], stBytes,
           cudaMemcpyHostToDevice,
@@ -426,8 +430,9 @@ int main(int argc, char *argv[]) {
       GPUERRCHK(cudaEventRecord(stopEvent, stream[i]));
       GPUERRCHK(cudaEventSynchronize(stopEvent));
       // copy the fitted tracks to host
-      GPUERRCHK(cudaMemcpyAsync(&fittedStates[offset*nSurfaces], &d_fittedStates[offset*nSurfaces],
-                                tBytes, cudaMemcpyDeviceToHost, stream[i]));
+      GPUERRCHK(cudaMemcpyAsync(&fittedStates[offset * nSurfaces],
+                                &d_fittedStates[offset * nSurfaces], tBytes,
+                                cudaMemcpyDeviceToHost, stream[i]));
       GPUERRCHK(cudaMemcpyAsync(&fitStatus[offset], &d_fitStatus[offset],
                                 stBytes, cudaMemcpyDeviceToHost, stream[i]));
     }
