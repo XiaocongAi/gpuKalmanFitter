@@ -243,6 +243,7 @@ Acts::EigenStepper<B>::stepOnDevice(propagator_state_t &state) const {
 
   // First Runge-Kutta point (at current position)
   if (IS_MAIN_THREAD) {
+    sd = detail::StepData(); 
     sd.B_first = getField(state.stepping, state.stepping.pos);
     sd.k1 = detail::evaluatek(state, sd.B_first, 0);
   }
