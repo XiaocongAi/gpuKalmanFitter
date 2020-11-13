@@ -56,7 +56,7 @@ class GainMatrixSmoother {
 
       // Gain smoothing matrix
       G = (*ts.parameter.filtered.covariance())
-          * ts.parameter.jacobian.transpose()
+          * prev_ts.parameter.jacobian.transpose()
           * ((BoundSymMatrix)(calculateInverse(*prev_ts->parameter.predicted.covariance()))); 
 
       // Calculate the smoothed parameters
@@ -83,4 +83,3 @@ class GainMatrixSmoother {
   }
 };
 }  // namespace Acts
-
