@@ -88,6 +88,11 @@ __global__ void __launch_bounds__(256, 2) fitKernelThreadPerTrack(
         Acts::CudaKernelContainer<PixelSourceLink>(
             sourcelinks + threadId * nSurfaces, nSurfaces),
         tpars[threadId], kfOptions, kfResult, surfacePtrs, nSurfaces);
+    //for(int i = 0; i< nSurfaces; i++){
+    //  Acts::Vector3D position = (*(fittedTracks + threadId * nSurfaces + i)).parameter.predicted.position(); 
+    //  //Acts::Vector3D position = kfResult.fittedStates[i].parameter.predicted.position(); 
+    //  printf("predicted track%d, surface%d, %f, %f, %f\n", threadId, i, position.x(), position.y(), position.z()); 
+    //} 
   }
 }
 
@@ -403,7 +408,7 @@ int main(int argc, char *argv[]) {
                                 cudaMemcpyHostToDevice, stream[i]));
       GPUERRCHK(cudaMemcpyAsync(&d_pars[offset], &startPars[offset], pBytes,
                                 cudaMemcpyHostToDevice, stream[i]));
-      GPUERRCHK(cudaMemcpyAsync(&d_fittedTracks[offset], &fittedTracks[offset],
+      GPUERRCHK(cudaMemcpyAsync(&d_fittedTracks[offset*nSurfaces], &fittedTracks[offset*nSurfaces],
                                 tBytes, cudaMemcpyHostToDevice, stream[i]));
       GPUERRCHK(cudaMemcpyAsync(
           &d_fitStatus[offset], &fitStatus[offset], stBytes,
@@ -421,7 +426,7 @@ int main(int argc, char *argv[]) {
       GPUERRCHK(cudaEventRecord(stopEvent, stream[i]));
       GPUERRCHK(cudaEventSynchronize(stopEvent));
       // copy the fitted tracks to host
-      GPUERRCHK(cudaMemcpyAsync(&fittedTracks[offset], &d_fittedTracks[offset],
+      GPUERRCHK(cudaMemcpyAsync(&fittedTracks[offset*nSurfaces], &d_fittedTracks[offset*nSurfaces],
                                 tBytes, cudaMemcpyDeviceToHost, stream[i]));
       GPUERRCHK(cudaMemcpyAsync(&fitStatus[offset], &d_fitStatus[offset],
                                 stBytes, cudaMemcpyDeviceToHost, stream[i]));
