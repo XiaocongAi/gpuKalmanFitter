@@ -264,60 +264,111 @@ private:
            const stepper_t &stepper, result_type &result) const {
       // Try to find the surface in the measurement surfaces
       SurfaceFinder sFinder{surface};
-      // auto sourcelink_it = std::find_if(inputMeasurements.begin(),
-      // inputMeasurements.end(), sFinder);
       auto sourcelink_it = inputMeasurements.find_if(sFinder);
-      if (sourcelink_it != inputMeasurements.end()) {
-        // Screen output message
-        auto center = (*surface).center(state.options.geoContext);
-
-        // create track state on the vector from sourcelink
-        result.fittedStates[result.measurementStates] =
-            TrackStateType(*sourcelink_it);
-        TrackStateType &trackState =
-            result.fittedStates[result.measurementStates];
-        auto pos = (*sourcelink_it).globalPosition(state.options.geoContext);
-        // printf("sl position = (%f, %f, %f)\n", pos.x(), pos.y(), pos.z());
-
-        // Transport & bind the state to the current surface
-        stepper.boundState(
-            state.stepping, *surface, trackState.parameter.predicted,
-            trackState.parameter.jacobian, trackState.parameter.pathLength);
-
-        // Fill the track state
-        auto prePos = trackState.parameter.predicted.position();
-        // printf("Predicted parameter position = (%f, %f, %f)\n", prePos.x(),
-        // prePos.y(), prePos.z());
-
-        // Get and set the type flags
-        // auto& typeFlags = trackState.typeFlags();
-        // typeFlags.set(TrackStateFlag::ParameterFlag);
-        // typeFlags.set(TrackStateFlag::MeasurementFlag);
-
-        // If the update is successful, set covariance and
-        auto updateRes = m_updater(state.options.geoContext, trackState);
-        if (!updateRes) {
-          // printf("Update step failed:\n");
-          return false;
-        }
-
-        // Get the filtered parameters and update the stepping state
-        const auto &filtered = trackState.parameter.filtered;
-        // printf("Filtered parameter position = (%f, %f, %f)\n",
-        // filtered.position().x(), filtered.position().y(),
-        // filtered.position().z());
-        stepper.update(state.stepping, filtered.position(),
-                       filtered.momentum().normalized(),
-                       filtered.momentum().norm(), filtered.time());
-
-        // The material effects after the filtering
-        materialInteractor(surface, state, stepper, fullUpdate);
-
-        // We count the state with measurement
-        ++result.measurementStates;
+      // No source link, still return true
+      if (sourcelink_it == inputMeasurements.end()) {
+        return true;
       }
+      // Screen out the source link
+      // auto pos = (*sourcelink_it).globalPosition(state.options.geoContext);
+      // printf("sl position = (%f, %f, %f)\n", pos.x(), pos.y(), pos.z());
+
+      // create track state on the vector from sourcelink
+      result.fittedStates[result.measurementStates] =
+          TrackStateType(*sourcelink_it);
+      TrackStateType &trackState =
+          result.fittedStates[result.measurementStates];
+
+      // Transport & bind the state to the current surface
+      stepper.boundState(
+          state.stepping, *surface, trackState.parameter.predicted,
+          trackState.parameter.jacobian, trackState.parameter.pathLength);
+
+      // Screen out the predicted parameters
+      // auto prePos = trackState.parameter.predicted.position();
+      // printf("Predicted parameter position = (%f, %f, %f)\n", prePos.x(),
+      // prePos.y(), prePos.z());
+
+      // If the update is successful, set covariance and
+      auto updateRes = m_updater(state.options.geoContext, trackState);
+      if (!updateRes) {
+        // printf("Update step failed:\n");
+        return false;
+      }
+
+      // Get the filtered parameters and update the stepping state
+      const auto &filtered = trackState.parameter.filtered;
+      // printf("Filtered parameter position = (%f, %f, %f)\n",
+      // filtered.position().x(), filtered.position().y(),
+      // filtered.position().z());
+      stepper.update(state.stepping, filtered.position(),
+                     filtered.momentum().normalized(),
+                     filtered.momentum().norm(), filtered.time());
+
+      // The material effects after the filtering
+      materialInteractor(surface, state, stepper, fullUpdate);
+
+      // We count the state with measurement
+      ++result.measurementStates;
       return true;
     }
+
+#ifdef __CUDACC__
+    template <typename propagator_state_t, typename stepper_t>
+    __device__ bool
+    filterOnDevice(const Surface *surface, propagator_state_t &state,
+                   const stepper_t &stepper, result_type &result) const {
+      // Try to find the surface in the measurement surfaces
+      SurfaceFinder sFinder{surface};
+      auto sourcelink_it = inputMeasurements.find_if(sFinder);
+      // No source link, still return true
+      if (sourcelink_it == inputMeasurements.end()) {
+        return true;
+      }
+      // Screen out the source link
+      // auto pos = (*sourcelink_it).globalPosition(state.options.geoContext);
+      // printf("sl position = (%f, %f, %f)\n", pos.x(), pos.y(), pos.z());
+
+      // create track state on the vector from sourcelink
+      result.fittedStates[result.measurementStates] =
+          TrackStateType(*sourcelink_it);
+      TrackStateType &trackState =
+          result.fittedStates[result.measurementStates];
+
+      // Transport & bind the state to the current surface
+      stepper.boundState(
+          state.stepping, *surface, trackState.parameter.predicted,
+          trackState.parameter.jacobian, trackState.parameter.pathLength);
+
+      // Screen out the predicted parameters
+      // auto prePos = trackState.parameter.predicted.position();
+      // printf("Predicted parameter position = (%f, %f, %f)\n", prePos.x(),
+      // prePos.y(), prePos.z());
+
+      // If the update is successful, set covariance and
+      auto updateRes = m_updater(state.options.geoContext, trackState);
+      if (!updateRes) {
+        // printf("Update step failed:\n");
+        return false;
+      }
+
+      // Get the filtered parameters and update the stepping state
+      const auto &filtered = trackState.parameter.filtered;
+      // printf("Filtered parameter position = (%f, %f, %f)\n",
+      // filtered.position().x(), filtered.position().y(),
+      // filtered.position().z());
+      stepper.update(state.stepping, filtered.position(),
+                     filtered.momentum().normalized(),
+                     filtered.momentum().norm(), filtered.time());
+
+      // The material effects after the filtering
+      materialInteractor(surface, state, stepper, fullUpdate);
+
+      // We count the state with measurement
+      ++result.measurementStates;
+      return true;
+    }
+#endif
 
     /// @brief Kalman actor operation : finalize
     ///
