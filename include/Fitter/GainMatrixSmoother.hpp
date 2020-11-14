@@ -64,9 +64,12 @@ public:
       //}
 
       // Calculate the smoothed parameters
-      smoothedPars = ts.parameter.filtered.parameters() +
-                     G * (prev_ts->parameter.smoothed.parameters() -
-                          prev_ts->parameter.predicted.parameters());
+      ParVector_t prevDiffPars = prev_ts->parameter.smoothed.parameters() -
+                                 prev_ts->parameter.predicted.parameters();
+      ParVector_t gainPars = G * prevDiffPars;
+      smoothedPars = ts.parameter.filtered.parameters() + gainPars;
+      // G * (prev_ts->parameter.smoothed.parameters() -
+      //            prev_ts->parameter.predicted.parameters());
 
       // And the smoothed covariance
       smoothedCov =
