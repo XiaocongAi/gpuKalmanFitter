@@ -41,7 +41,7 @@ public:
     gain_matrix_t G;
 
     // Loop and smooth the remaining states
-    for (int i = filteredStates.size() - 1; i >= 0; i--) {
+    for (int i = filteredStates.size() - 2; i >= 0; i--) {
       track_state_t &ts = filteredStates[i];
 
       // The current state
@@ -57,21 +57,24 @@ public:
       // Gain smoothing matrix
       G = (*ts.parameter.filtered.covariance()) *
           prev_ts->parameter.jacobian.transpose() *
-          ((BoundSymMatrix)(
-              calculateInverse(*prev_ts->parameter.predicted.covariance())));
+          (BoundSymMatrix)(
+              calculateInverse(*prev_ts->parameter.predicted.covariance()));
+      // if(G.hasNaN()) {
+      // return false;
+      //}
 
       // Calculate the smoothed parameters
       smoothedPars = ts.parameter.filtered.parameters() +
-                     G * (prev_ts->parameter.smoothed.parameters()) -
-                     prev_ts->parameter.predicted.parameters();
+                     G * (prev_ts->parameter.smoothed.parameters() -
+                          prev_ts->parameter.predicted.parameters());
 
       // And the smoothed covariance
       smoothedCov =
-          ((BoundSymMatrix)(*ts.parameter.filtered.covariance())) -
-          ((BoundSymMatrix)(G *
-                            (*(prev_ts->parameter.predicted.covariance())))) -
-          ((BoundSymMatrix)(*prev_ts->parameter.smoothed.covariance() *
-                            G.transpose()));
+          (BoundSymMatrix)(*(ts.parameter.filtered.covariance())) -
+          (BoundSymMatrix)(G *
+                           (*(prev_ts->parameter.predicted.covariance()) -
+                            *(prev_ts->parameter.smoothed.covariance())) *
+                           G.transpose());
 
       // Create smoothed track parameters
       ts.parameter.smoothed = parameters_t(gctx, smoothedCov, smoothedPars,
