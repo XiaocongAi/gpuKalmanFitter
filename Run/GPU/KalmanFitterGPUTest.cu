@@ -495,13 +495,17 @@ int main(int argc, char *argv[]) {
   if (output) {
     std::cout << "writing KF results" << std::endl;
     std::string fileName;
+    std::string param = "smoothed";
+    fileName.append("fitted_");
+    fileName.append(param);
     if (useGPU) {
-      fileName = "fitted_tracks_gpu_nTracks_";
+      fileName.append("_gpu_nTracks_");
     } else {
-      fileName = "fitted_tracks_semi_cpu_nTracks_";
+      fileName.append("_semi_cpu_nTracks_");
     }
     fileName.append(std::to_string(nTracks)).append(".obj");
-    Test::writeTracks(fittedStates, fitStatus, nTracks, nSurfaces, fileName);
+    Test::writeTracks(fittedStates, fitStatus, nTracks, nSurfaces, fileName,
+                      param);
   }
 
   std::cout << "------------------------  ending  -----------------------"

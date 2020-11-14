@@ -243,7 +243,7 @@ private:
            (result.measurementStates > 0 and
             state.navigation.navigationBreak)) and
           !result.smoothed and !result.finished) {
-        printf("Finalize/run smoothing\n");
+        // printf("Finalize/run smoothing\n");
         auto res = finalize(state, stepper, result);
         if (!res) {
           printf("Error in finalize:\n");

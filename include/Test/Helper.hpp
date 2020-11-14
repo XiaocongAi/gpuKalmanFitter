@@ -124,7 +124,7 @@ void writeSimHits(const hits_collection_t &simHits) {
 template <typename track_state_t>
 void writeTracks(const track_state_t *states, const bool *status,
                  unsigned int nTracks, unsigned int nSurfaces,
-                 std::string fileName) {
+                 std::string fileName, std::string parameters = "smoothed") {
   // Write all of the created tracks to one obj file
   std::ofstream obj_tracks;
   if (fileName.empty()) {
@@ -141,8 +141,14 @@ void writeTracks(const track_state_t *states, const bool *status,
     }
     ++vCounter;
     for (int is = 0; is < nSurfaces; is++) {
-      const auto &pos =
-          states[it * nSurfaces + is].parameter.filtered.position();
+      Acts::Vector3D pos;
+      if (parameters == "predicted") {
+        pos = states[it * nSurfaces + is].parameter.predicted.position();
+      } else if (parameters == "filtered") {
+        pos = states[it * nSurfaces + is].parameter.filtered.position();
+      } else {
+        pos = states[it * nSurfaces + is].parameter.smoothed.position();
+      }
       obj_tracks << "v " << pos.x() << " " << pos.y() << " " << pos.z() << "\n";
     }
     // Write out the line - only if we have at least two points created

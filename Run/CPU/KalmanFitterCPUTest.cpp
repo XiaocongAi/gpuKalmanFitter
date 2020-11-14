@@ -204,10 +204,11 @@ int main(int argc, char *argv[]) {
 
   if (output) {
     std::cout << "writing fitting results" << std::endl;
+    std::string param = "smoothed";
     std::string fileName =
-        "fitted_tracks_cpu_nTracks_" + std::to_string(nTracks) + ".obj";
+        "fitted_" + param + "_cpu_nTracks_" + std::to_string(nTracks) + ".obj";
     Test::writeTracks(fittedTracks.data(), fitStatus, nTracks, nSurfaces,
-                      fileName);
+                      fileName, param);
   }
 
   // @todo Write the residual and pull of track parameters to ntuple
