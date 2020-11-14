@@ -1,7 +1,7 @@
 #include "EventData/PixelSourceLink.hpp"
 #include "EventData/TrackParameters.hpp"
-#include "Fitter/GainMatrixUpdater.hpp"
 #include "Fitter/GainMatrixSmoother.hpp"
+#include "Fitter/GainMatrixUpdater.hpp"
 #include "Fitter/KalmanFitter.hpp"
 #include "Material/HomogeneousSurfaceMaterial.hpp"
 #include "Propagator/EigenStepper.hpp"
@@ -125,7 +125,7 @@ __global__ void __launch_bounds__(256, 2) fitKernelBlockPerTrack(
 }
 
 int main(int argc, char *argv[]) {
-  unsigned int nTracks = 10240;
+  unsigned int nTracks = 10000;
   unsigned int nStreams = 1;
   bool output = false;
   bool useSharedMemory = false;

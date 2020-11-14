@@ -1,7 +1,7 @@
 #include "EventData/PixelSourceLink.hpp"
 #include "EventData/TrackParameters.hpp"
-#include "Fitter/GainMatrixUpdater.hpp"
 #include "Fitter/GainMatrixSmoother.hpp"
+#include "Fitter/GainMatrixUpdater.hpp"
 #include "Fitter/KalmanFitter.hpp"
 #include "Material/HomogeneousSurfaceMaterial.hpp"
 #include "Propagator/EigenStepper.hpp"
@@ -53,12 +53,8 @@ using KalmanFitterResultType =
 using TSType = typename KalmanFitterResultType::TrackStateType;
 
 int main(int argc, char *argv[]) {
-  if (argc < 5) {
-    show_usage(argv[0]);
-    return 1;
-  }
-  unsigned int nTracks;
-  unsigned int nThreads;
+  unsigned int nTracks = 10000;
+  unsigned int nThreads = 250;
   bool output = false;
   std::string device;
   std::string bFieldFileName;
@@ -192,8 +188,9 @@ int main(int argc, char *argv[]) {
     }
     // store the fit status
     fitStatus[it] = status;
+    threads = omp_get_num_threads();
   }
-  threads = omp_get_num_threads();
+  std::cout << "threads = " << threads << std::endl;
   auto end_fit = std::chrono::high_resolution_clock::now();
   elapsed_seconds = end_fit - start_fit;
   std::cout << "Time (ms) to run KalmanFitter for " << nTracks << " : "
