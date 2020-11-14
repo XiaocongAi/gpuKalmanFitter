@@ -281,6 +281,25 @@ template <typename bfield_t> struct EigenStepper {
   ACTS_DEVICE_FUNC BoundState boundState(State &state,
                                          const Surface &surface) const;
 
+#ifdef __CUDACC__
+  /// Create and return the bound state at the current position
+  ///
+  /// @brief This transports (if necessary) the covariance
+  /// to the surface and creates a bound state. It does not check
+  /// if the transported state is at the surface, this needs to
+  /// be guaranteed by the propagator
+  ///
+  /// @param [in] state State that will be presented as @c BoundState
+  /// @param [in] surface The surface to which we bind the state
+  ///
+  /// @return A bound state:
+  ///   - the parameters at the surface
+  ///   - the stepwise jacobian towards it (from last bound)
+  ///   - and the path length (from start - for ordering)
+  __device__ BoundState boundStateOnDevice(State &state,
+                                                 const Surface &surface) const;
+#endif
+
   /// Create and return a curvilinear state at the current position
   ///
   /// @brief This transports (if necessary) the covariance

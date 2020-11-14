@@ -116,6 +116,7 @@ ACTS_DEVICE_FUNC FreeToBoundMatrix surfaceDerivative(
   const BoundRowVector sVec = surface.derivativeFactors(
       geoContext, parameters.segment<3>(eFreePos0),
       parameters.segment<3>(eFreeDir0), rframeT, jacobianLocalToGlobal);
+  // 8*6 = 8*1 * 1*6
   jacobianLocalToGlobal -= derivatives * sVec;
   // Return the jacobian to local
   return jacToLocal;
@@ -267,21 +268,19 @@ covarianceTransport(const GeometryContext &geoContext,
                     FreeMatrix &transportJacobian, FreeVector &derivatives,
                     BoundToFreeMatrix &jacobianLocalToGlobal,
                     const FreeVector &parameters, const Surface &surface) {
-  // Build the full jacobian
+  // Build the full jacobian (8*8 * 8*6)
   jacobianLocalToGlobal = transportJacobian * jacobianLocalToGlobal;
   const FreeToBoundMatrix jacToLocal = surfaceDerivative(
       geoContext, parameters, jacobianLocalToGlobal, derivatives, surface);
-  const Jacobian jacFull = jacToLocal * jacobianLocalToGlobal;
+  // Bound to bound jacobian
+  jacobian = jacToLocal * jacobianLocalToGlobal;
 
   // Apply the actual covariance transport
-  covarianceMatrix = jacFull * covarianceMatrix * jacFull.transpose();
+  covarianceMatrix = jacobian * covarianceMatrix * jacobian.transpose();
 
   // Reinitialize jacobian components
   reinitializeJacobians(geoContext, transportJacobian, derivatives,
                         jacobianLocalToGlobal, parameters, surface);
-
-  // Store The global and bound jacobian (duplication for the moment)
-  jacobian = jacFull;
 }
 
 /// @brief Method for on-demand transport of the covariance to a new frame at
@@ -304,17 +303,14 @@ covarianceTransport(BoundSymMatrix &covarianceMatrix, BoundMatrix &jacobian,
   jacobianLocalToGlobal = transportJacobian * jacobianLocalToGlobal;
   const FreeToBoundMatrix jacToLocal =
       surfaceDerivative(direction, jacobianLocalToGlobal, derivatives);
-  const Jacobian jacFull = jacToLocal * jacobianLocalToGlobal;
+  jacobian = jacToLocal * jacobianLocalToGlobal;
 
   // Apply the actual covariance transport
-  covarianceMatrix = jacFull * covarianceMatrix * jacFull.transpose();
+  covarianceMatrix = jacobian * covarianceMatrix * jacobian.transpose();
 
   // Reinitialize jacobian components
   reinitializeJacobians(transportJacobian, derivatives, jacobianLocalToGlobal,
                         direction);
-
-  // Store The global and bound jacobian (duplication for the moment)
-  jacobian = jacFull;
 }
 
 /// Create and return the bound state at the current position
@@ -366,6 +362,124 @@ boundState(const GeometryContext &geoContext, BoundSymMatrix &covarianceMatrix,
   // Create the bound state
   return BoundState{std::move(boundParameters), jacobian, accumulatedPath};
 }
+
+#ifdef __CUDACC__
+__device__ void covarianceTransportOnDevice(
+    const GeometryContext &geoContext, BoundSymMatrix &covarianceMatrix,
+    BoundMatrix &jacobian, FreeMatrix &transportJacobian,
+    FreeVector &derivatives, BoundToFreeMatrix &jacobianLocalToGlobal,
+    const FreeVector &parameters, const Surface &surface) {
+  __shared__ BoundToFreeMatrix jacToGlobal;
+  if (threadIdx.y < eBoundParametersSize) {
+    double acc = 0;
+    for (int i = 0; i < eFreeParametersSize; i++) {
+      acc = transportJacobian(threadIdx.x, i) *
+            jacobianLocalToGlobal(i, threadIdx.y);
+    }
+    jacToGlobal(threadIdx.x, threadIdx.y) = acc;
+  }
+  __syncthreads();
+  // update the jacobianLocalToGlobal
+  if (threadIdx.y < eBoundParametersSize) {
+    jacobianLocalToGlobal(threadIdx.x, threadIdx.y) =
+        jacToGlobal(threadIdx.x, threadIdx.y);
+  }
+  __syncthreads();
+
+  __shared__ FreeToBoundMatrix jacToLocal;
+  // Calculate the jacToLocal with main thread
+  if (threadIdx.x == 0 && threadIdx.y == 0) {
+    jacToLocal = surfaceDerivative(geoContext, parameters,
+                                   jacobianLocalToGlobal, derivatives, surface);
+  }
+  __syncthreads();
+
+  // The bound to bound jacobian
+  if (threadIdx.x < eBoundParametersSize &&
+      threadIdx.y < eBoundParametersSize) {
+    double acc = 0;
+    for (int i = 0; i < eFreeParametersSize; i++) {
+      acc = jacToLocal(threadIdx.x, i) * jacobianLocalToGlobal(i, threadIdx.y);
+    }
+    jacobian(threadIdx.x, threadIdx.y) = acc;
+  }
+  __syncthreads();
+
+  __shared__ BoundSymMatrix updatedCovariance;
+  // Apply the actual covariance transport
+  if (threadIdx.x < eBoundParametersSize &&
+      threadIdx.y < eBoundParametersSize) {
+    double acc = 0;
+    for (int i = 0; i < eFreeParametersSize; i++) {
+      for (int j = 0; j < eFreeParametersSize; j++) {
+        acc = jacobian(threadIdx.x, i) * covarianceMatrix(i, j) *
+              jacobian.transpose()(j, threadIdx.y);
+      }
+    }
+    updatedCovariance(threadIdx.x, threadIdx.y) = acc;
+  }
+  __syncthreads();
+  // update the covariance matrix
+  if (threadIdx.x < eBoundParametersSize &&
+      threadIdx.y < eBoundParametersSize) {
+    covarianceMatrix(threadIdx.x, threadIdx.y) =
+        updatedCovariance(threadIdx.x, threadIdx.y);
+  }
+  __syncthreads();
+
+  if (threadIdx.x == 0 && threadIdx.y == 0) {
+    // Reinitialize jacobian components
+    reinitializeJacobians(geoContext, transportJacobian, derivatives,
+                          jacobianLocalToGlobal, parameters, surface);
+  }
+  __syncthreads();
+}
+
+
+__device__ BoundState boundStateOnDevice(
+    const GeometryContext &geoContext, BoundSymMatrix &covarianceMatrix,
+    BoundMatrix &jacobian, FreeMatrix &transportJacobian,
+    FreeVector &derivatives, BoundToFreeMatrix &jacobianLocalToGlobal,
+    const FreeVector &parameters, bool covTransport, double accumulatedPath,
+    const Surface &surface) {
+  // Covariance transport
+  __shared__ BoundSymMatrix cov;
+  // Initialize with multiple threads
+  if (threadIdx.x < eBoundParametersSize &&
+      threadIdx.y < eBoundParametersSize) {
+    cov(threadIdx.x, threadIdx.y) = 0;
+  }
+  __syncthreads();
+
+  if (covTransport) {
+    // update the covariance matrix
+    covarianceTransportOnDevice(geoContext, covarianceMatrix, jacobian,
+                                transportJacobian, derivatives,
+                                jacobianLocalToGlobal, parameters, surface);
+    if (threadIdx.x < eBoundParametersSize &&
+        threadIdx.y < eBoundParametersSize) {
+      cov(threadIdx.x, threadIdx.y) =
+          covarianceMatrix(threadIdx.x, threadIdx.y);
+    }
+    __syncthreads();
+  }
+
+  // No return for other threads?
+  if (threadIdx.x == 0 && threadIdx.y == 0) {
+    // Create the bound parameters
+    const Vector3D &position = parameters.segment<3>(eFreePos0);
+    const Vector3D momentum = std::abs(1. / parameters[eFreeQOverP]) *
+                              parameters.segment<3>(eFreeDir0);
+    const double charge = std::copysign(1., parameters[eFreeQOverP]);
+    const double time = parameters[eFreeTime];
+
+    BoundParameters boundParameters(geoContext, cov, position, momentum, charge,
+                                    time, &surface);
+    // Create the bound state
+    return BoundState{std::move(boundParameters), jacobian, accumulatedPath};
+  }
+}
+#endif
 
 /// Create and return a curvilinear state at the current position
 ///

@@ -118,7 +118,7 @@ __device__ void Acts::Propagator<S, N>::propagate(
 
   if (IS_MAIN_THREAD) {
     state = StateType(start, options);
-    pathAborter = path_aborter_t(); 
+    pathAborter = path_aborter_t();
     // pathAborter.internalLimit = options.pathLimit;
 
     state.options.initializer(state, m_stepper, result.initializerResult);

@@ -68,6 +68,7 @@ ACTS_DEVICE_FUNC void transportMatrix(const propagator_state_t &state,
   ActsVectorD<3> dk4dL =
       (dir + h * sd.k3).cross(sd.B_last) + qop * h * dk3dL.cross(sd.B_last);
 
+  // Calculate the dK/dT
   ActsMatrixD<3, 3> dk1dT = ActsMatrixD<3, 3>::Zero();
   {
     dk1dT(0, 1) = sd.B_first.z();
@@ -78,7 +79,6 @@ ACTS_DEVICE_FUNC void transportMatrix(const propagator_state_t &state,
     dk1dT(2, 1) = -sd.B_first.x();
     dk1dT *= qop;
   }
-
   ActsMatrixD<3, 3> dk2dT = ActsMatrixD<3, 3>::Identity();
   {
     dk2dT += half_h * dk1dT;
@@ -94,29 +94,131 @@ ACTS_DEVICE_FUNC void transportMatrix(const propagator_state_t &state,
     dk4dT += h * dk3dT;
     dk4dT = qop * VectorHelpers::cross(dk4dT, sd.B_last);
   }
+  // The dF/dT in D
   {
     auto dFdT = D.block<3, 3>(0, 4);
     dFdT.setIdentity();
     dFdT += h / 6. * (dk1dT + dk2dT + dk3dT);
     dFdT *= h;
   }
+  // The dF/dL in D
   {
     auto dFdL = D.block<3, 1>(0, 7);
     dFdL = (h * h) / 6. * (dk1dL + dk2dL + dk3dL);
   }
+  // The dG/dT in D
   {
     // dGdx is already initialised as (3x3) zero
     auto dGdT = D.block<3, 3>(4, 4);
     dGdT += h / 6. * (dk1dT + 2. * (dk2dT + dk3dT) + dk4dT);
   }
+  // The dG/dL in D
   {
     auto dGdL = D.block<3, 1>(4, 7);
     dGdL = h / 6. * (dk1dL + 2. * (dk2dL + dk3dL) + dk4dL);
   }
+  // The dt/d(q/p)
   D(3, 7) = h * state.options.mass * state.options.mass * state.stepping.q /
             (state.stepping.p *
              std::hypot(1., state.options.mass / state.stepping.p));
 }
+
+template <typename propagator_state_t>
+ACTS_DEVICE_FUNC void
+transportPartialMatrix(const propagator_state_t &state, const StepData &sd,
+                       const double &h, FreeMatrix &D, ActsMatrixD<3, 3> &dk1dT,
+                       ActsMatrixD<3, 3> &dk2dT, ActsMatrixD<3, 3> &dk3dT,
+                       ActsMatrixD<3, 3> &dk4dT) {
+  D = FreeMatrix::Identity();
+  auto dir = state.stepping.dir;
+  auto qop = state.stepping.q / state.stepping.p;
+
+  const double half_h = h * 0.5;
+  // This sets the reference to the sub matrices
+  // dFdx is already initialised as (3x3) idendity
+
+  // Calculate the dK/dL
+  ActsVectorD<3> dk1dL = dir.cross(sd.B_first);
+  ActsVectorD<3> dk2dL = (dir + half_h * sd.k1).cross(sd.B_middle) +
+                         qop * half_h * dk1dL.cross(sd.B_middle);
+  ActsVectorD<3> dk3dL = (dir + half_h * sd.k2).cross(sd.B_middle) +
+                         qop * half_h * dk2dL.cross(sd.B_middle);
+  ActsVectorD<3> dk4dL =
+      (dir + h * sd.k3).cross(sd.B_last) + qop * h * dk3dL.cross(sd.B_last);
+  // The dF/dL in D
+  {
+    auto dFdL = D.block<3, 1>(0, 7);
+    dFdL = (h * h) / 6. * (dk1dL + dk2dL + dk3dL);
+  }
+  // The dG/dL in D
+  {
+    auto dGdL = D.block<3, 1>(4, 7);
+    dGdL = h / 6. * (dk1dL + 2. * (dk2dL + dk3dL) + dk4dL);
+  }
+  // The dt/d(q/p)
+  D(3, 7) = h * state.options.mass * state.options.mass * state.stepping.q /
+            (state.stepping.p *
+             std::hypot(1., state.options.mass / state.stepping.p));
+
+  // Calculate the dK/dT
+  dk1dT = ActsMatrixD<3, 3>::Zero();
+  {
+    dk1dT(0, 1) = sd.B_first.z();
+    dk1dT(0, 2) = -sd.B_first.y();
+    dk1dT(1, 0) = -sd.B_first.z();
+    dk1dT(1, 2) = sd.B_first.x();
+    dk1dT(2, 0) = sd.B_first.y();
+    dk1dT(2, 1) = -sd.B_first.x();
+    dk1dT *= qop;
+  }
+  dk2dT = ActsMatrixD<3, 3>::Identity();
+  {
+    dk2dT += half_h * dk1dT;
+    dk2dT = qop * VectorHelpers::cross(dk2dT, sd.B_middle);
+  }
+  dk3dT = ActsMatrixD<3, 3>::Identity();
+  {
+    dk3dT += half_h * dk2dT;
+    dk3dT = qop * VectorHelpers::cross(dk3dT, sd.B_middle);
+  }
+  dk4dT = ActsMatrixD<3, 3>::Identity();
+  {
+    dk4dT += h * dk3dT;
+    dk4dT = qop * VectorHelpers::cross(dk4dT, sd.B_last);
+  }
+}
+
+#ifdef __CUDACC__
+__device__ void transportdTOnDevice(const double &h,
+                                    const ActsMatrixD<3, 3> &dk1dT,
+                                    const ActsMatrixD<3, 3> &dk2dT,
+                                    const ActsMatrixD<3, 3> &dk3dT,
+                                    const ActsMatrixD<3, 3> &dk4dT,
+                                    FreeMatrix &D) {
+  // The dF/dT in D
+  if (threadIdx.x >= 0 && threadIdx.x < 3 && threadIdx.y >= 4 &&
+      threadIdx.y < 7) {
+    D(threadIdx.x, threadIdx.y) += h / 6 *
+                                   (dk1dT(threadIdx.x, threadIdx.y - 4) +
+                                    dk2dT(threadIdx.x, threadIdx.y - 4) +
+                                    dk3dT(threadIdx.x, threadIdx.y - 4));
+    D(threadIdx.x, threadIdx.y) *= h;
+  }
+  __syncthreads();
+
+  // The dG/dT in D
+  if (threadIdx.x >= 4 && threadIdx.x < 7 && threadIdx.y >= 4 &&
+      threadIdx.y < 7) {
+    D(threadIdx.x, threadIdx.y) +=
+        h / 6. *
+        (dk1dT(threadIdx.x - 4, threadIdx.y - 4) +
+         2. * (dk2dT(threadIdx.x - 4, threadIdx.y - 4) +
+               dk3dT(threadIdx.x - 4, threadIdx.y - 4)) +
+         dk4dT(threadIdx.x - 4, threadIdx.y - 4));
+  }
+  __syncthreads();
+}
+#endif
 
 } // namespace detail
 } // namespace Acts
@@ -208,7 +310,8 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
   // When doing error propagation, update the associated Jacobian matrix
   // The step transport matrix in global coordinates
   if (state.stepping.covTransport) {
-    // for moment, only update the transport part
+    // The state.stepping.jacTransport is only identity after calling the
+    // boundState
     FreeMatrix D;
     detail::transportMatrix(state, sd, h, D);
     state.stepping.jacTransport = D * state.stepping.jacTransport;
@@ -243,7 +346,7 @@ Acts::EigenStepper<B>::stepOnDevice(propagator_state_t &state) const {
 
   // First Runge-Kutta point (at current position)
   if (IS_MAIN_THREAD) {
-    sd = detail::StepData(); 
+    sd = detail::StepData();
     sd.B_first = getField(state.stepping, state.stepping.pos);
     sd.k1 = detail::evaluatek(state, sd.B_first, 0);
   }
@@ -335,22 +438,28 @@ Acts::EigenStepper<B>::stepOnDevice(propagator_state_t &state) const {
   }
   __syncthreads();
 
-  __shared__ FreeMatrix jacTransport;
+  __shared__ FreeMatrix D;
+  //__shared__ ActsMatrixD<3,3> dk1dT;
+  //__shared__ ActsMatrixD<3,3> dk2dT;
+  //__shared__ ActsMatrixD<3,3> dk3dT;
+  //__shared__ ActsMatrixD<3,3> dk4dT;
   // When doing error propagation, update the associated Jacobian matrix
   // The step transport matrix in global coordinates
   if (state.stepping.covTransport) {
+    // Initialize with all threads (could be removed?)
     if (IS_MAIN_THREAD) {
-      jacTransport(threadIdx.x, threadIdx.y) = 0;
-
-      // for moment, only update the transport part
-      detail::transportMatrix(state, sd, h, jacTransport);
+      // calculate the D with the main thread
+      detail::transportMatrix(state, sd, h, D);
+      // detail::transportPartialMatrix(state, sd, h, D, dk1dT, dk2dT, dk3dT,
+      // dk4dT);
     }
     __syncthreads();
 
+    // detail::transportdTOnDevice(h, dk1dT, dk2dT, dk3dT, dk4dT, D);
+
     double acc = 0.0;
     for (int i = 0; i < eFreeParametersSize; ++i) {
-      acc += jacTransport(threadIdx.x, i) *
-             state.stepping.jacTransport(i, threadIdx.y);
+      acc += D(threadIdx.x, i) * state.stepping.jacTransport(i, threadIdx.y);
     }
     state.stepping.jacTransport(threadIdx.x, threadIdx.y) = acc;
   }
@@ -368,8 +477,30 @@ Acts::EigenStepper<B>::stepOnDevice(propagator_state_t &state) const {
     state.stepping.pathAccumulated += h;
   }
   __syncthreads();
-  // return h;
   return true;
+}
+
+template <typename B>
+__device__ auto Acts::EigenStepper<B>::boundStateOnDevice(
+    State &state, const Surface &surface) const -> BoundState {
+  __shared__ FreeVector parameters;
+  // Initialize with the main thread
+  if (threadIdx.x == 0 && threadIdx.y == 0) {
+    parameters[0] = state.pos[0];
+    parameters[1] = state.pos[1];
+    parameters[2] = state.pos[2];
+    parameters[3] = state.t;
+    parameters[4] = state.dir[0];
+    parameters[5] = state.dir[1];
+    parameters[6] = state.dir[2];
+    parameters[7] = state.q / state.p;
+  }
+  __syncthreads();
+
+  return detail::boundStateOnDevice(
+      state.geoContext, state.cov, state.jacobian, state.jacTransport,
+      state.derivative, state.jacToGlobal, parameters, state.covTransport,
+      state.pathAccumulated, surface);
 }
 #endif
 
