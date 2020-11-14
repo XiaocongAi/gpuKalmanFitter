@@ -278,8 +278,9 @@ template <typename bfield_t> struct EigenStepper {
   ///   - the parameters at the surface
   ///   - the stepwise jacobian towards it (from last bound)
   ///   - and the path length (from start - for ordering)
-  ACTS_DEVICE_FUNC BoundState boundState(State &state,
-                                         const Surface &surface) const;
+  ACTS_DEVICE_FUNC void boundState(State &state, const Surface &surface,
+                                   BoundParameters &boundParams,
+                                   BoundMatrix &jacobian, double &path) const;
 
 #ifdef __CUDACC__
   /// Create and return the bound state at the current position
@@ -297,7 +298,7 @@ template <typename bfield_t> struct EigenStepper {
   ///   - the stepwise jacobian towards it (from last bound)
   ///   - and the path length (from start - for ordering)
   __device__ BoundState boundStateOnDevice(State &state,
-                                                 const Surface &surface) const;
+                                           const Surface &surface) const;
 #endif
 
   /// Create and return a curvilinear state at the current position

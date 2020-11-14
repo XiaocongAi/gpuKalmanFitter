@@ -280,13 +280,11 @@ private:
         // printf("sl position = (%f, %f, %f)\n", pos.x(), pos.y(), pos.z());
 
         // Transport & bind the state to the current surface
-        // auto [boundParams, jacobian, pathLength] =
-        auto bState = stepper.boundState(state.stepping, *surface);
+        stepper.boundState(
+            state.stepping, *surface, trackState.parameter.predicted,
+            trackState.parameter.jacobian, trackState.parameter.pathLength);
 
         // Fill the track state
-        trackState.parameter.predicted = std::move(bState.boundParams);
-        trackState.parameter.jacobian = std::move(bState.jacobian);
-        trackState.parameter.pathLength = std::move(bState.path);
         auto prePos = trackState.parameter.predicted.position();
         // printf("Predicted parameter position = (%f, %f, %f)\n", prePos.x(),
         // prePos.y(), prePos.z());

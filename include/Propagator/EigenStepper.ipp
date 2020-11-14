@@ -505,9 +505,10 @@ __device__ auto Acts::EigenStepper<B>::boundStateOnDevice(
 #endif
 
 template <typename B>
-ACTS_DEVICE_FUNC auto
-Acts::EigenStepper<B>::boundState(State &state, const Surface &surface) const
-    -> BoundState {
+ACTS_DEVICE_FUNC void
+Acts::EigenStepper<B>::boundState(State &state, const Surface &surface,
+                                  BoundParameters &boundParams,
+                                  BoundMatrix &jacobian, double &path) const {
   FreeVector parameters;
   parameters[0] = state.pos[0];
   parameters[1] = state.pos[1];
@@ -518,10 +519,12 @@ Acts::EigenStepper<B>::boundState(State &state, const Surface &surface) const
   parameters[6] = state.dir[2];
   parameters[7] = state.q / state.p;
 
-  return detail::boundState(state.geoContext, state.cov, state.jacobian,
-                            state.jacTransport, state.derivative,
-                            state.jacToGlobal, parameters, state.covTransport,
-                            state.pathAccumulated, surface);
+  detail::boundState(state.geoContext, state.cov, state.jacobian,
+                     state.jacTransport, state.derivative, state.jacToGlobal,
+                     parameters, state.covTransport, surface, boundParams);
+  // Bound to bound jacobian
+  jacobian = state.jacobian;
+  path = state.pathAccumulated;
 }
 
 template <typename B>

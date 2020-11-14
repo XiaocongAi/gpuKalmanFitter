@@ -336,31 +336,31 @@ covarianceTransport(BoundSymMatrix &covarianceMatrix, BoundMatrix &jacobian,
 ///   - the parameters at the surface
 ///   - the stepwise jacobian towards it (from last bound)
 ///   - and the path length (from start - for ordering)
-BoundState ACTS_DEVICE_FUNC
-boundState(const GeometryContext &geoContext, BoundSymMatrix &covarianceMatrix,
-           BoundMatrix &jacobian, FreeMatrix &transportJacobian,
-           FreeVector &derivatives, BoundToFreeMatrix &jacobianLocalToGlobal,
-           const FreeVector &parameters, bool covTransport,
-           double accumulatedPath, const Surface &surface) {
+ACTS_DEVICE_FUNC
+void boundState(const GeometryContext &geoContext,
+                BoundSymMatrix &covarianceMatrix, BoundMatrix &jacobian,
+                FreeMatrix &transportJacobian, FreeVector &derivatives,
+                BoundToFreeMatrix &jacobianLocalToGlobal,
+                const FreeVector &parameters, bool covTransport,
+                const Surface &surface, BoundParameters &boundParams) {
   // Covariance transport
   BoundSymMatrix cov = BoundSymMatrix::Zero();
   if (covTransport) {
+    // The jacobian, covarianceMatrix, jacobianLocalToGlobal are updated
     covarianceTransport(geoContext, covarianceMatrix, jacobian,
                         transportJacobian, derivatives, jacobianLocalToGlobal,
                         parameters, surface);
     cov = covarianceMatrix;
   }
+
   // Create the bound parameters
   const Vector3D &position = parameters.segment<3>(eFreePos0);
   const Vector3D momentum =
       std::abs(1. / parameters[eFreeQOverP]) * parameters.segment<3>(eFreeDir0);
   const double charge = std::copysign(1., parameters[eFreeQOverP]);
   const double time = parameters[eFreeTime];
-
-  BoundParameters boundParameters(geoContext, cov, position, momentum, charge,
-                                  time, &surface);
-  // Create the bound state
-  return BoundState{std::move(boundParameters), jacobian, accumulatedPath};
+  boundParams = BoundParameters(geoContext, cov, position, momentum, charge,
+                                time, &surface);
 }
 
 #ifdef __CUDACC__
@@ -434,7 +434,6 @@ __device__ void covarianceTransportOnDevice(
   }
   __syncthreads();
 }
-
 
 __device__ BoundState boundStateOnDevice(
     const GeometryContext &geoContext, BoundSymMatrix &covarianceMatrix,
