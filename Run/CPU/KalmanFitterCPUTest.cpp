@@ -32,10 +32,11 @@ static void show_usage(std::string name) {
             << "Options:\n"
             << "\t-h,--help\t\tShow this help message\n"
             << "\t-t,--tracks \tSpecify the number of tracks\n"
-            << "\t-p,--pt \tSpecify the pt of particle\n"
+            //<< "\t-p,--pt \tSpecify the pt of particle\n"
             << "\t-o,--output \tIndicator for writing propagation results\n"
             //<< "\t-b,--bf-map \tSpecify the path of *.txt for interpolated "
             //   "BField map\n"
+            << "\t-r,--threads \tSpecify the number of threads\n"
             << std::endl;
 }
 
@@ -55,6 +56,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   unsigned int nTracks;
+  unsigned int nThreads;
   bool output = false;
   std::string device;
   std::string bFieldFileName;
@@ -67,10 +69,12 @@ int main(int argc, char *argv[]) {
     } else if (i + 1 < argc) {
       if ((arg == "-t") or (arg == "--tracks")) {
         nTracks = atoi(argv[++i]);
-      } else if ((arg == "-p") or (arg == "--pt")) {
-        p = atof(argv[++i]) * Acts::units::_GeV;
+        //} else if ((arg == "-p") or (arg == "--pt")) {
+        //  p = atof(argv[++i]) * Acts::units::_GeV;
       } else if ((arg == "-o") or (arg == "--output")) {
         output = (atoi(argv[++i]) == 1);
+      } else if ((arg == "-r") or (arg == "--threads")) {
+        nThreads = atoi(argv[++i]);
       } else {
         std::cerr << "Unknown argument." << std::endl;
         return 1;
@@ -168,7 +172,7 @@ int main(int argc, char *argv[]) {
   int threads = 1;
   auto start_fit = std::chrono::high_resolution_clock::now();
   std::cout << " Run the fit" << std::endl;
-#pragma omp parallel for num_threads(250)
+#pragma omp parallel for num_threads(nThreads)
   for (int it = 0; it < nTracks; it++) {
     // The fit result wrapper
     KalmanFitterResultType kfResult;
