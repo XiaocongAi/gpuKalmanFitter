@@ -196,6 +196,15 @@ private:
     /// Whether to consider energy loss.
     bool energyLoss = true;
 
+    /// Add constructor with updater and smoother
+    ACTS_DEVICE_FUNC Actor(updater_t pUpdater = updater_t(), smoother_t pSmoother = smoother_t()
+          //, calibrator_t pCalibrator = calibrator_t()
+          )
+        : m_updater(std::move(pUpdater)),
+          m_smoother(std::move(pSmoother)) 
+          //, m_calibrator(std::move(pCalibrator)) 
+          {}
+
     /// @brief Kalman actor operation
     ///
     /// @tparam propagator_state_t is the type of Propagagor state
@@ -221,6 +230,11 @@ private:
         }
       }
 
+      bool IS_MAIN_THREAD = true;
+      #ifdef __CUDA_ARCH__
+      	IS_MAIN_THREAD = threadIdx.x == 0 && threadIdx.y == 0;
+      #endif
+ 
       // Finalization:
       // when all track states have been handled or the navigation is breaked,
       // reset navigation&stepping before run backward filtering or
@@ -229,14 +243,17 @@ private:
           (result.measurementStates > 0 and state.navigation.navigationBreak)) {
         // printf("Finishing forward filtering");
         result.finished = true;
-        // if (not result.smoothed) {
-        //  printf("Finalize/run smoothing\n");
-        //  auto res = finalize(state, stepper, result);
-        //  if (!res) {
-        //    printf("Error in finalize:\n");
-        //    result.result = false;
-        //  }
-        //}
+        if (not result.smoothed) {
+          
+	  if (IS_MAIN_THREAD) {  
+		// printf("Finalize/run smoothing\n");   
+          	auto res = finalize(state, stepper, result);
+          	if (!res) {
+            		printf("Error in finalize:\n");
+            		result.result = false;
+          	}
+          }
+	}
       }
 
       // Post-finalization:
@@ -387,12 +404,13 @@ private:
 
       // Smooth the track states
       const auto &smoothedPars =
-          m_smoother(state.geoContext, result.fittedStates);
+          m_smoother(state.options.geoContext, result.fittedStates);
 
       if (smoothedPars) {
-        stepper.update(state.stepping, *smoothedPars.position(),
-                       *smoothedPars.momentum().normalized(),
-                       *smoothedPars.momentum().norm(), *smoothedPars.time());
+        //printf("pos=%d,%d\n",(*smoothedPars).position().x(), (*smoothedPars).position().y());
+        stepper.update(state.stepping,(*smoothedPars).position(),
+                       (*smoothedPars).momentum().normalized(),
+                       (*smoothedPars).momentum().norm(), (*smoothedPars).time());
 
         // Reverse the propagation direction
         state.stepping.stepSize =
@@ -400,7 +418,7 @@ private:
         state.stepping.navDir = backward;
         // Set accumulatd path to zero before targeting surface
         state.stepping.pathAccumulated = 0.;
-
+      
         return true;
       }
 
@@ -528,7 +546,7 @@ public:
 
     PUSH_RANGE("fit", 0);
 
-    // printf("Preparing %lu input measurements\n", sourcelinks.size());
+    //printf("Preparing %lu input measurements\n", sourcelinks.size());
     // Create the ActionList and AbortList
     using KalmanAborter = Aborter<source_link_t, parameters_t>;
     using KalmanActor = Actor<source_link_t, parameters_t>;

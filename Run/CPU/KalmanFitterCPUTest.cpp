@@ -1,6 +1,7 @@
 #include "EventData/PixelSourceLink.hpp"
 #include "EventData/TrackParameters.hpp"
 #include "Fitter/GainMatrixUpdater.hpp"
+#include "Fitter/GainMatrixSmoother.hpp"
 #include "Fitter/KalmanFitter.hpp"
 #include "Material/HomogeneousSurfaceMaterial.hpp"
 #include "Propagator/EigenStepper.hpp"
@@ -44,8 +45,9 @@ using Stepper = Acts::EigenStepper<Test::ConstantBField>;
 using PropagatorType = Acts::Propagator<Stepper>;
 using PropResultType = Acts::PropagatorResult;
 using PropOptionsType = Acts::PropagatorOptions<Simulator, Test::VoidAborter>;
+using Smoother = GainMatrixSmoother<BoundParameters>;
 using KalmanFitterType =
-    Acts::KalmanFitter<PropagatorType, Acts::GainMatrixUpdater>;
+    Acts::KalmanFitter<PropagatorType, Acts::GainMatrixUpdater, Smoother>;
 using KalmanFitterResultType =
     Acts::KalmanFitterResult<Acts::PixelSourceLink, Acts::BoundParameters>;
 using TSType = typename KalmanFitterResultType::TrackStateType;
