@@ -481,8 +481,9 @@ Acts::EigenStepper<B>::stepOnDevice(propagator_state_t &state) const {
 }
 
 template <typename B>
-__device__ auto Acts::EigenStepper<B>::boundStateOnDevice(
-    State &state, const Surface &surface) const -> BoundState {
+__device__ void Acts::EigenStepper<B>::boundStateOnDevice(
+    State &state, const Surface &surface, BoundParameters &boundParams,
+    BoundMatrix &jacobian, double &path) const {
   __shared__ FreeVector parameters;
   // Initialize with the main thread
   if (threadIdx.x == 0 && threadIdx.y == 0) {
@@ -497,10 +498,15 @@ __device__ auto Acts::EigenStepper<B>::boundStateOnDevice(
   }
   __syncthreads();
 
-  return detail::boundStateOnDevice(
-      state.geoContext, state.cov, state.jacobian, state.jacTransport,
-      state.derivative, state.jacToGlobal, parameters, state.covTransport,
-      state.pathAccumulated, surface);
+  detail::boundStateOnDevice(state.geoContext, state.cov, state.jacobian,
+                             state.jacTransport, state.derivative,
+                             state.jacToGlobal, parameters, state.covTransport,
+                             surface, boundParams);
+  if (threadIdx.x == 0 && threadIdx.y == 0) {
+    jacobian = state.jacobian;
+    path = state.pathAccumulated;
+  }
+  __syncthreads();
 }
 #endif
 
