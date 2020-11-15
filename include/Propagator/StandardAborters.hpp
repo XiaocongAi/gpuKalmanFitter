@@ -83,7 +83,8 @@ struct SurfaceReached {
   /// @param [in,out] state The propagation state object
   /// @param [in] stepper Stepper used for the progation
   /// @param [in] targetSurface The target surface
-  template <typename propagator_state_t, typename stepper_t>
+  template <typename propagator_state_t, typename stepper_t,
+            typename target_surface_t>
   ACTS_DEVICE_FUNC bool operator()(propagator_state_t &state,
                                    const stepper_t &stepper,
                                    const Surface &targetSurface) const {
@@ -100,7 +101,7 @@ struct SurfaceReached {
     }
     // Calculate the distance to the surface
     const double tolerance = state.options.targetTolerance;
-    const auto sIntersection = targetSurface.intersect(
+    const auto sIntersection = targetSurface.intersect<target_surface_t>(
         state.geoContext, stepper.position(state.stepping),
         state.stepping.navDir * stepper.direction(state.stepping), true);
 

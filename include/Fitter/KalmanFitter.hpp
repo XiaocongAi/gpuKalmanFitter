@@ -14,7 +14,6 @@
 #include "Geometry/GeometryContext.hpp"
 #include "MagneticField/MagneticFieldContext.hpp"
 #include "Propagator/ConstrainedStep.hpp"
-#include "Propagator/DirectNavigator.hpp"
 #include "Propagator/Propagator.hpp"
 #include "Propagator/StandardAborters.hpp"
 #include "Propagator/detail/CovarianceEngine.hpp"
@@ -72,8 +71,8 @@ struct KalmanFitterOptions {
   KalmanFitterOptions(const GeometryContext &gctx,
                       const MagneticFieldContext &mctx,
                       const OutlierFinder &outlierFinder_ = VoidOutlierFinder(),
-                      Surface *rSurface = nullptr, bool mScattering = true,
-                      bool eLoss = true)
+                      const Surface *rSurface = nullptr,
+                      bool mScattering = true, bool eLoss = true)
       : geoContext(gctx), magFieldContext(mctx), outlierFinder(outlierFinder_),
         referenceSurface(rSurface), multipleScattering(mScattering),
         energyLoss(eLoss) {}
@@ -87,7 +86,7 @@ struct KalmanFitterOptions {
   OutlierFinder outlierFinder;
 
   /// The reference Surface
-  Surface *referenceSurface = nullptr;
+  const Surface *referenceSurface = nullptr;
 
   /// Whether to consider multiple scattering
   bool multipleScattering = true;
@@ -104,7 +103,7 @@ struct KalmanFitterResult {
   CudaKernelContainer<TrackStateType> fittedStates;
 
   // The optional Parameters at the provided surface
-  // std::optional<BoundParameters> fittedParameters;
+  BoundParameters fittedParameters;
 
   // Counter for states with measurements
   size_t measurementStates = 0;
@@ -152,7 +151,8 @@ struct KalmanFitterResult {
 /// The void components are provided mainly for unit testing.
 template <typename propagator_t, typename updater_t = VoidKalmanUpdater,
           typename smoother_t = VoidKalmanSmoother,
-          typename outlier_finder_t = VoidOutlierFinder>
+          typename outlier_finder_t = VoidOutlierFinder,
+          typename target_surface_t = PlaneSurface<InfiniteBounds>>
 class KalmanFitter {
 public:
   /// Default constructor is deleted
@@ -254,8 +254,19 @@ private:
       // Post-finalization:
       // - Progress to target/reference surface and built the final track
       // parameters
-      if (result.smoothed and !result.finished) {
-        // printf("Completing\n");
+      if (result.smoothed and !result.finished and
+          targetReached.
+          operator()<propagator_state_t, stepper_t, target_surface_t>(
+              state, stepper, *targetSurface)) {
+        printf("Completing\n");
+        // Construct a tempory jacobian and path, which is necessary for calling
+        // the boundState
+        typename TrackStateType::Jacobian jac;
+        double path;
+        // Transport & bind the parameter to the final surface
+        stepper.boundState(state.stepping, *targetSurface,
+                           result.fittedParameters, jac, path);
+
         // Remember the track fitting is done
         result.finished = true;
       }
