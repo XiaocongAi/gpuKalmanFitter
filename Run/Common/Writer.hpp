@@ -9,7 +9,7 @@
 #include <random>
 
 template <typename hits_collection_t>
-void writeSimHits(const hits_collection_t &simHits) {
+void writeSimHitsObj(const hits_collection_t &simHits) {
   // Write all of the created tracks to one obj file
   std::ofstream obj_hits;
   std::string fileName = "sim-hits.obj";
@@ -33,7 +33,7 @@ void writeSimHits(const hits_collection_t &simHits) {
 }
 
 template <typename track_state_t>
-void writeStates(const track_state_t *states, const bool *status,
+void writeStatesObj(const track_state_t *states, const bool *status,
                  unsigned int nTracks, unsigned int nSurfaces,
                  std::string fileName, std::string parameters = "smoothed") {
   // Write all of the created tracks to one obj file
@@ -70,7 +70,7 @@ void writeStates(const track_state_t *states, const bool *status,
   obj_tracks.close();
 }
 
-void writeParams(const Acts::BoundParameters *params, const bool *status,
+void writeParamsCsv(const Acts::BoundParameters *params, const bool *status,
                  unsigned int nTracks, std::string fileName) {
   // Write all of the created tracks to one obj file
   std::ofstream csv_params;

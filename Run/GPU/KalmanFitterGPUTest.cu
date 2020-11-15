@@ -320,7 +320,7 @@ int main(int argc, char *argv[]) {
             << elapsed_seconds.count() * 1000 << std::endl;
   if (output) {
     std::cout << "writing propagation results" << std::endl;
-    writeSimHits(simResult);
+    writeSimHitsObj(simResult);
   }
 
   // The hit smearing resolution
@@ -549,9 +549,9 @@ int main(int argc, char *argv[]) {
     }
     stateFileName.append(std::to_string(nTracks)).append(".obj");
     paramFileName.append(std::to_string(nTracks)).append(".csv");
-    writeStates(fittedStates, fitStatus, nTracks, nSurfaces, stateFileName,
+    writeStatesObj(fittedStates, fitStatus, nTracks, nSurfaces, stateFileName,
                 param);
-    writeParams(fitPars, fitStatus, nTracks, paramFileName);
+    writeParamsCsv(fitPars, fitStatus, nTracks, paramFileName);
   }
 
   std::cout << "------------------------  ending  -----------------------"
