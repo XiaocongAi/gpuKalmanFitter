@@ -164,6 +164,7 @@ int main(int argc, char *argv[]) {
   // Prepare to perform fit to the created tracks
   KalmanFitterType kFitter(propagator);
   std::vector<TSType> fittedStates(nSurfaces * nTracks);
+  std::vector<Acts::BoundParameters> fittedParams(nTracks);
   bool fitStatus[nTracks];
 
   int threads = 1;
@@ -189,8 +190,9 @@ int main(int argc, char *argv[]) {
     if (not status) {
       std::cout << "fit failure for track " << it << std::endl;
     }
-    // store the fit status
+    // store the fit parameters and status
     fitStatus[it] = status;
+    fittedParams[it] = kfResult.fittedParameters;
     threads = omp_get_num_threads();
   }
   std::cout << "threads = " << threads << std::endl;
@@ -208,10 +210,13 @@ int main(int argc, char *argv[]) {
   if (output) {
     std::cout << "writing fitting results" << std::endl;
     std::string param = "smoothed";
-    std::string fileName =
+    std::string stateFileName =
         "fitted_" + param + "_cpu_nTracks_" + std::to_string(nTracks) + ".obj";
-    Test::writeTracks(fittedStates.data(), fitStatus, nTracks, nSurfaces,
-                      fileName, param);
+    Test::writeStates(fittedStates.data(), fitStatus, nTracks, nSurfaces,
+                      stateFileName, param);
+    std::string paramFileName =
+        "fitted_param_cpu_nTracks_" + std::to_string(nTracks) + ".csv";
+    Test::writeParams(fittedParams.data(), fitStatus, nTracks, paramFileName);
   }
 
   // @todo Write the residual and pull of track parameters to ntuple
