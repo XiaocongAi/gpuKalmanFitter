@@ -214,7 +214,7 @@ int main(int argc, char *argv[]) {
     std::string stateFileName =
         "fitted_" + param + "_cpu_nTracks_" + std::to_string(nTracks) + ".obj";
     writeStatesObj(fittedStates.data(), fitStatus, nTracks, nSurfaces,
-                stateFileName, param);
+                   stateFileName, param);
     std::string paramFileName =
         "fitted_param_cpu_nTracks_" + std::to_string(nTracks) + ".csv";
     writeParamsCsv(fittedParams.data(), fitStatus, nTracks, paramFileName);

@@ -550,7 +550,7 @@ int main(int argc, char *argv[]) {
     stateFileName.append(std::to_string(nTracks)).append(".obj");
     paramFileName.append(std::to_string(nTracks)).append(".csv");
     writeStatesObj(fittedStates, fitStatus, nTracks, nSurfaces, stateFileName,
-                param);
+                   param);
     writeParamsCsv(fitPars, fitStatus, nTracks, paramFileName);
   }
 
