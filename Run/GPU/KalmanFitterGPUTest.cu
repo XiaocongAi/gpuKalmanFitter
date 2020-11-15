@@ -530,18 +530,27 @@ int main(int argc, char *argv[]) {
 
   if (output) {
     std::cout << "writing KF results" << std::endl;
-    std::string fileName;
+    std::string stateFileName;
+    std::string paramFileName; 
+    
     std::string param = "smoothed";
-    fileName.append("fitted_");
-    fileName.append(param);
+    stateFileName.append("fitted_");
+    stateFileName.append(param);
+    
+    paramFileName.append("fitted_");
+    paramFileName.append("param");
     if (useGPU) {
-      fileName.append("_gpu_nTracks_");
+      stateFileName.append("_gpu_nTracks_");
+      paramFileName.append("_gpu_nTracks_");
     } else {
-      fileName.append("_semi_cpu_nTracks_");
+      stateFileName.append("_semi_cpu_nTracks_");
+      paramFileName.append("_semi_cpu_nTracks_");
     }
-    fileName.append(std::to_string(nTracks)).append(".obj");
-    Test::writeStates(fittedStates, fitStatus, nTracks, nSurfaces, fileName,
+    stateFileName.append(std::to_string(nTracks)).append(".obj");
+    paramFileName.append(std::to_string(nTracks)).append(".csv");
+    Test::writeStates(fittedStates, fitStatus, nTracks, nSurfaces, stateFileName,
                       param);
+    Test::writeParams(fitPars, fitStatus, nTracks, paramFileName); 
   }
 
   std::cout << "------------------------  ending  -----------------------"
