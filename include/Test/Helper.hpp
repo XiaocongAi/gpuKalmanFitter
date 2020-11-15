@@ -1,6 +1,7 @@
 #pragma once
 
 #include "EventData/PixelSourceLink.hpp"
+#include "EventData/TrackParameters.hpp"
 #include "Material/Material.hpp"
 #include "Material/MaterialSlab.hpp"
 #include "Utilities/Definitions.hpp"
@@ -122,7 +123,7 @@ void writeSimHits(const hits_collection_t &simHits) {
 }
 
 template <typename track_state_t>
-void writeTracks(const track_state_t *states, const bool *status,
+void writeStates(const track_state_t *states, const bool *status,
                  unsigned int nTracks, unsigned int nSurfaces,
                  std::string fileName, std::string parameters = "smoothed") {
   // Write all of the created tracks to one obj file
@@ -157,6 +158,36 @@ void writeTracks(const track_state_t *states, const bool *status,
       obj_tracks << "l " << vCounter << " " << vCounter + 1 << '\n';
   }
   obj_tracks.close();
+}
+
+void writeParams(const Acts::BoundParameters *params, const bool *status,
+                 unsigned int nTracks, std::string fileName) {
+  // Write all of the created tracks to one obj file
+  std::ofstream csv_params;
+  if (fileName.empty()) {
+    fileName = "params-fitted.obj";
+  }
+  csv_params.open(fileName.c_str());
+
+  // write the csv header
+  csv_params << "trackIdx, fit_BoundLoc0, fit_BoundLoc1, fit_BoundPhi, "
+                "fit_BoundTheta, fit_BoundQOverP, fit_BoundTime"
+             << '\n';
+  // Initialize the t counter
+  for (unsigned int it = 0; it < nTracks; it++) {
+    // we skip the unsuccessful tracks
+    if (not status[it]) {
+      continue;
+    }
+    const auto parameters = params[it].parameters();
+    csv_params << it << "," << parameters[Acts::eBoundLoc0] << ","
+               << parameters[Acts::eBoundLoc1] << ","
+               << parameters[Acts::eBoundPhi] << ","
+               << parameters[Acts::eBoundTheta] << ","
+               << parameters[Acts::eBoundQOverP] << ","
+               << parameters[Acts::eBoundTime] << '\n';
+  }
+  csv_params.close();
 }
 
 } // namespace Test
