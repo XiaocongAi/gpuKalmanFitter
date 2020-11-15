@@ -211,13 +211,20 @@ int main(int argc, char *argv[]) {
   if (output) {
     std::cout << "writing fitting results" << std::endl;
     std::string param = "smoothed";
+    // write fitted states to obj file
     std::string stateFileName =
         "fitted_" + param + "_cpu_nTracks_" + std::to_string(nTracks) + ".obj";
     writeStatesObj(fittedStates.data(), fitStatus, nTracks, nSurfaces,
                    stateFileName, param);
+    // write fitted params to cvs file
     std::string paramFileName =
         "fitted_param_cpu_nTracks_" + std::to_string(nTracks) + ".csv";
     writeParamsCsv(fittedParams.data(), fitStatus, nTracks, paramFileName);
+    // write fitted params and residual/pull to root file
+    std::string rootFileName =
+        "fitted_param_cpu_nTracks_" + std::to_string(nTracks) + ".root";
+    writeParamsRoot(gctx, fittedParams.data(), fitStatus, validParticles,
+                    nTracks, rootFileName, "params");
   }
 
   // @todo Write the residual and pull of track parameters to ntuple

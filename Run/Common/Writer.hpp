@@ -106,12 +106,12 @@ void writeParamsCsv(const Acts::BoundParameters *params, const bool *status,
 }
 
 // Write the fitted parameters and truth particle info (one entry for one track)
-void writeParamsResidualRoot(const Acts::GeometryContext &gctx,
-                             const Acts::BoundParameters *fittedParams,
-                             const bool *status,
-                             const SimParticleContainer &simParticles,
-                             unsigned int nTracks, std::string fileName,
-                             std::string treeName) {
+void writeParamsRoot(const Acts::GeometryContext &gctx,
+                     const Acts::BoundParameters *fittedParams,
+                     const bool *status,
+                     const SimParticleContainer &simParticles,
+                     unsigned int nTracks, std::string fileName,
+                     std::string treeName) {
   // Define the variables to write out
   int t_charge{0};
   float t_time{0};
@@ -217,7 +217,7 @@ void writeParamsResidualRoot(const Acts::GeometryContext &gctx,
 
     for (unsigned int ip = 0; ip < Acts::eBoundParametersSize; ip++) {
       params_fit[ip] = parameters[ip];
-      err_params_fit[ip] = covariance(ip, ip);
+      err_params_fit[ip] = sqrt(covariance(ip, ip));
       res_params[ip] = parameters[ip] - truthParameters[ip];
       pull_params[ip] = res_params[ip] / err_params_fit[ip];
     }
