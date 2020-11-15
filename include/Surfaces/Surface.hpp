@@ -361,28 +361,7 @@ public:
   template <typename Derived>
   ACTS_DEVICE_FUNC SurfaceIntersection
   intersect(const GeometryContext &gctx, const Vector3D &position,
-            const Vector3D &direction, const BoundaryCheck &bcheck) const {
-    // Get the intersection with the surface
-    Intersection sIntersection =
-        intersectionEstimate<Derived>(gctx, position, direction, bcheck);
-    // return a surface intersection with result direction
-    return SurfaceIntersection(sIntersection, this);
-  }
-
-  /// Straight line intersection from position and momentum
-  ///
-  /// @param gctx The current geometry context object, e.g. alignment
-  /// @param position global 3D position - considered to be on surface but not
-  ///        inside bounds (check is done)
-  /// @param direction 3D direction representation - expected to be normalized
-  ///        (no check done)
-  /// @param bcheck boundary check directive for this operation
-  ///
-  /// @return Intersection object
-  template <typename Derived>
-  ACTS_DEVICE_FUNC Intersection intersectionEstimate(
-      const GeometryContext &gctx, const Vector3D &position,
-      const Vector3D &direction, const BoundaryCheck &bcheck) const;
+            const Vector3D &direction, const BoundaryCheck &bcheck) const;
 
   /// Return properly formatted class name
   // virtual std::string name() const = 0;

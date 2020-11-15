@@ -281,26 +281,12 @@ inline double Surface::pathCorrection(const GeometryContext &gctx,
 }
 
 template <typename Derived>
-inline Intersection Surface::intersectionEstimate(
-    const GeometryContext &gctx, const Vector3D &position,
-    const Vector3D &direction, const BoundaryCheck &bcheck) const {
-  // Get the contextual transform
-  const auto &gctxTransform = transform(gctx);
-  // Use the intersection helper for planar surfaces
-  auto intersection =
-      PlanarHelper::intersectionEstimate(gctxTransform, position, direction);
-  // Evaluate boundary check if requested (and reachable)
-  if (intersection.status != Intersection::Status::unreachable and bcheck) {
-    // Built-in local to global for speed reasons
-    const auto &tMatrix = gctxTransform.matrix();
-    // Create the reference vector in local
-    const Vector3D vecLocal(intersection.position - tMatrix.block<3, 1>(0, 3));
-    if (not insideBounds<Derived>(
-            tMatrix.block<3, 2>(0, 0).transpose() * vecLocal, bcheck)) {
-      intersection.status = Intersection::Status::missed;
-    }
-  }
-  return intersection;
+inline SurfaceIntersection
+Surface::intersect(const GeometryContext &gctx, const Vector3D &position,
+                   const Vector3D &direction,
+                   const BoundaryCheck &bcheck) const {
+  return static_cast<const Derived *>(this)->intersect(gctx, position,
+                                                       direction, bcheck);
 }
 
 inline const Acts::HomogeneousSurfaceMaterial &

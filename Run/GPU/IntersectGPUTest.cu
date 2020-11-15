@@ -19,7 +19,6 @@ using namespace Acts;
 using SurfaceBoundsType = ConvexPolygonBounds<3>;
 using PlaneSurfaceType = PlaneSurface<SurfaceBoundsType>;
 
-template <typename surface_derived_t>
 __global__ void intersectKernel(Vector3D position, Vector3D direction,
                                 BoundaryCheck bcheck,
                                 const PlaneSurfaceType *surfacePtrs,
@@ -27,9 +26,8 @@ __global__ void intersectKernel(Vector3D position, Vector3D direction,
                                 bool *status, int nSurfaces, int offset) {
   int i = blockDim.x * blockIdx.x + threadIdx.x + offset;
   if (i < (nSurfaces + offset)) {
-    const SurfaceIntersection intersection =
-        surfacePtrs[i].intersect<surface_derived_t>(GeometryContext(), position,
-                                                    direction, bcheck);
+    const SurfaceIntersection intersection = surfacePtrs[i].intersect(
+        GeometryContext(), position, direction, bcheck);
     if (intersection.intersection.status == Intersection::Status::reachable and
         intersection.intersection.pathLength >= 0) {
       status[i] = true;
@@ -197,10 +195,9 @@ int main() {
   // The baseline case - sequential transfer and execute
   memset(intersections, 0, intersectionsBytes);
   GPUERRCHK(cudaEventRecord(startEvent, 0));
-  intersectKernel<PlaneSurfaceType>
-      <<<blocksPerGrid_singleStream, threadsPerBlock>>>(
-          position, direction, bcheck, surfaces, d_intersections, d_status,
-          nSurfaces, 0);
+  intersectKernel<<<blocksPerGrid_singleStream, threadsPerBlock>>>(
+      position, direction, bcheck, surfaces, d_intersections, d_status,
+      nSurfaces, 0);
   GPUERRCHK(cudaMemcpy(intersections, d_intersections, intersectionsBytes,
                        cudaMemcpyDeviceToHost));
   GPUERRCHK(cudaEventRecord(stopEvent, 0));
@@ -213,10 +210,10 @@ int main() {
   GPUERRCHK(cudaEventRecord(startEvent, 0));
   for (int i = 0; i < nStreams; ++i) {
     int offset = i * threadsPerStream;
-    intersectKernel<PlaneSurfaceType>
-        <<<blocksPerGrid_multiStream, threadsPerBlock, 0, stream[i]>>>(
-            position, direction, bcheck, surfaces, d_intersections, d_status,
-            threadsPerStream, offset);
+    intersectKernel<<<blocksPerGrid_multiStream, threadsPerBlock, 0,
+                      stream[i]>>>(position, direction, bcheck, surfaces,
+                                   d_intersections, d_status, threadsPerStream,
+                                   offset);
     GPUERRCHK(cudaEventRecord(stopEvent, stream[i]));
     GPUERRCHK(cudaEventSynchronize(stopEvent));
     GPUERRCHK(cudaMemcpyAsync(&intersections[offset], &d_intersections[offset],
@@ -232,10 +229,10 @@ int main() {
   GPUERRCHK(cudaEventRecord(startEvent, 0));
   for (int i = 0; i < nStreams; ++i) {
     int offset = i * threadsPerStream;
-    intersectKernel<PlaneSurfaceType>
-        <<<blocksPerGrid_multiStream, threadsPerBlock, 0, stream[i]>>>(
-            position, direction, bcheck, surfaces, d_intersections, d_status,
-            threadsPerStream, offset);
+    intersectKernel<<<blocksPerGrid_multiStream, threadsPerBlock, 0,
+                      stream[i]>>>(position, direction, bcheck, surfaces,
+                                   d_intersections, d_status, threadsPerStream,
+                                   offset);
     GPUERRCHK(cudaEventRecord(stopEvent, stream[i]));
     GPUERRCHK(cudaEventSynchronize(stopEvent));
     GPUERRCHK(cudaMemcpyAsync(&status[offset], &d_status[offset],
@@ -285,7 +282,7 @@ int main() {
   //  GPUERRCHK(cudaEventRecord(startEvent, 0));
   //  for (int i = 0; i < nStreams; ++i) {
   //    int offset = i * threadsPerStream;
-  //    intersectKernel<PlaneSurfaceType>
+  //    intersectKernel
   //        <<<threadsPerStream / threadsPerBlock, threadsPerBlock, 0,
   //        stream[i]>>>(
   //            position, direction, bcheck, surfaces, d_intersections,

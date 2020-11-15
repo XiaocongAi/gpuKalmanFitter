@@ -21,7 +21,6 @@ inline PlaneSurface<surface_bounds_t>::PlaneSurface(
     const Transform3D &transf)
     : GeometryObject(), Surface(gctx, other, transf), m_bounds(other.m_bounds) {
 }
-
 template <typename surface_bounds_t>
 inline PlaneSurface<surface_bounds_t>::PlaneSurface(const Vector3D &center,
                                                     const Vector3D &normal)
@@ -105,29 +104,25 @@ inline double PlaneSurface::pathCorrection(const GeometryContext &gctx,
 }
 */
 
-/*
-inline Intersection PlaneSurface::intersectionEstimate(
+template <typename surface_bounds_t>
+inline SurfaceIntersection PlaneSurface<surface_bounds_t>::intersect(
     const GeometryContext &gctx, const Vector3D &position,
     const Vector3D &direction, const BoundaryCheck &bcheck) const {
-   printf("enter PlaneSurface::intersectionEstimate\n");
   // Get the contextual transform
   const auto &gctxTransform = transform(gctx);
   // Use the intersection helper for planar surfaces
   auto intersection =
       PlanarHelper::intersectionEstimate(gctxTransform, position, direction);
-   printf("here PlaneSurface::intersectionEstimate\n");
   // Evaluate boundary check if requested (and reachable)
   if (intersection.status != Intersection::Status::unreachable and bcheck) {
     // Built-in local to global for speed reasons
     const auto &tMatrix = gctxTransform.matrix();
     // Create the reference vector in local
     const Vector3D vecLocal(intersection.position - tMatrix.block<3, 1>(0, 3));
-   printf("PlaneSurface::intersectionEstimate\n");
-    if (not insideBounds(tMatrix.block<3, 2>(0, 0).transpose() * vecLocal,
-                         bcheck)) {
+    if (not insideBounds<PlaneSurface<surface_bounds_t>>(
+            tMatrix.block<3, 2>(0, 0).transpose() * vecLocal, bcheck)) {
       intersection.status = Intersection::Status::missed;
     }
   }
-  return intersection;
+  return {intersection, this};
 }
-*/

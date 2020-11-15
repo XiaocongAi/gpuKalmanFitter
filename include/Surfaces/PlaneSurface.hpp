@@ -166,37 +166,18 @@ public:
   //                                         const Vector3D &direction) const
   //                                         final;
   //
-  /// @brief Straight line intersection schema
+
+  /// Straight line intersection schema from position/direction
   ///
   /// @param gctx The current geometry context object, e.g. alignment
-  /// @param position The start position of the intersection attempt
-  /// @param direction The direction of the interesection attempt,
-  /// (@note expected to be normalized)
-  /// @param bcheck The boundary check directive
+  /// @param position The position to start from
+  /// @param direction The direction at start
+  /// @param bcheck the Boundary Check
   ///
-  /// <b>mathematical motivation:</b>
-  ///
-  /// the equation of the plane is given by: <br>
-  /// @f$ \vec n \cdot \vec x = \vec n \cdot \vec p,@f$ <br>
-  /// where @f$ \vec n = (n_{x}, n_{y}, n_{z})@f$ denotes the normal vector of
-  /// the plane,  @f$ \vec p = (p_{x}, p_{y}, p_{z})@f$ one specific point
-  /// on the plane and @f$ \vec x = (x,y,z) @f$ all possible points
-  /// on the plane.<br>
-  ///
-  /// Given a line with:<br>
-  /// @f$ \vec l(u) = \vec l_{1} + u \cdot \vec v @f$, <br>
-  /// the solution for @f$ u @f$ can be written:
-  /// @f$ u = \frac{\vec n (\vec p - \vec l_{1})}{\vec n \vec v}@f$ <br>
-  /// If the denominator is 0 then the line lies:
-  /// - either in the plane
-  /// - perpendicular to the normal of the plane
-  ///
-  /// @return the Intersection object
-  //  ACTS_DEVICE_FUNC Intersection
-  //  intersectionEstimate(const GeometryContext &gctx, const Vector3D
-  //  &position,
-  //                       const Vector3D &direction,
-  //                       const BoundaryCheck &bcheck = false) const final;
+  /// @return SurfaceIntersection object (contains intersection & surface)
+  ACTS_DEVICE_FUNC SurfaceIntersection
+  intersect(const GeometryContext &gctx, const Vector3D &position,
+            const Vector3D &direction, const BoundaryCheck &bcheck) const;
 
   /// Return properly formatted class name for screen output
   // std::string name() const override;
