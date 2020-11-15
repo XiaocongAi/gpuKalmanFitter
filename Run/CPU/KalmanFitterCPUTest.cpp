@@ -163,7 +163,7 @@ int main(int argc, char *argv[]) {
 
   // Prepare to perform fit to the created tracks
   KalmanFitterType kFitter(propagator);
-  std::vector<TSType> fittedTracks(nSurfaces * nTracks);
+  std::vector<TSType> fittedStates(nSurfaces * nTracks);
   bool fitStatus[nTracks];
 
   int threads = 1;
@@ -174,7 +174,7 @@ int main(int argc, char *argv[]) {
     // The fit result wrapper
     KalmanFitterResultType kfResult;
     kfResult.fittedStates = CudaKernelContainer<TSType>(
-        fittedTracks.data() + it * nSurfaces, nSurfaces);
+        fittedStates.data() + it * nSurfaces, nSurfaces);
     // The input source links wrapper
     auto sourcelinkTrack = CudaKernelContainer<PixelSourceLink>(
         sourcelinks + it * nSurfaces, nSurfaces);
@@ -183,7 +183,7 @@ int main(int argc, char *argv[]) {
     KalmanFitterOptions<Acts::VoidOutlierFinder> kfOptions(gctx, mctx);
     kfOptions.referenceSurface = &startPars[it].referenceSurface();
     // @note when it >=35, we got different startPars[i] between CPU and GPU
-    // Run the fit. The fittedTracks will be changed here
+    // Run the fit. The fittedStates will be changed here
     auto status = kFitter.fit(sourcelinkTrack, startPars[it], kfOptions,
                               kfResult, surfacePtrs, nSurfaces);
     if (not status) {
@@ -210,7 +210,7 @@ int main(int argc, char *argv[]) {
     std::string param = "smoothed";
     std::string fileName =
         "fitted_" + param + "_cpu_nTracks_" + std::to_string(nTracks) + ".obj";
-    Test::writeTracks(fittedTracks.data(), fitStatus, nTracks, nSurfaces,
+    Test::writeTracks(fittedStates.data(), fitStatus, nTracks, nSurfaces,
                       fileName, param);
   }
 
