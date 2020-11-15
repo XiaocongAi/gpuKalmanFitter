@@ -97,22 +97,6 @@ protected:
   Surface(const GeometryContext &gctx, const Surface &other,
           const Transform3D &shift);
 
-  /// Dedicated Constructor with normal vector
-  /// This is for curvilinear surfaces which are by definition boundless
-  ///
-  /// @param center is the center position of the surface
-  /// @param normal is the normal vector of the plane surface
-  ACTS_DEVICE_FUNC Surface(const Vector3D &center, const Vector3D &normal);
-
-  /// Dedicated Constructor with normal vector
-  /// This is for curvilinear surfaces which are by definition boundless
-  ///
-  /// @param center is the center position of the surface
-  /// @param normal is the normal vector of the plane surface
-  /// @param material is the surface material
-  ACTS_DEVICE_FUNC Surface(const Vector3D &center, const Vector3D &normal,
-                           const HomogeneousSurfaceMaterial &material);
-
 public:
   /// Destructor
   ~Surface() = default;
@@ -182,7 +166,6 @@ public:
   /// @param position is the global position where the normal vector is
   /// constructed
   /// @param gctx The current geometry context object, e.g. alignment
-
   ///
   /// @return normal vector by value
   ACTS_DEVICE_FUNC const Vector3D normal(const GeometryContext &gctx,
@@ -338,7 +321,10 @@ public:
                     const Vector3D &direction, const RotationMatrix3D &rft,
                     const BoundToFreeMatrix &jacobian) const;
 
-  /// Calucation of the path correction for incident
+  /// Calucation of the path correction for incident (used during material
+  /// interaction)
+  /// @WARNING not correct for LineSurface, but the Line Surface is not used as
+  /// measurement surface
   ///
   /// @param gctx The current geometry context object, e.g. alignment
   /// @param position global 3D position - considered to be on surface but not
@@ -363,12 +349,12 @@ public:
   intersect(const GeometryContext &gctx, const Vector3D &position,
             const Vector3D &direction, const BoundaryCheck &bcheck) const;
 
-  /// Return properly formatted class name
-  // virtual std::string name() const = 0;
-
   /// Return method for the associated Material to this surface
   /// @return SurfaceMaterial as plain pointer, can be nullptr
   ACTS_DEVICE_FUNC const HomogeneousSurfaceMaterial &surfaceMaterial() const;
+
+  /// Return properly formatted class name
+  // virtual std::string name() const = 0;
 
 protected:
   /// Transform3D definition that positions

@@ -24,13 +24,49 @@ inline PlaneSurface<surface_bounds_t>::PlaneSurface(
 template <typename surface_bounds_t>
 inline PlaneSurface<surface_bounds_t>::PlaneSurface(const Vector3D &center,
                                                     const Vector3D &normal)
-    : Surface(center, normal), m_bounds(nullptr) {}
+    : Surface(), m_bounds(nullptr) {
+  /// the right-handed coordinate system is defined as
+  /// T = normal
+  /// U = Z x T if T not parallel to Z otherwise U = X x T
+  /// V = T x U
+  Vector3D T = normal.normalized();
+  Vector3D U = std::abs(T.dot(Vector3D::UnitZ())) < s_curvilinearProjTolerance
+                   ? Vector3D::UnitZ().cross(T).normalized()
+                   : Vector3D::UnitX().cross(T).normalized();
+  Vector3D V = T.cross(U);
+  RotationMatrix3D curvilinearRotation;
+  curvilinearRotation.col(0) = U;
+  curvilinearRotation.col(1) = V;
+  curvilinearRotation.col(2) = T;
+
+  // curvilinear surfaces are boundless
+  Transform3D transform{curvilinearRotation};
+  transform.pretranslate(center);
+  m_transform = transform;
+}
 
 template <typename surface_bounds_t>
 inline PlaneSurface<surface_bounds_t>::PlaneSurface(
     const Vector3D &center, const Vector3D &normal,
     const HomogeneousSurfaceMaterial &material)
-    : Surface(center, normal, material), m_bounds(nullptr) {}
+    : Surface(), m_bounds(nullptr) {
+  Vector3D T = normal.normalized();
+  Vector3D U = std::abs(T.dot(Vector3D::UnitZ())) < s_curvilinearProjTolerance
+                   ? Vector3D::UnitZ().cross(T).normalized()
+                   : Vector3D::UnitX().cross(T).normalized();
+  Vector3D V = T.cross(U);
+  RotationMatrix3D curvilinearRotation;
+  curvilinearRotation.col(0) = U;
+  curvilinearRotation.col(1) = V;
+  curvilinearRotation.col(2) = T;
+
+  // curvilinear surfaces are boundless
+  Transform3D transform{curvilinearRotation};
+  transform.pretranslate(center);
+  m_transform = transform;
+  // Set the surface material
+  m_surfaceMaterial = material;
+}
 
 template <typename surface_bounds_t>
 template <typename T,
