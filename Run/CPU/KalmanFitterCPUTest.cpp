@@ -19,6 +19,7 @@
 #include "Test/Logger.hpp"
 
 #include "Processor.hpp"
+#include "Writer.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -143,7 +144,7 @@ int main(int argc, char *argv[]) {
             << elapsed_seconds.count() * 1000 << std::endl;
   if (output) {
     std::cout << "writing propagation results" << std::endl;
-    Test::writeSimHits(simResult);
+    writeSimHits(simResult);
   }
 
   // The hit smearing resolution
@@ -212,11 +213,11 @@ int main(int argc, char *argv[]) {
     std::string param = "smoothed";
     std::string stateFileName =
         "fitted_" + param + "_cpu_nTracks_" + std::to_string(nTracks) + ".obj";
-    Test::writeStates(fittedStates.data(), fitStatus, nTracks, nSurfaces,
-                      stateFileName, param);
+    writeStates(fittedStates.data(), fitStatus, nTracks, nSurfaces,
+                stateFileName, param);
     std::string paramFileName =
         "fitted_param_cpu_nTracks_" + std::to_string(nTracks) + ".csv";
-    Test::writeParams(fittedParams.data(), fitStatus, nTracks, paramFileName);
+    writeParams(fittedParams.data(), fitStatus, nTracks, paramFileName);
   }
 
   // @todo Write the residual and pull of track parameters to ntuple

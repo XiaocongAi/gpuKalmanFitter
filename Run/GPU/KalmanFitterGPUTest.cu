@@ -21,6 +21,7 @@
 #include "Test/Logger.hpp"
 
 #include "Processor.hpp"
+#include "Writer.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -319,7 +320,7 @@ int main(int argc, char *argv[]) {
             << elapsed_seconds.count() * 1000 << std::endl;
   if (output) {
     std::cout << "writing propagation results" << std::endl;
-    Test::writeSimHits(simResult);
+    writeSimHits(simResult);
   }
 
   // The hit smearing resolution
@@ -531,12 +532,12 @@ int main(int argc, char *argv[]) {
   if (output) {
     std::cout << "writing KF results" << std::endl;
     std::string stateFileName;
-    std::string paramFileName; 
-    
+    std::string paramFileName;
+
     std::string param = "smoothed";
     stateFileName.append("fitted_");
     stateFileName.append(param);
-    
+
     paramFileName.append("fitted_");
     paramFileName.append("param");
     if (useGPU) {
@@ -548,9 +549,9 @@ int main(int argc, char *argv[]) {
     }
     stateFileName.append(std::to_string(nTracks)).append(".obj");
     paramFileName.append(std::to_string(nTracks)).append(".csv");
-    Test::writeStates(fittedStates, fitStatus, nTracks, nSurfaces, stateFileName,
-                      param);
-    Test::writeParams(fitPars, fitStatus, nTracks, paramFileName); 
+    writeStates(fittedStates, fitStatus, nTracks, nSurfaces, stateFileName,
+                param);
+    writeParams(fitPars, fitStatus, nTracks, paramFileName);
   }
 
   std::cout << "------------------------  ending  -----------------------"
