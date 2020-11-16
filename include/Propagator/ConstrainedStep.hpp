@@ -37,10 +37,10 @@ struct ConstrainedStep {
   NavigationDirection direction = forward;
 
   ACTS_DEVICE_FUNC double max() const {
-    double max = std::numeric_limits<double>::min();
-    for (const auto &value : values) {
-      if (value > max) {
-        max = value;
+    double max = std::numeric_limits<double>::lowest();
+    for (unsigned int i = 0; i < 4; i++) {
+      if (values[i] > max) {
+        max = values[i];
       }
     }
     return max;
@@ -48,9 +48,9 @@ struct ConstrainedStep {
 
   ACTS_DEVICE_FUNC double min() const {
     double min = std::numeric_limits<double>::max();
-    for (const auto &value : values) {
-      if (value < min) {
-        min = value;
+    for (unsigned int i = 0; i < 4; i++) {
+      if (values[i] < min) {
+        min = values[i];
       }
     }
     return min;
@@ -70,7 +70,7 @@ struct ConstrainedStep {
     }
     // The check the current value and set it if appropriate
     double cValue = values[type];
-    values[type] = cValue * cValue < value * value ? cValue : value;
+    values[type] = std::abs(cValue) < std::abs(value) ? cValue : value;
   }
 
   /// release a certain constraint value
@@ -131,34 +131,38 @@ struct ConstrainedStep {
   //                values.begin());
   //  }
 
+#ifndef __CUDACC__
   /// return the split value as string for debugging
   std::string toString() const;
+#endif
 };
 
-// inline std::string ConstrainedStep::toString() const {
-//  std::stringstream dstream;
-//
-//  // Helper method to avoid unreadable screen output
-//  auto streamValue = [&](ConstrainedStep cstep) -> void {
-//    double val = values[cstep];
-//    dstream << std::setw(5);
-//    if (std::abs(val) == std::numeric_limits<double>::max()) {
-//      dstream << (val > 0 ? "+∞" : "-∞");
-//    } else {
-//      dstream << val;
-//    }
-//  };
-//
-//  dstream << "(";
-//  streamValue(accuracy);
-//  dstream << ", ";
-//  streamValue(actor);
-//  dstream << ", ";
-//  streamValue(aborter);
-//  dstream << ", ";
-//  streamValue(user);
-//  dstream << " )";
-//  return dstream.str();
-//}
+#ifndef __CUDACC__
+inline std::string ConstrainedStep::toString() const {
+  std::stringstream dstream;
+
+  // Helper method to avoid unreadable screen output
+  auto streamValue = [&](ConstrainedStep::Type cstep) -> void {
+    double val = values[cstep];
+    dstream << std::setw(5);
+    if (std::abs(val) == std::numeric_limits<double>::max()) {
+      dstream << (val > 0 ? "+∞" : "-∞");
+    } else {
+      dstream << val;
+    }
+  };
+
+  dstream << "(";
+  streamValue(accuracy);
+  dstream << ", ";
+  streamValue(actor);
+  dstream << ", ";
+  streamValue(aborter);
+  dstream << ", ";
+  streamValue(user);
+  dstream << " )";
+  return dstream.str();
+}
+#endif
 
 } // namespace Acts
