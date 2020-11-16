@@ -257,6 +257,7 @@ public:
   ///
   /// @return RotationMatrix3D which defines the three axes of the measurement
   /// frame
+  template <typename Derived>
   ACTS_DEVICE_FUNC const Acts::RotationMatrix3D
   referenceFrame(const GeometryContext &gctx, const Vector3D &position,
                  const Vector3D &momentum) const;
@@ -275,11 +276,11 @@ public:
   /// @param position is the global position of the parameters
   /// @param direction is the direction at of the parameters
   /// @param pars is the parameter vector
-  ACTS_DEVICE_FUNC void initJacobianToGlobal(const GeometryContext &gctx,
-                                             BoundToFreeMatrix &jacobian,
-                                             const Vector3D &position,
-                                             const Vector3D &direction,
-                                             const BoundVector &pars) const;
+  template <typename Derived>
+  ACTS_DEVICE_FUNC void
+  initJacobianToGlobal(const GeometryContext &gctx, BoundToFreeMatrix &jacobian,
+                       const Vector3D &position, const Vector3D &direction,
+                       const BoundVector &pars) const;
 
   /// Initialize the jacobian from global to local
   /// the surface knows best, hence the calculation is done here.
@@ -296,6 +297,7 @@ public:
   /// @param gctx The current geometry context object, e.g. alignment
   ///
   /// @return the transposed reference frame (avoids recalculation)
+  template <typename Derived>
   ACTS_DEVICE_FUNC const RotationMatrix3D initJacobianToLocal(
       const GeometryContext &gctx, FreeToBoundMatrix &jacobian,
       const Vector3D &position, const Vector3D &direction) const;
@@ -316,6 +318,7 @@ public:
   /// @param jacobian is the transport jacobian
   ///
   /// @return a five-dim vector
+  template <typename Derived>
   ACTS_DEVICE_FUNC const BoundRowVector
   derivativeFactors(const GeometryContext &gctx, const Vector3D &position,
                     const Vector3D &direction, const RotationMatrix3D &rft,

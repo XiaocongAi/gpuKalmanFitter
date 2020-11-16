@@ -121,6 +121,81 @@ public:
   /// Return method for bounds object of this surfrace
   ACTS_DEVICE_FUNC const surface_bounds_t *bounds() const;
 
+  /// Return mehtod for the reference frame
+  /// This is the frame in which the covariance matrix is defined (specialized
+  /// by all surfaces)
+  ///
+  /// @param gctx The current geometry context object, e.g. alignment
+  /// @param position global 3D position - considered to be on surface but not
+  /// inside bounds (check is done)
+  /// @param momentum global 3D momentum representation (optionally ignored)
+  ///
+  /// @return RotationMatrix3D which defines the three axes of the measurement
+  /// frame
+  ACTS_DEVICE_FUNC const Acts::RotationMatrix3D
+  referenceFrame(const GeometryContext &gctx, const Vector3D &position,
+                 const Vector3D &momentum) const;
+
+  /// Initialize the jacobian from local to global
+  /// the surface knows best, hence the calculation is done here.
+  /// The jacobian is assumed to be initialised, so only the
+  /// relevant entries are filled
+  ///
+  /// @todo this mixes track parameterisation and geometry
+  /// should move to :
+  /// "Acts/EventData/detail/coordinate_transformations.hpp"
+  ///
+  /// @param gctx The current geometry context object, e.g. alignment
+  /// @param jacobian is the jacobian to be initialized
+  /// @param position is the global position of the parameters
+  /// @param direction is the direction at of the parameters
+  /// @param pars is the parameter vector
+  ACTS_DEVICE_FUNC void initJacobianToGlobal(const GeometryContext &gctx,
+                                             BoundToFreeMatrix &jacobian,
+                                             const Vector3D &position,
+                                             const Vector3D &direction,
+                                             const BoundVector &pars) const;
+
+  /// Initialize the jacobian from global to local
+  /// the surface knows best, hence the calculation is done here.
+  /// The jacobian is assumed to be initialised, so only the
+  /// relevant entries are filled
+  ///
+  /// @todo this mixes track parameterisation and geometry
+  /// should move to :
+  /// "Acts/EventData/detail/coordinate_transformations.hpp"
+  ///
+  /// @param jacobian is the jacobian to be initialized
+  /// @param position is the global position of the parameters
+  /// @param direction is the direction at of the parameters
+  /// @param gctx The current geometry context object, e.g. alignment
+  ///
+  /// @return the transposed reference frame (avoids recalculation)
+  ACTS_DEVICE_FUNC const RotationMatrix3D initJacobianToLocal(
+      const GeometryContext &gctx, FreeToBoundMatrix &jacobian,
+      const Vector3D &position, const Vector3D &direction) const;
+
+  /// Calculate the form factors for the derivatives
+  /// the calculation is identical for all surfaces where the
+  /// reference frame does not depend on the direction
+  ///
+  ///
+  /// @todo this mixes track parameterisation and geometry
+  /// should move to :
+  /// "Acts/EventData/detail/coordinate_transformations.hpp"
+  ///
+  /// @param gctx The current geometry context object, e.g. alignment
+  /// @param position is the position of the paramters in global
+  /// @param direction is the direction of the track
+  /// @param rft is the transposed reference frame (avoids recalculation)
+  /// @param jacobian is the transport jacobian
+  ///
+  /// @return a five-dim vector
+  ACTS_DEVICE_FUNC const BoundRowVector
+  derivativeFactors(const GeometryContext &gctx, const Vector3D &position,
+                    const Vector3D &direction, const RotationMatrix3D &rft,
+                    const BoundToFreeMatrix &jacobian) const;
+
   /// Local to global transformation
   /// For planar surfaces the momentum is ignroed in the local to global
   /// transformation
