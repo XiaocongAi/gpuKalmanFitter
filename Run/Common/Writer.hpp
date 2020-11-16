@@ -197,13 +197,6 @@ void writeParamsRoot(const Acts::GeometryContext &gctx,
     // The truth particle info
     const auto &particle = simParticles[it];
     const auto p = particle.absMomentum();
-    // Transform the particle position to bound surface
-    const auto truthParameters =
-        Acts::detail::coordinate_transformation::global2parameters<
-            typename parameters_t::ReferenceSurfaceType>(
-            gctx, particle.position(), p * particle.unitDirection(),
-            particle.charge(), particle.time(),
-            fitBoundParams.referenceSurface());
     t_charge = particle.charge();
     t_time = particle.time();
     t_vx = particle.position().x();
@@ -217,6 +210,8 @@ void writeParamsRoot(const Acts::GeometryContext &gctx,
     t_eta = Acts::VectorHelpers::eta(particle.unitDirection());
     t_pT = p * Acts::VectorHelpers::perp(particle.unitDirection());
 
+    Acts::BoundVector truthParameters;
+    truthParameters << 0, 0, t_phi, t_theta, t_charge / p, t_time;
     for (unsigned int ip = 0; ip < Acts::eBoundParametersSize; ip++) {
       params_fit[ip] = parameters[ip];
       err_params_fit[ip] = sqrt(covariance(ip, ip));

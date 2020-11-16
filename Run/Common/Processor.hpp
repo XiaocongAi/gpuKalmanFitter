@@ -9,6 +9,7 @@
 
 #include "EventData/TrackParameters.hpp"
 #include "Geometry/GeometryContext.hpp"
+#include "Surfaces/LineSurface.hpp"
 #include "Utilities/Definitions.hpp"
 #include "Utilities/ParameterDefinitions.hpp"
 #include "Utilities/Units.hpp"
@@ -17,13 +18,16 @@
 #include "Test/Helper.hpp"
 
 #include <array>
+#include <iostream>
 #include <random>
 #include <vector>
 
 using Simulator = ActsFatras::MinimalSimulator<ActsExamples::RandomEngine>;
 using SimParticleContainer = std::vector<ActsFatras::Particle>;
 using SimResultContainer = std::vector<Simulator::result_type>;
-using ParametersContainer = std::vector<Acts::CurvilinearParameters>;
+using ParametersContainer =
+    std::vector<Acts::BoundParameters<Acts::LineSurface>>;
+using TargetSurfaceContainer = std::vector<Acts::LineSurface>;
 // @note using concreate surface type to avoid trivial advance of the
 // Acts::Surface* to the PlaneSurfaceType* as in the DirectNavigator
 using PlaneSurfaceType = Acts::PlaneSurface<Acts::InfiniteBounds>;
@@ -114,6 +118,7 @@ void runSimulation(const Acts::GeometryContext &gctx,
       // The particles must have nSurfaces sim hits. Otherwise, skip this
       // simulation result
       if (simResult.hits.size() != nSurfaces) {
+        std::cout << "Warning! Generated particle rejected!" << std::endl;
         continue;
       }
       // store the sim particles and hits
@@ -126,8 +131,20 @@ void runSimulation(const Acts::GeometryContext &gctx,
   // requested
   if (ip < validParticles.size()) {
     throw std::runtime_error(
-        "Too many invalid particles! Simulation failed!\n");
+        "Too many generated particles rejected! Simulation failed!\n");
   }
+}
+
+TargetSurfaceContainer
+buildTargetSurfaces(const SimParticleContainer &validParticles) {
+  // Reserve the container
+  TargetSurfaceContainer surfaces;
+  surfaces.reserve(validParticles.size());
+
+  for (const auto particle : validParticles) {
+    surfaces.emplace_back(particle.position());
+  }
+  return surfaces;
 }
 
 template <typename random_engine_t>
@@ -179,15 +196,20 @@ ParametersContainer
 runParticleSmearing(random_engine_t &rng, const Acts::GeometryContext &gctx,
                     const SimParticleContainer &validParticles,
                     const ParticleSmearingParameters &resolution,
-                    size_t nParticles) {
+                    const TargetSurfaceContainer &targetSurfaces) {
+  if (validParticles.size() != targetSurfaces.size()) {
+    std::runtime_error("validParticles size not equal to targetSurfaces size!");
+  }
+
   // The normal dist
   std::normal_distribution<double> stdNormal(0.0, 1.0);
 
   // Reserve the container
   ParametersContainer parameters;
-  parameters.reserve(nParticles);
+  parameters.reserve(validParticles.size());
 
   // Perform smearing to the sim particles
+  unsigned int ip = 0;
   for (const auto particle : validParticles) {
     const auto time = particle.time();
     const auto phi = Acts::VectorHelpers::phi(particle.unitDirection());
@@ -195,6 +217,7 @@ runParticleSmearing(random_engine_t &rng, const Acts::GeometryContext &gctx,
     const auto pt = particle.transverseMomentum();
     const auto p = particle.absMomentum();
     const auto q = particle.charge();
+
     // compute momentum-dependent resolutions
     const double sigmaD0 =
         resolution.sigmaD0 +
@@ -237,15 +260,10 @@ runParticleSmearing(random_engine_t &rng, const Acts::GeometryContext &gctx,
     cov(Acts::eBoundTheta, Acts::eBoundTheta) = sigmaTheta * sigmaTheta;
     cov(Acts::eBoundQOverP, Acts::eBoundQOverP) = sigmaQOverP * sigmaQOverP;
 
-    Acts::Vector3D newDir(sin(newTheta) * cos(newPhi),
-                          sin(newTheta) * sin(newPhi), cos(newTheta));
-    Acts::Vector3D newMom = newDir * newP;
-    Acts::Vector3D measY(0., 0., 1.);
-    Acts::Vector3D measX = measY.cross(newDir);
-    Acts::Vector3D shift =
-        params[Acts::eBoundLoc0] * measX + params[Acts::eBoundLoc1] * measY;
-    Acts::Vector3D newPos = particle.position() + shift;
-    parameters.emplace_back(cov, newPos, newMom, q, params[Acts::eBoundTime]);
+    // Construct a bound parameters with a perigee surface as the reference
+    // surface
+    parameters.emplace_back(gctx, cov, params, &targetSurfaces[ip]);
+    ip++;
   }
   return parameters;
 }

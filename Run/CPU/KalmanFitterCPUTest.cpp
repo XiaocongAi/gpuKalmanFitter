@@ -54,7 +54,7 @@ using KalmanFitterType =
 using KalmanFitterResultType =
     Acts::KalmanFitterResult<Acts::PixelSourceLink,
                              Acts::BoundParameters<PlaneSurfaceType>,
-                             PlaneSurfaceType>;
+                             Acts::LineSurface>;
 using TSType = typename KalmanFitterResultType::TrackStateType;
 using FitOptionsType = Acts::KalmanFitterOptions<Acts::VoidOutlierFinder>;
 
@@ -152,6 +152,9 @@ int main(int argc, char *argv[]) {
     writeSimHitsObj(simResult);
   }
 
+  // Build the target surfaces based on the truth particle position
+  auto targetSurfaces = buildTargetSurfaces(validParticles);
+
   // The hit smearing resolution
   std::array<double, 2> hitResolution = {30. * Acts::units::_mm,
                                          30. * Acts::units::_mm};
@@ -163,14 +166,15 @@ int main(int argc, char *argv[]) {
 
   // The particle smearing resolution
   ParticleSmearingParameters seedResolution;
-  // Run truth seed smearing to create starting parameters
-  auto startPars = runParticleSmearing(rng, gctx, generatedParticles,
-                                       seedResolution, nTracks);
+  // Run truth seed smearing to create starting parameters with provided
+  // reference surface
+  auto startPars = runParticleSmearing(rng, gctx, validParticles,
+                                       seedResolution, targetSurfaces);
 
   // Prepare to perform fit to the created tracks
   KalmanFitterType kFitter(propagator);
   std::vector<TSType> fittedStates(nSurfaces * nTracks);
-  std::vector<Acts::BoundParameters<PlaneSurfaceType>> fittedParams(nTracks);
+  std::vector<Acts::BoundParameters<Acts::LineSurface>> fittedParams(nTracks);
   bool fitStatus[nTracks];
 
   int threads = 1;
