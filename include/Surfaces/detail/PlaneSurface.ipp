@@ -21,6 +21,7 @@ inline PlaneSurface<surface_bounds_t>::PlaneSurface(
     const Transform3D &transf)
     : GeometryObject(), Surface(gctx, other, transf), m_bounds(other.m_bounds) {
 }
+
 template <typename surface_bounds_t>
 inline PlaneSurface<surface_bounds_t>::PlaneSurface(const Vector3D &center,
                                                     const Vector3D &normal)
@@ -83,6 +84,22 @@ operator=(const PlaneSurface<surface_bounds_t> &other) {
     m_bounds = other.m_bounds;
   }
   return *this;
+}
+
+template <typename surface_bounds_t>
+inline const Vector3D
+PlaneSurface<surface_bounds_t>::normal(const GeometryContext &gctx,
+                                       const Vector2D & /*lpos*/) const {
+  // fast access via tranform matrix (and not rotation())
+  const auto &tMatrix = transform(gctx).matrix();
+  return Vector3D(tMatrix(0, 2), tMatrix(1, 2), tMatrix(2, 2));
+}
+
+template <typename surface_bounds_t>
+inline const Vector3D
+PlaneSurface<surface_bounds_t>::binningPosition(const GeometryContext &gctx,
+                                                BinningValue /*bValue*/) const {
+  return center(gctx);
 }
 
 template <typename surface_bounds_t>
@@ -206,22 +223,6 @@ inline bool PlaneSurface<surface_bounds_t>::globalToLocal(
            s_onSurfaceTolerance * s_onSurfaceTolerance)
               ? false
               : true);
-}
-
-template <typename surface_bounds_t>
-inline const Vector3D
-PlaneSurface<surface_bounds_t>::normal(const GeometryContext &gctx,
-                                       const Vector2D & /*lpos*/) const {
-  // fast access via tranform matrix (and not rotation())
-  const auto &tMatrix = transform(gctx).matrix();
-  return Vector3D(tMatrix(0, 2), tMatrix(1, 2), tMatrix(2, 2));
-}
-
-template <typename surface_bounds_t>
-inline const Vector3D
-PlaneSurface<surface_bounds_t>::binningPosition(const GeometryContext &gctx,
-                                                BinningValue /*bValue*/) const {
-  return center(gctx);
 }
 
 template <typename surface_bounds_t>

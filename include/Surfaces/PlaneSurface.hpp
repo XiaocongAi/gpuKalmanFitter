@@ -160,10 +160,6 @@ public:
   /// The jacobian is assumed to be initialised, so only the
   /// relevant entries are filled
   ///
-  /// @todo this mixes track parameterisation and geometry
-  /// should move to :
-  /// "Acts/EventData/detail/coordinate_transformations.hpp"
-  ///
   /// @param jacobian is the jacobian to be initialized
   /// @param position is the global position of the parameters
   /// @param direction is the direction at of the parameters
@@ -177,11 +173,6 @@ public:
   /// Calculate the form factors for the derivatives
   /// the calculation is identical for all surfaces where the
   /// reference frame does not depend on the direction
-  ///
-  ///
-  /// @todo this mixes track parameterisation and geometry
-  /// should move to :
-  /// "Acts/EventData/detail/coordinate_transformations.hpp"
   ///
   /// @param gctx The current geometry context object, e.g. alignment
   /// @param position is the position of the paramters in global
