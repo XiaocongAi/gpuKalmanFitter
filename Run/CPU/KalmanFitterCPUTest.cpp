@@ -46,11 +46,15 @@ using Stepper = Acts::EigenStepper<Test::ConstantBField>;
 using PropagatorType = Acts::Propagator<Stepper>;
 using PropResultType = Acts::PropagatorResult;
 using PropOptionsType = Acts::PropagatorOptions<Simulator, Test::VoidAborter>;
-using Smoother = GainMatrixSmoother<BoundParameters>;
+using Smoother =
+    Acts::GainMatrixSmoother<Acts::BoundParameters<PlaneSurfaceType>>;
 using KalmanFitterType =
     Acts::KalmanFitter<PropagatorType, Acts::GainMatrixUpdater, Smoother>;
+//@note the target surface type will be changed to perigee surface
 using KalmanFitterResultType =
-    Acts::KalmanFitterResult<Acts::PixelSourceLink, Acts::BoundParameters>;
+    Acts::KalmanFitterResult<Acts::PixelSourceLink,
+                             Acts::BoundParameters<PlaneSurfaceType>,
+                             PlaneSurfaceType>;
 using TSType = typename KalmanFitterResultType::TrackStateType;
 
 int main(int argc, char *argv[]) {
@@ -165,7 +169,7 @@ int main(int argc, char *argv[]) {
   // Prepare to perform fit to the created tracks
   KalmanFitterType kFitter(propagator);
   std::vector<TSType> fittedStates(nSurfaces * nTracks);
-  std::vector<Acts::BoundParameters> fittedParams(nTracks);
+  std::vector<Acts::BoundParameters<PlaneSurfaceType>> fittedParams(nTracks);
   bool fitStatus[nTracks];
 
   int threads = 1;

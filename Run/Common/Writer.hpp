@@ -75,7 +75,8 @@ void writeStatesObj(const track_state_t *states, const bool *status,
   obj_tracks.close();
 }
 
-void writeParamsCsv(const Acts::BoundParameters *params, const bool *status,
+template <typename parameters_t>
+void writeParamsCsv(const parameters_t *params, const bool *status,
                     unsigned int nTracks, std::string fileName) {
   // Write all of the created tracks to one obj file
   std::ofstream csv_params;
@@ -106,9 +107,9 @@ void writeParamsCsv(const Acts::BoundParameters *params, const bool *status,
 }
 
 // Write the fitted parameters and truth particle info (one entry for one track)
+template <typename parameters_t>
 void writeParamsRoot(const Acts::GeometryContext &gctx,
-                     const Acts::BoundParameters *fittedParams,
-                     const bool *status,
+                     const parameters_t *fittedParams, const bool *status,
                      const SimParticleContainer &simParticles,
                      unsigned int nTracks, std::string fileName,
                      std::string treeName) {
