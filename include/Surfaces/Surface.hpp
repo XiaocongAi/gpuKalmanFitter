@@ -156,6 +156,7 @@ public:
   /// constructed
   ///
   /// @return normal vector by value
+  template <typename Derived>
   ACTS_DEVICE_FUNC const Vector3D normal(const GeometryContext &gctx,
                                          const Vector2D &lposition) const;
 
@@ -168,6 +169,7 @@ public:
   /// @param gctx The current geometry context object, e.g. alignment
   ///
   /// @return normal vector by value
+  template <typename Derived>
   ACTS_DEVICE_FUNC const Vector3D normal(const GeometryContext &gctx,
                                          const Vector3D &position) const;
 
@@ -178,8 +180,9 @@ public:
   /// @param gctx The current geometry context object, e.g. alignment
   //
   /// @return normal vector by value
+  template <typename Derived>
   ACTS_DEVICE_FUNC const Vector3D normal(const GeometryContext &gctx) const {
-    return normal(gctx, center(gctx));
+    return normal<Derived>(gctx, center(gctx));
   }
 
   /// Return method for SurfaceBounds
@@ -326,8 +329,6 @@ public:
 
   /// Calucation of the path correction for incident (used during material
   /// interaction)
-  /// @WARNING not correct for LineSurface, but the Line Surface is not used as
-  /// measurement surface
   ///
   /// @param gctx The current geometry context object, e.g. alignment
   /// @param position global 3D position - considered to be on surface but not
@@ -335,6 +336,7 @@ public:
   /// @param direction global 3D momentum direction
   ///
   /// @return Path correction with respect to the nominal incident.
+  template <typename Derived>
   ACTS_DEVICE_FUNC double pathCorrection(const GeometryContext &gctx,
                                          const Vector3D &position,
                                          const Vector3D &direction) const;

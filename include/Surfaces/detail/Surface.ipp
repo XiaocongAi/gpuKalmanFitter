@@ -93,9 +93,10 @@ inline const Vector3D Surface::center(const GeometryContext &gctx) const {
   return Vector3D(tMatrix(0, 3), tMatrix(1, 3), tMatrix(2, 3));
 }
 
+template <typename Derived>
 inline const Acts::Vector3D Surface::normal(const GeometryContext &gctx,
                                             const Vector3D & /*unused*/) const {
-  return normal(gctx, Vector2D(0, 0));
+  return normal<Derived>(gctx, Vector2D(0, 0));
 }
 
 inline const Transform3D &
@@ -164,18 +165,18 @@ inline bool Surface::globalToLocal(const GeometryContext &gctx,
                                                            momentum, lposition);
 }
 
+template <typename Derived>
 inline const Vector3D Surface::normal(const GeometryContext &gctx,
-                                      const Vector2D & /*lpos*/) const {
-  // fast access via tranform matrix (and not rotation())
-  const auto &tMatrix = transform(gctx).matrix();
-  return Vector3D(tMatrix(0, 2), tMatrix(1, 2), tMatrix(2, 2));
+                                      const Vector2D &lpos) const {
+  return static_cast<const Derived *>(this)->normal(gctx, lpos);
 }
 
+template <typename Derived>
 inline double Surface::pathCorrection(const GeometryContext &gctx,
                                       const Vector3D &position,
                                       const Vector3D &direction) const {
-  // We can ignore the global position here
-  return 1. / std::abs(normal(gctx, position).dot(direction));
+  return static_cast<const Derived *>(this)->pathCorrection(gctx, position,
+                                                            direction);
 }
 
 template <typename Derived>

@@ -101,9 +101,8 @@ public:
   /// @param lposition is the local position is ignored
   ///
   /// return a Vector3D by value
-  //  ACTS_DEVICE_FUNC const Vector3D normal(const GeometryContext &gctx,
-  //                                         const Vector2D &lposition) const
-  //                                         final;
+  ACTS_DEVICE_FUNC const Vector3D normal(const GeometryContext &gctx,
+                                         const Vector2D &lposition) const;
 
   /// The binning position is the position calcualted
   /// for a certain binning type
@@ -236,11 +235,9 @@ public:
   /// @note this is the final implementation of the pathCorrection function
   ///
   /// @return a double representing the scaling factor
-  //  ACTS_DEVICE_FUNC double pathCorrection(const GeometryContext &gctx,
-  //                                         const Vector3D &position,
-  //                                         const Vector3D &direction) const
-  //                                         final;
-  //
+  ACTS_DEVICE_FUNC double pathCorrection(const GeometryContext &gctx,
+                                         const Vector3D &position,
+                                         const Vector3D &direction) const;
 
   /// Straight line intersection schema from position/direction
   ///

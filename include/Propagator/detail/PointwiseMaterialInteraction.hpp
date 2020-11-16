@@ -101,7 +101,9 @@ struct PointwiseMaterialInteraction {
         pos, nav, updateStage);
 
     // Correct the material properties for non-zero incidence
-    pathCorrection = surface->pathCorrection(state.geoContext, pos, dir);
+    pathCorrection =
+        surface->pathCorrection<typename propagator_state_t::NavigationSurface>(
+            state.geoContext, pos, dir);
     slab.scaleThickness(pathCorrection);
 
     // Get the surface material & properties from them

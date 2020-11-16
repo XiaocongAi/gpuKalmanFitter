@@ -91,7 +91,9 @@ template <typename generator_t> struct MinimalSimulator {
 
       if (slab) {
         // adapt material for non-zero incidence
-        auto normal = surface.normal(state.geoContext, local);
+        auto normal =
+            surface.normal<typename propagator_state_t::NavigationSurface>(
+                state.geoContext, local);
         // dot-product(unit normal, direction) = cos(incidence angle)
         // particle direction is normalized, not sure about surface normal
         auto cosIncidenceInv =

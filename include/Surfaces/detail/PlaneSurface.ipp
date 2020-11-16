@@ -208,12 +208,14 @@ inline bool PlaneSurface<surface_bounds_t>::globalToLocal(
               : true);
 }
 
-// inline const Vector3D PlaneSurface::normal(const GeometryContext &gctx,
-//                                           const Vector2D & /*lpos*/) const {
-//  // fast access via tranform matrix (and not rotation())
-//  const auto &tMatrix = transform(gctx).matrix();
-//  return Vector3D(tMatrix(0, 2), tMatrix(1, 2), tMatrix(2, 2));
-//}
+template <typename surface_bounds_t>
+inline const Vector3D
+PlaneSurface<surface_bounds_t>::normal(const GeometryContext &gctx,
+                                       const Vector2D & /*lpos*/) const {
+  // fast access via tranform matrix (and not rotation())
+  const auto &tMatrix = transform(gctx).matrix();
+  return Vector3D(tMatrix(0, 2), tMatrix(1, 2), tMatrix(2, 2));
+}
 
 template <typename surface_bounds_t>
 inline const Vector3D
@@ -222,14 +224,15 @@ PlaneSurface<surface_bounds_t>::binningPosition(const GeometryContext &gctx,
   return center(gctx);
 }
 
-/*
-inline double PlaneSurface::pathCorrection(const GeometryContext &gctx,
-                                           const Vector3D &position,
-                                           const Vector3D &direction) const {
+template <typename surface_bounds_t>
+inline double PlaneSurface<surface_bounds_t>::pathCorrection(
+    const GeometryContext &gctx, const Vector3D &position,
+    const Vector3D &direction) const {
   // We can ignore the global position here
-  return 1. / std::abs(Surface::normal(gctx, position).dot(direction));
+  return 1. / std::abs(Surface::normal<PlaneSurface<surface_bounds_t>>(gctx,
+                                                                       position)
+                           .dot(direction));
 }
-*/
 
 template <typename surface_bounds_t>
 inline SurfaceIntersection PlaneSurface<surface_bounds_t>::intersect(
