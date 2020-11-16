@@ -30,7 +30,6 @@ class LineSurface : public Surface {
 public:
   using SurfaceBoundsType = InfiniteBounds;
 
-public:
   //// Default Constructor
   LineSurface() = default;
 
@@ -47,6 +46,12 @@ public:
   ACTS_DEVICE_FUNC LineSurface(const GeometryContext &gctx,
                                const LineSurface &other,
                                const Transform3D &shift);
+
+  /// Constructor from GlobalPosition
+  ///
+  /// @note Constructor taken from Acts::PerigeeSurface
+  /// @param gp position where the perigee is centered
+  ACTS_DEVICE_FUNC LineSurface(const Vector3D &gp);
 
 public:
   ~LineSurface() = default;

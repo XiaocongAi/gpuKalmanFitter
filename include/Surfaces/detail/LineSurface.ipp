@@ -14,6 +14,11 @@ inline LineSurface::LineSurface(const GeometryContext &gctx,
                                 const Transform3D &shift)
     : GeometryObject(), Surface(gctx, other, shift) {}
 
+inline LineSurface::LineSurface(const Vector3D &gp) {
+  Surface::m_transform = std::make_shared<const Transform3D>(
+      Translation3D(gp.x(), gp.y(), gp.z()));
+}
+
 inline LineSurface &LineSurface::operator=(const LineSurface &other) {
   if (this != &other) {
     Surface::operator=(other);
