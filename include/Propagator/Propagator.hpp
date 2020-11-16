@@ -124,6 +124,10 @@ public:
   /// Typedef the navigator state
   using NavigatorState = typename navigator_t::State;
 
+  /// Typedef the navigator surface type (surface must have the same type on GPU
+  /// currently)
+  using NavigationSurface = typename navigator_t::NavigationSurface;
+
   /// @brief private Propagator state for navigation and debugging
   ///
   /// @tparam propagator_options_t Type of the Objections object

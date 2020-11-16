@@ -72,6 +72,8 @@ struct DirectNavigatorInitializer {
 template <typename surface_derived_t = PlaneSurface<InfiniteBounds>>
 class DirectNavigator {
 public:
+  using NavigationSurface = surface_derived_t;
+
   /// The sequentially crossed surfaces
   // using SurfaceSequence = std::vector<const Surface *>;
   // using SurfaceIter = std::vector<const Surface *>::iterator;

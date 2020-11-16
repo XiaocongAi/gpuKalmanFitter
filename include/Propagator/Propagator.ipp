@@ -5,13 +5,13 @@ using namespace Acts;
 template <typename S, typename N>
 template <typename parameters_t, typename propagator_options_t,
           typename path_aborter_t>
-ACTS_DEVICE_FUNC PropagatorResult Acts::Propagator<S, N>::propagate(
+ACTS_DEVICE_FUNC Acts::PropagatorResult Acts::Propagator<S, N>::propagate(
     const parameters_t &start, const propagator_options_t &options,
     typename propagator_options_t::action_type::result_type &actorResult)
     const {
   PUSH_RANGE("propagate", 1);
 
-  PropagatorResult result;
+  Acts::PropagatorResult result;
 
   using StateType = State<propagator_options_t>;
   StateType state(start, options);
@@ -104,11 +104,11 @@ template <typename parameters_t, typename propagator_options_t,
 __device__ void Acts::Propagator<S, N>::propagate(
     const parameters_t &start, const propagator_options_t &options,
     typename propagator_options_t::action_type::result_type &actorResult,
-    PropagatorResult &result) const {
+    Acts::PropagatorResult &result) const {
 
   const bool IS_MAIN_THREAD = (threadIdx.x == 0 && threadIdx.y == 0);
 
-  using StateType = State<propagator_options_t>;
+  using StateType = Acts::State<propagator_options_t>;
 
   __shared__ StateType state;
   __shared__ path_aborter_t pathAborter;
@@ -117,7 +117,7 @@ __device__ void Acts::Propagator<S, N>::propagate(
   __shared__ bool terminatedEarly;
 
   if (IS_MAIN_THREAD) {
-    state = StateType(start, options);
+    state = Acts::StateType(start, options);
     pathAborter = path_aborter_t();
     // pathAborter.internalLimit = options.pathLimit;
 

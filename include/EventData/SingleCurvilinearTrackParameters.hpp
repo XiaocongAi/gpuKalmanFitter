@@ -31,6 +31,7 @@ public:
   using Scalar = BoundParametersScalar;
   using ParametersVector = BoundVector;
   using CovarianceMatrix = BoundSymMatrix;
+  using ReferenceSurfaceType = PlaneSurface<InfiniteBounds>;
 
   /// @brief constructor for curvilienear representation
   /// This is the constructor from global parameters, enabled only
@@ -165,20 +166,6 @@ public:
   /// @brief access to the reference surface
   ACTS_DEVICE_FUNC const Surface &referenceSurface() const final {
     return m_upSurface;
-  }
-
-  /// @brief access to the measurement frame, i.e. the rotation matrix with
-  /// respect to the global coordinate system, in which the local error
-  /// is described.
-  ///
-  /// @param gctx The current geometry context object, e.g. alignment
-  ///             It is ignored for Curvilinear parameters
-  ///
-  /// @note For a curvilinear track parameterisation this is identical to
-  /// the rotation matrix of the intrinsic planar surface.
-  ACTS_DEVICE_FUNC RotationMatrix3D
-  referenceFrame(const GeometryContext &gctx) const {
-    return m_upSurface.transform(gctx).linear();
   }
 
 private:

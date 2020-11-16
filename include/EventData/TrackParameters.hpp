@@ -13,8 +13,10 @@
 #include "EventData/SingleCurvilinearTrackParameters.hpp"
 
 namespace Acts {
+template <typename surface_derived_t = PlaneSurface<InfiniteBounds>>
+using BoundParameters =
+    SingleBoundTrackParameters<ChargedPolicy, surface_derived_t>;
 
-using BoundParameters = SingleBoundTrackParameters<ChargedPolicy>;
 using CurvilinearParameters = SingleCurvilinearTrackParameters<ChargedPolicy>;
 
 } // namespace Acts

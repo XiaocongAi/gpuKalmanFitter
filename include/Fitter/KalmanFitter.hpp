@@ -95,7 +95,8 @@ struct KalmanFitterOptions {
   bool energyLoss = true;
 };
 
-template <typename source_link_t, typename parameters_t>
+template <typename source_link_t, typename parameters_t,
+          typename target_surface_t>
 struct KalmanFitterResult {
   using TrackStateType = TrackState<source_link_t, parameters_t>;
 
@@ -103,7 +104,7 @@ struct KalmanFitterResult {
   CudaKernelContainer<TrackStateType> fittedStates;
 
   // The optional Parameters at the provided surface
-  BoundParameters fittedParameters;
+  BoundParameters<target_surface_t> fittedParameters;
 
   // Counter for states with measurements
   size_t measurementStates = 0;
@@ -151,10 +152,11 @@ struct KalmanFitterResult {
 /// The void components are provided mainly for unit testing.
 template <typename propagator_t, typename updater_t = VoidKalmanUpdater,
           typename smoother_t = VoidKalmanSmoother,
-          typename outlier_finder_t = VoidOutlierFinder,
-          typename target_surface_t = PlaneSurface<InfiniteBounds>>
+          typename outlier_finder_t = VoidOutlierFinder>
 class KalmanFitter {
 public:
+  using NavigationSurface = typename propagator_t::NavigationSurface;
+
   /// Default constructor is deleted
   KalmanFitter() = delete;
 
@@ -173,11 +175,15 @@ private:
   ///
   /// The KalmanActor does not rely on the measurements to be
   /// sorted along the track.
-  template <typename source_link_t, typename parameters_t> class Actor {
+  template <typename source_link_t, typename parameters_t,
+            typename target_surface_t>
+  class Actor {
   public:
-    /// Broadcast the result_type
-    using result_type = KalmanFitterResult<source_link_t, parameters_t>;
+    // Broadcast the result type
+    using result_type =
+        KalmanFitterResult<source_link_t, parameters_t, target_surface_t>;
 
+    // Broadcast the track state type
     using TrackStateType = typename result_type::TrackStateType;
 
     /// Broadcast the input measurement container type
@@ -264,8 +270,8 @@ private:
         typename TrackStateType::Jacobian jac;
         double path;
         // Transport & bind the parameter to the final surface
-        stepper.boundState(state.stepping, *targetSurface,
-                           result.fittedParameters, jac, path);
+        stepper.template boundState<target_surface_t>(
+            state.stepping, *targetSurface, result.fittedParameters, jac, path);
 
         // Remember the track fitting is done
         result.finished = true;
@@ -303,7 +309,7 @@ private:
           result.fittedStates[result.measurementStates];
 
       // Transport & bind the state to the current surface
-      stepper.boundState(
+      stepper.template boundState<NavigationSurface>(
           state.stepping, *surface, trackState.parameter.predicted,
           trackState.parameter.jacobian, trackState.parameter.pathLength);
 
@@ -359,7 +365,7 @@ private:
           result.fittedStates[result.measurementStates];
 
       // Transport & bind the state to the current surface
-      stepper.boundState(
+      stepper.boundState<NavigationSurface>(
           state.stepping, *surface, trackState.parameter.predicted,
           trackState.parameter.jacobian, trackState.parameter.pathLength);
 
@@ -505,14 +511,11 @@ private:
 
   template <typename source_link_t, typename parameters_t> class Aborter {
   public:
-    /// Broadcast the result_type
-    using action_type = Actor<source_link_t, parameters_t>;
-
     template <typename propagator_state_t, typename stepper_t,
-              typename result_t>
+              typename result_type>
     ACTS_DEVICE_FUNC bool operator()(propagator_state_t & /*state*/,
                                      const stepper_t & /*stepper*/,
-                                     const result_t &result) const {
+                                     const result_type &result) const {
       if (!result.result or result.finished) {
         return true;
       }
@@ -543,12 +546,14 @@ public:
   ///
   /// @return the output as an output track
   template <typename source_link_t, typename start_parameters_t,
-            typename parameters_t = BoundParameters>
+            typename parameters_t = BoundParameters<NavigationSurface>,
+            typename target_surface_t = PlaneSurface<InfiniteBounds>>
   ACTS_DEVICE_FUNC bool
   fit(const CudaKernelContainer<source_link_t> &sourcelinks,
       const start_parameters_t &sParameters,
       const KalmanFitterOptions<outlier_finder_t> &kfOptions,
-      KalmanFitterResult<source_link_t, parameters_t> &kfResult,
+      KalmanFitterResult<source_link_t, parameters_t, target_surface_t>
+          &kfResult,
       const Surface *surfaceSequence = nullptr,
       size_t surfaceSequenceSize = 0) const {
 
@@ -557,7 +562,7 @@ public:
     // printf("Preparing %lu input measurements\n", sourcelinks.size());
     // Create the ActionList and AbortList
     using KalmanAborter = Aborter<source_link_t, parameters_t>;
-    using KalmanActor = Actor<source_link_t, parameters_t>;
+    using KalmanActor = Actor<source_link_t, parameters_t, target_surface_t>;
 
     // Create relevant options for the propagation options
     PropagatorOptions<KalmanActor, KalmanAborter> kalmanOptions(
@@ -614,12 +619,14 @@ public:
   ///
   /// @return the output as an output track
   template <typename source_link_t, typename start_parameters_t,
-            typename parameters_t = BoundParameters>
+            typename parameters_t = BoundParameters<NavigationSurface>,
+            typename target_surface_t = PlaneSurface<InfiniteBounds>>
   __device__ void
   fitOnDevice(const CudaKernelContainer<source_link_t> &sourcelinks,
               const start_parameters_t &sParameters,
               const KalmanFitterOptions<outlier_finder_t> &kfOptions,
-              KalmanFitterResult<source_link_t, parameters_t> &kfResult,
+              KalmanFitterResult<source_link_t, parameters_t, target_surface_t>
+                  &kfResult,
               bool &status, const Surface *surfaceSequence = nullptr,
               size_t surfaceSequenceSize = 0) const {
 
@@ -629,7 +636,7 @@ public:
 
     // Create the ActionList and AbortList
     using KalmanAborter = Aborter<source_link_t, parameters_t>;
-    using KalmanActor = Actor<source_link_t, parameters_t>;
+    using KalmanActor = Actor<source_link_t, parameters_t, target_surface_t>;
 
     // Create relevant options for the propagation options
     __shared__ PropagatorOptions<KalmanActor, KalmanAborter> kalmanOptions;

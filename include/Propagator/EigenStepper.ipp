@@ -227,7 +227,7 @@ template <typename B>
 template <typename propagator_state_t>
 ACTS_DEVICE_FUNC bool
 Acts::EigenStepper<B>::step(propagator_state_t &state) const {
-
+  printf("step(propagator_state_t &state)\n");
   // Construt a stepping data here
   detail::StepData sd;
   // Default constructor will result in wrong value on GPU
@@ -481,9 +481,11 @@ Acts::EigenStepper<B>::stepOnDevice(propagator_state_t &state) const {
 }
 
 template <typename B>
+template <typename surface_derived_t>
 __device__ void Acts::EigenStepper<B>::boundStateOnDevice(
-    State &state, const Surface &surface, BoundParameters &boundParams,
-    BoundMatrix &jacobian, double &path) const {
+    State &state, const Surface &surface,
+    BoundParameters<surface_derived_t> &boundParams, BoundMatrix &jacobian,
+    double &path) const {
   __shared__ FreeVector parameters;
   // Initialize with the main thread
   if (threadIdx.x == 0 && threadIdx.y == 0) {
@@ -498,10 +500,10 @@ __device__ void Acts::EigenStepper<B>::boundStateOnDevice(
   }
   __syncthreads();
 
-  detail::boundStateOnDevice(state.geoContext, state.cov, state.jacobian,
-                             state.jacTransport, state.derivative,
-                             state.jacToGlobal, parameters, state.covTransport,
-                             surface, boundParams);
+  detail::boundStateOnDevice<surface_derived_t>(
+      state.geoContext, state.cov, state.jacobian, state.jacTransport,
+      state.derivative, state.jacToGlobal, parameters, state.covTransport,
+      surface, boundParams);
   if (threadIdx.x == 0 && threadIdx.y == 0) {
     jacobian = state.jacobian;
     path = state.pathAccumulated;
@@ -511,10 +513,12 @@ __device__ void Acts::EigenStepper<B>::boundStateOnDevice(
 #endif
 
 template <typename B>
-ACTS_DEVICE_FUNC void
-Acts::EigenStepper<B>::boundState(State &state, const Surface &surface,
-                                  BoundParameters &boundParams,
-                                  BoundMatrix &jacobian, double &path) const {
+template <typename surface_derived_t>
+ACTS_DEVICE_FUNC void Acts::EigenStepper<B>::boundState(
+    State &state, const Surface &surface,
+    BoundParameters<surface_derived_t> &boundParams, BoundMatrix &jacobian,
+    double &path) const {
+  printf("Acts::EigenStepper<B>::boundState\n");
   FreeVector parameters;
   parameters[0] = state.pos[0];
   parameters[1] = state.pos[1];
@@ -525,9 +529,10 @@ Acts::EigenStepper<B>::boundState(State &state, const Surface &surface,
   parameters[6] = state.dir[2];
   parameters[7] = state.q / state.p;
 
-  detail::boundState(state.geoContext, state.cov, state.jacobian,
-                     state.jacTransport, state.derivative, state.jacToGlobal,
-                     parameters, state.covTransport, surface, boundParams);
+  detail::boundState<surface_derived_t>(
+      state.geoContext, state.cov, state.jacobian, state.jacTransport,
+      state.derivative, state.jacToGlobal, parameters, state.covTransport,
+      surface, boundParams);
   // Bound to bound jacobian
   jacobian = state.jacobian;
   path = state.pathAccumulated;

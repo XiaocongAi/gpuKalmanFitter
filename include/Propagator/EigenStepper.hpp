@@ -50,12 +50,13 @@ template <typename bfield_t> struct EigenStepper {
       // Init the jacobian matrix if needed
       if (par.covariance()) {
         // Get the reference surface for navigation
-        const auto &surface = par.referenceSurface();
+        const Surface *surface = &par.referenceSurface();
         // set the covariance transport flag to true and copy
         covTransport = true;
         cov = BoundSymMatrix(*par.covariance());
-        surface.initJacobianToGlobal(gctx, jacToGlobal, pos, dir,
-                                     par.parameters());
+        surface
+            ->initJacobianToGlobal<typename parameters_t::ReferenceSurfaceType>(
+                gctx, jacToGlobal, pos, dir, par.parameters());
       }
     }
 
@@ -278,9 +279,11 @@ template <typename bfield_t> struct EigenStepper {
   ///   - the parameters at the surface
   ///   - the stepwise jacobian towards it (from last bound)
   ///   - and the path length (from start - for ordering)
-  ACTS_DEVICE_FUNC void boundState(State &state, const Surface &surface,
-                                   BoundParameters &boundParams,
-                                   BoundMatrix &jacobian, double &path) const;
+  template <typename surface_derived_t>
+  ACTS_DEVICE_FUNC void
+  boundState(State &state, const Surface &surface,
+             BoundParameters<surface_derived_t> &boundParams,
+             BoundMatrix &jacobian, double &path) const;
 
 #ifdef __CUDACC__
   /// Create and return the bound state at the current position
@@ -297,9 +300,11 @@ template <typename bfield_t> struct EigenStepper {
   ///   - the parameters at the surface
   ///   - the stepwise jacobian towards it (from last bound)
   ///   - and the path length (from start - for ordering)
-  __device__ void boundStateOnDevice(State &state, const Surface &surface,
-                                     BoundParameters &boundParams,
-                                     BoundMatrix &jacobian, double &path) const;
+  template <typename surface_derived_t>
+  __device__ void
+  boundStateOnDevice(State &state, const Surface &surface,
+                     BoundParameters<surface_derived_t> &boundParams,
+                     BoundMatrix &jacobian, double &path) const;
 #endif
 
   /// Create and return a curvilinear state at the current position
