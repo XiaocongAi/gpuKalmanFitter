@@ -62,7 +62,7 @@ protected:
     Cone = 0,
     Cylinder = 1,
     Disc = 2,
-    Perigee = 3,
+    Line = 3,
     Plane = 4,
     Straw = 5,
     Curvilinear = 6,

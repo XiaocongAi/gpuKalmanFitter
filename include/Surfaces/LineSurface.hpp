@@ -47,6 +47,10 @@ public:
                                const LineSurface &other,
                                const Transform3D &shift);
 
+  /// Constructor from the transform
+  ///
+  ACTS_DEVICE_FUNC LineSurface(const Transform3D &transform);
+
   /// Constructor from GlobalPosition
   ///
   /// @note Constructor taken from Acts::PerigeeSurface
@@ -80,8 +84,8 @@ public:
   /// @param bValue is the binning type to be used
   ///
   /// @return position that can beused for this binning
-  Vector3D binningPosition(const GeometryContext &gctx,
-                           BinningValue bValue) const final;
+  const Vector3D binningPosition(const GeometryContext &gctx,
+                                 BinningValue bValue) const final;
 
   /// Return the surface type
   ACTS_DEVICE_FUNC SurfaceType type() const;
@@ -264,6 +268,6 @@ public:
   // std::string name() const override;
 };
 
-#include "Acts/Surfaces/detail/LineSurface.ipp"
+#include "Surfaces/detail/LineSurface.ipp"
 
 } // namespace Acts

@@ -6,17 +6,19 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-inline LineSurface::LineSurface(const Transform3D &transform)
-    : GeometryObject(), Surface(transform) {}
+inline LineSurface::LineSurface(const LineSurface &other)
+    : GeometryObject(), Surface(other) {}
 
 inline LineSurface::LineSurface(const GeometryContext &gctx,
                                 const LineSurface &other,
                                 const Transform3D &shift)
     : GeometryObject(), Surface(gctx, other, shift) {}
 
+inline LineSurface::LineSurface(const Transform3D &transform)
+    : GeometryObject(), Surface(transform) {}
+
 inline LineSurface::LineSurface(const Vector3D &gp) {
-  Surface::m_transform = std::make_shared<const Transform3D>(
-      Translation3D(gp.x(), gp.y(), gp.z()));
+  Surface::m_transform = Transform3D(Translation3D(gp.x(), gp.y(), gp.z()));
 }
 
 inline LineSurface &LineSurface::operator=(const LineSurface &other) {
@@ -32,8 +34,9 @@ inline Vector3D LineSurface::normal(const GeometryContext &gctx,
   return Vector3D(tMatrix(0, 2), tMatrix(1, 2), tMatrix(2, 2));
 }
 
-inline Vector3D LineSurface::binningPosition(const GeometryContext &gctx,
-                                             BinningValue /*bValue*/) const {
+inline const Vector3D
+LineSurface::binningPosition(const GeometryContext &gctx,
+                             BinningValue /*bValue*/) const {
   return center(gctx);
 }
 
@@ -41,7 +44,7 @@ inline Surface::SurfaceType LineSurface::type() const { return Surface::Line; }
 
 inline const InfiniteBounds *LineSurface::bounds() const { return nullptr; }
 
-inline RotationMatrix3D
+inline RotationMatrix3D const
 LineSurface::referenceFrame(const GeometryContext &gctx,
                             const Vector3D & /*unused*/,
                             const Vector3D &momentum) const {
@@ -169,39 +172,41 @@ inline const BoundRowVector LineSurface::derivativeFactors(
                          jacobian.block<3, eBoundParametersSize>(4, 0))));
 }
 
-inline Vector3D LineSurface::localToGlobal(const GeometryContext &gctx,
-                                           const Vector2D &lposition,
-                                           const Vector3D &momentum) const {
+inline void LineSurface::localToGlobal(const GeometryContext &gctx,
+                                       const Vector2D &lposition,
+                                       const Vector3D &momentum,
+                                       Vector3D &position) const {
   const auto &sTransform = transform(gctx);
   const auto &tMatrix = sTransform.matrix();
   Vector3D lineDirection(tMatrix(0, 2), tMatrix(1, 2), tMatrix(2, 2));
 
   // get the vector perpendicular to the momentum and the straw axis
   Vector3D radiusAxisGlobal(lineDirection.cross(momentum));
-  Vector3D locZinGlobal = sTransform * Vector3D(0., 0., lposition[eBoundLoc1]);
-  // add eBoundLoc0 * radiusAxis
-  return Vector3D(locZinGlobal +
-                  lposition[eBoundLoc0] * radiusAxisGlobal.normalized());
+  Vector3D locZinGlobal = sTransform * Vector3D(0., 0., lposition[eLOC_Z]);
+  // add eLOC_R * radiusAxis
+  position = Vector3D(locZinGlobal +
+                      lposition[eLOC_R] * radiusAxisGlobal.normalized());
 }
 
-inline Result<Vector2D> LineSurface::globalToLocal(const GeometryContext &gctx,
-                                                   const Vector3D &position,
-                                                   const Vector3D &momentum,
-                                                   double /*tolerance*/) const {
+inline bool LineSurface::globalToLocal(const GeometryContext &gctx,
+                                       const Vector3D &position,
+                                       const Vector3D &momentum,
+                                       Vector2D &lposition) const {
   using VectorHelpers::perp;
+
   const auto &sTransform = transform(gctx);
   const auto &tMatrix = sTransform.matrix();
   Vector3D lineDirection(tMatrix(0, 2), tMatrix(1, 2), tMatrix(2, 2));
   // Bring the global position into the local frame
   Vector3D loc3Dframe = sTransform.inverse() * position;
   // construct localPosition with sign*perp(candidate) and z.()
-  Vector2D lposition(perp(loc3Dframe), loc3Dframe.z());
+  lposition = Vector2D(perp(loc3Dframe), loc3Dframe.z());
   Vector3D sCenter(tMatrix(0, 3), tMatrix(1, 3), tMatrix(2, 3));
   Vector3D decVec(position - sCenter);
   // assign the right sign
   double sign = ((lineDirection.cross(momentum)).dot(decVec) < 0.) ? -1. : 1.;
-  lposition[eBoundLoc0] *= sign;
-  return Result<Vector2D>::success(lposition);
+  lposition[eLOC_R] *= sign;
+  return true;
 }
 
 inline double LineSurface::pathCorrection(const GeometryContext & /*unused*/,
@@ -227,20 +232,20 @@ LineSurface::intersect(const GeometryContext &gctx, const Vector3D &position,
   double eaTeb = ea.dot(eb);
   double denom = 1 - eaTeb * eaTeb;
   // validity parameter
-  Intersection3D::Status status = Intersection3D::Status::unreachable;
+  Intersection::Status status = Intersection::Status::unreachable;
   if (denom * denom > s_onSurfaceTolerance * s_onSurfaceTolerance) {
     double u = (mab.dot(ea) - mab.dot(eb) * eaTeb) / denom;
     // Check if we are on the surface already
     status = (u * u < s_onSurfaceTolerance * s_onSurfaceTolerance)
-                 ? Intersection3D::Status::onSurface
-                 : Intersection3D::Status::reachable;
+                 ? Intersection::Status::onSurface
+                 : Intersection::Status::reachable;
     Vector3D result = (ma + u * ea);
     // Evaluate the boundary check if requested
     // m_bounds == nullptr prevents unecessary calulations for PerigeeSurface
-    return {Intersection3D(result, u, status), this};
+    return {Intersection(result, u, status), this};
   }
   // return a false intersection
-  return {Intersection3D(position, std::numeric_limits<double>::max(), status),
+  return {Intersection(position, std::numeric_limits<double>::max(), status),
           this};
 }
 
