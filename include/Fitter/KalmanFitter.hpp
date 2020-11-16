@@ -365,7 +365,8 @@ private:
           result.fittedStates[result.measurementStates];
 
       // Transport & bind the state to the current surface
-      stepper.boundState<NavigationSurface>(
+      // @todo: to be changed to boundStateOnDevice
+      stepper.template boundState<NavigationSurface>(
           state.stepping, *surface, trackState.parameter.predicted,
           trackState.parameter.jacobian, trackState.parameter.pathLength);
 

@@ -108,7 +108,7 @@ __device__ void Acts::Propagator<S, N>::propagate(
 
   const bool IS_MAIN_THREAD = (threadIdx.x == 0 && threadIdx.y == 0);
 
-  using StateType = Acts::State<propagator_options_t>;
+  using StateType = State<propagator_options_t>;
 
   __shared__ StateType state;
   __shared__ path_aborter_t pathAborter;
@@ -117,7 +117,7 @@ __device__ void Acts::Propagator<S, N>::propagate(
   __shared__ bool terminatedEarly;
 
   if (IS_MAIN_THREAD) {
-    state = Acts::StateType(start, options);
+    state = StateType(start, options);
     pathAborter = path_aborter_t();
     // pathAborter.internalLimit = options.pathLimit;
 

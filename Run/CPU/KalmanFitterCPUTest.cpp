@@ -56,6 +56,7 @@ using KalmanFitterResultType =
                              Acts::BoundParameters<PlaneSurfaceType>,
                              PlaneSurfaceType>;
 using TSType = typename KalmanFitterResultType::TrackStateType;
+using FitOptionsType = Acts::KalmanFitterOptions<Acts::VoidOutlierFinder>;
 
 int main(int argc, char *argv[]) {
   unsigned int nTracks = 10000;
@@ -186,7 +187,7 @@ int main(int argc, char *argv[]) {
         sourcelinks + it * nSurfaces, nSurfaces);
     // @todo Use perigee surface as the target surface. Needs a perigee surface
     // object
-    KalmanFitterOptions<Acts::VoidOutlierFinder> kfOptions(gctx, mctx);
+    FitOptionsType kfOptions(gctx, mctx);
     kfOptions.referenceSurface = &startPars[it].referenceSurface();
     // @note when it >=35, we got different startPars[i] between CPU and GPU
     // Run the fit. The fittedStates will be changed here

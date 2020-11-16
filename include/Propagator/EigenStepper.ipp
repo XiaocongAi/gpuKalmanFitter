@@ -227,7 +227,6 @@ template <typename B>
 template <typename propagator_state_t>
 ACTS_DEVICE_FUNC bool
 Acts::EigenStepper<B>::step(propagator_state_t &state) const {
-  printf("step(propagator_state_t &state)\n");
   // Construt a stepping data here
   detail::StepData sd;
   // Default constructor will result in wrong value on GPU
@@ -518,7 +517,6 @@ ACTS_DEVICE_FUNC void Acts::EigenStepper<B>::boundState(
     State &state, const Surface &surface,
     BoundParameters<surface_derived_t> &boundParams, BoundMatrix &jacobian,
     double &path) const {
-  printf("Acts::EigenStepper<B>::boundState\n");
   FreeVector parameters;
   parameters[0] = state.pos[0];
   parameters[1] = state.pos[1];

@@ -58,21 +58,25 @@ using Stepper = Acts::EigenStepper<Test::ConstantBField>;
 using PropagatorType = Acts::Propagator<Stepper>;
 using PropResultType = Acts::PropagatorResult;
 using PropOptionsType = Acts::PropagatorOptions<Simulator, Test::VoidAborter>;
-using PropState = PropagatorType::State<PropOptionsType>;
-using Smoother = GainMatrixSmoother<BoundParameters>;
+using Smoother = GainMatrixSmoother<Acts::BoundParameters<PlaneSurfaceType>>;
 using KalmanFitterType =
     Acts::KalmanFitter<PropagatorType, Acts::GainMatrixUpdater, Smoother>;
 using KalmanFitterResultType =
-    Acts::KalmanFitterResult<Acts::PixelSourceLink, Acts::BoundParameters>;
+    Acts::KalmanFitterResult<Acts::PixelSourceLink,
+                             Acts::BoundParameters<PlaneSurfaceType>,
+                             PlaneSurfaceType>;
 using TSType = typename KalmanFitterResultType::TrackStateType;
 using FitOptionsType = Acts::KalmanFitterOptions<Acts::VoidOutlierFinder>;
 
 // Device code
-__global__ void __launch_bounds__(256, 2) fitKernelThreadPerTrack(
-    KalmanFitterType *kFitter, Acts::PixelSourceLink *sourcelinks,
-    Acts::CurvilinearParameters *spars, FitOptionsType *kfOptions,
-    TSType *fittedStates, Acts::BoundParameters *fpars, bool *fitStatus,
-    const Acts::Surface *surfacePtrs, int nSurfaces, int nTracks, int offset) {
+__global__ void __launch_bounds__(256, 2)
+    fitKernelThreadPerTrack(KalmanFitterType *kFitter,
+                            Acts::PixelSourceLink *sourcelinks,
+                            Acts::CurvilinearParameters *spars,
+                            FitOptionsType *kfOptions, TSType *fittedStates,
+                            Acts::BoundParameters<PlaneSurfaceType> *fpars,
+                            bool *fitStatus, const Acts::Surface *surfacePtrs,
+                            int nSurfaces, int nTracks, int offset) {
   // In case of 1D grid and 1D block, the threadId = blockDim.x*blockIdx.x +
   // threadIdx.x + offset
   // @note This might have problem if the number of threads is smaller than the
@@ -95,11 +99,14 @@ __global__ void __launch_bounds__(256, 2) fitKernelThreadPerTrack(
   }
 }
 
-__global__ void __launch_bounds__(256, 2) fitKernelBlockPerTrack(
-    KalmanFitterType *kFitter, Acts::PixelSourceLink *sourcelinks,
-    Acts::CurvilinearParameters *spars, FitOptionsType *kfOptions,
-    TSType *fittedStates, Acts::BoundParameters *fpars, bool *fitStatus,
-    const Acts::Surface *surfacePtrs, int nSurfaces, int nTracks, int offset) {
+__global__ void __launch_bounds__(256, 2)
+    fitKernelBlockPerTrack(KalmanFitterType *kFitter,
+                           Acts::PixelSourceLink *sourcelinks,
+                           Acts::CurvilinearParameters *spars,
+                           FitOptionsType *kfOptions, TSType *fittedStates,
+                           Acts::BoundParameters<PlaneSurfaceType> *fpars,
+                           bool *fitStatus, const Acts::Surface *surfacePtrs,
+                           int nSurfaces, int nTracks, int offset) {
   // @note This will have problem if the number of blocks is smaller than the
   // number of tracks!!!
   int blockId = gridDim.x * blockIdx.y + blockIdx.x + offset;
@@ -204,6 +211,7 @@ int main(int argc, char *argv[]) {
   }
 
   // The shared memory size
+  using PropState = PropagatorType::State<PropOptionsType>;
   int sharedMemoryPerTrack = sizeof(PathLimitReached) + sizeof(PropState) +
                              sizeof(bool) * 2 + sizeof(PropagatorResult);
   std::cout << "shared memory is " << sharedMemoryPerTrack << std::endl;
@@ -214,7 +222,8 @@ int main(int argc, char *argv[]) {
   const unsigned int sourcelinksBytes =
       sizeof(PixelSourceLink) * nSurfaces * nTracks;
   const unsigned int sParsBytes = sizeof(Acts::CurvilinearParameters) * nTracks;
-  const unsigned int fParsBytes = sizeof(Acts::BoundParameters) * nTracks;
+  const unsigned int fParsBytes =
+      sizeof(Acts::BoundParameters<PlaneSurfaceType>) * nTracks;
   const unsigned int tsBytes = sizeof(TSType) * nSurfaces * nTracks;
   const unsigned int statusBytes = sizeof(bool) * nTracks;
   const unsigned int optionBytes = sizeof(FitOptionsType) * nTracks;
@@ -236,9 +245,9 @@ int main(int argc, char *argv[]) {
       sizeof(Acts::CurvilinearParameters) * tracksLastStream;
 
   const unsigned int perFitParsBytes =
-      sizeof(Acts::BoundParameters) * tracksPerStream;
+      sizeof(Acts::BoundParameters<PlaneSurfaceType>) * tracksPerStream;
   const unsigned int lastFitParsBytes =
-      sizeof(Acts::BoundParameters) * tracksLastStream;
+      sizeof(Acts::BoundParameters<PlaneSurfaceType>) * tracksLastStream;
 
   const unsigned int perTSsBytes = sizeof(TSType) * nSurfaces * tracksPerStream;
   const unsigned int lastTSsBytes =
@@ -344,7 +353,7 @@ int main(int argc, char *argv[]) {
   GPUERRCHK(cudaMallocHost((void **)&startPars, sParsBytes));
   // Copy to the pinned memory
   memcpy(startPars, startParsCollection.data(), sParsBytes);
-  Acts::BoundParameters *fitPars;
+  Acts::BoundParameters<PlaneSurfaceType> *fitPars;
   GPUERRCHK(cudaMallocHost((void **)&fitPars, fParsBytes));
 
   // Prepare to perform fit to the created tracks
@@ -387,7 +396,7 @@ int main(int argc, char *argv[]) {
     KalmanFitterType *d_kFitter;
     Acts::PixelSourceLink *d_sourcelinks;
     Acts::CurvilinearParameters *d_startPars;
-    Acts::BoundParameters *d_fitPars;
+    Acts::BoundParameters<PlaneSurfaceType> *d_fitPars;
     FitOptionsType *d_kfOptions;
     TSType *d_fittedStates;
     bool *d_fitStatus;
