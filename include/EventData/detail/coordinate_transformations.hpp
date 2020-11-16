@@ -42,12 +42,14 @@ struct coordinate_transformation {
   /// @param s the surface for the local to global transform
   ///
   /// @return position in the global frame
+  template <typename surface_derived_t>
   ACTS_DEVICE_FUNC static Vector3D
   parameters2globalPosition(const GeometryContext &gctx,
                             const ParVector_t &pars, const Surface &s) {
     Vector3D globalPosition;
-    s.localToGlobal(gctx, Vector2D(pars(Acts::eLOC_0), pars(Acts::eLOC_1)),
-                    parameters2globalMomentum(pars), globalPosition);
+    s.localToGlobal<surface_derived_t>(
+        gctx, Vector2D(pars(Acts::eLOC_0), pars(Acts::eLOC_1)),
+        parameters2globalMomentum(pars), globalPosition);
     return globalPosition;
   }
 
@@ -110,6 +112,7 @@ struct coordinate_transformation {
   /// @param s the surface for the global to local transform
   ///
   /// @return the track parameterisation
+  template <typename surface_derived_t>
   ACTS_DEVICE_FUNC static ParVector_t
   global2parameters(const GeometryContext &gctx, const Vector3D &pos,
                     const Vector3D &mom, double charge, double time,
@@ -117,7 +120,7 @@ struct coordinate_transformation {
     using VectorHelpers::phi;
     using VectorHelpers::theta;
     Vector2D localPosition;
-    s.globalToLocal(gctx, pos, mom, localPosition);
+    s.globalToLocal<surface_derived_t>(gctx, pos, mom, localPosition);
     ParVector_t result;
     result << localPosition(0), localPosition(1), phi(mom), theta(mom),
         ((std::abs(charge) < 1e-4) ? 1. : charge) / mom.norm(), time;
@@ -138,13 +141,14 @@ struct coordinate_transformation {
   /// @param [in] surface Surface related to @p parameters
   ///
   /// @return FreeVector representation of @p parameters
+  template <typename surface_derived_t>
   ACTS_DEVICE_FUNC static FreeVector
   boundParameters2freeParameters(const GeometryContext &gtcx,
                                  const BoundVector &parameters,
                                  const Surface &surface) {
     FreeVector result;
     result.template segment<3>(eFreePos0) =
-        parameters2globalPosition(gtcx, parameters, surface);
+        parameters2globalPosition<surface_derived_t>(gtcx, parameters, surface);
     result[eFreeTime] = parameters[eBoundTime];
     result.template segment<3>(eFreeDir0) = makeDirectionUnitFromPhiTheta(
         parameters[eBoundPhi], parameters[eBoundTheta]);

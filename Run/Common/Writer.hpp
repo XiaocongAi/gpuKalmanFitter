@@ -199,7 +199,8 @@ void writeParamsRoot(const Acts::GeometryContext &gctx,
     const auto p = particle.absMomentum();
     // Transform the particle position to bound surface
     const auto truthParameters =
-        Acts::detail::coordinate_transformation::global2parameters(
+        Acts::detail::coordinate_transformation::global2parameters<
+            typename parameters_t::ReferenceSurfaceType>(
             gctx, particle.position(), p * particle.unitDirection(),
             particle.charge(), particle.time(),
             fitBoundParams.referenceSurface());

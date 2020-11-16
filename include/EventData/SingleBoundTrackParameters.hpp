@@ -62,8 +62,8 @@ public:
                                               const Surface *surface)
       : SingleTrackParameters<ChargePolicy>(
             std::move(cov), parValues,
-            detail::coordinate_transformation::parameters2globalPosition(
-                gctx, parValues, *surface),
+            detail::coordinate_transformation::parameters2globalPosition<
+                ReferenceSurfaceType>(gctx, parValues, *surface),
             detail::coordinate_transformation::parameters2globalMomentum(
                 parValues)),
         m_pSurface(surface) {
@@ -96,8 +96,9 @@ public:
                                               const Surface *surface)
       : SingleTrackParameters<ChargePolicy>(
             std::move(cov),
-            detail::coordinate_transformation::global2parameters(
-                gctx, position, momentum, dCharge, dTime, *surface),
+            detail::coordinate_transformation::global2parameters<
+                ReferenceSurfaceType>(gctx, position, momentum, dCharge, dTime,
+                                      *surface),
             position, momentum),
         m_pSurface(std::move(surface)) {
     assert(m_pSurface);
@@ -124,8 +125,8 @@ public:
                                               const Surface *surface)
       : SingleTrackParameters<ChargePolicy>(
             std::move(cov), parValues,
-            detail::coordinate_transformation::parameters2globalPosition(
-                gctx, parValues, *surface),
+            detail::coordinate_transformation::parameters2globalPosition<
+                ReferenceSurfaceType>(gctx, parValues, *surface),
             detail::coordinate_transformation::parameters2globalMomentum(
                 parValues)),
         m_pSurface(std::move(surface)) {
@@ -157,8 +158,9 @@ public:
                              Scalar dTime, const Surface *surface)
       : SingleTrackParameters<ChargePolicy>(
             std::move(cov),
-            detail::coordinate_transformation::global2parameters(
-                gctx, position, momentum, 0, dTime, *surface),
+            detail::coordinate_transformation::global2parameters<
+                ReferenceSurfaceType>(gctx, position, momentum, 0, dTime,
+                                      *surface),
             position, momentum),
         m_pSurface(std::move(surface)) {}
 

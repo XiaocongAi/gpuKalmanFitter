@@ -50,9 +50,10 @@ template <typename generator_t> struct MeasurementCreator {
     if (state.navigation.currentSurface != nullptr) {
       // Apply global to local
       Acts::Vector2D lPos;
-      state.navigation.currentSurface->globalToLocal(
-          state.options.geoContext, stepper.position(state.stepping),
-          stepper.direction(state.stepping), lPos);
+      state.navigation.currentSurface
+          ->globalToLocal<propagator_state_t::NavigationSurface>(
+              state.options.geoContext, stepper.position(state.stepping),
+              stepper.direction(state.stepping), lPos);
       // Perform the smearing to truth
       double dx = std::normal_distribution<double>(0., resX)(*generator);
       double dy = std::normal_distribution<double>(0., resY)(*generator);

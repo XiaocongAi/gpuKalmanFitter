@@ -249,11 +249,13 @@ protected:
   ///
   /// @note This function is triggered when called with an argument of a type
   /// Acts::local_parameter
+  template <typename surface_derived_t>
   ACTS_DEVICE_FUNC void
   updateGlobalCoordinates(const GeometryContext &gctx,
                           const local_parameter & /*unused*/) {
-    m_vPosition = detail::coordinate_transformation::parameters2globalPosition(
-        gctx, getParameterSet().getParameters(), this->referenceSurface());
+    m_vPosition = detail::coordinate_transformation::parameters2globalPosition<
+        surface_derived_t>(gctx, getParameterSet().getParameters(),
+                           this->referenceSurface());
   }
 
   ChargePolicy m_oChargePolicy;   ///< charge policy object distinguishing

@@ -133,7 +133,8 @@ public:
   ACTS_DEVICE_FUNC void set(const GeometryContext &gctx, Scalar newValue) {
     // set the parameter & update the new global position
     this->getParameterSet().template setParameter<par>(newValue);
-    this->updateGlobalCoordinates(gctx, BoundParameterType<par>());
+    this->template updateGlobalCoordinates<ReferenceSurfaceType>(
+        gctx, BoundParameterType<par>());
     // recreate the surface
     m_upSurface = PlaneSurface<InfiniteBounds>(this->position(),
                                                this->momentum().normalized());
@@ -157,7 +158,8 @@ public:
                              int> = 0>
   ACTS_DEVICE_FUNC void set(const GeometryContext &gctx, Scalar newValue) {
     this->getParameterSet().template setParameter<par>(newValue);
-    this->updateGlobalCoordinates(gctx, BoundParameterType<par>());
+    this->template updateGlobalCoordinates<ReferenceSurfaceType>(
+        gctx, BoundParameterType<par>());
     // recreate the surface
     m_upSurface = PlaneSurface<InfiniteBounds>(this->position(),
                                                this->momentum().normalized());

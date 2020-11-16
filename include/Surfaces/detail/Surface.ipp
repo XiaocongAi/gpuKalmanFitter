@@ -30,7 +30,7 @@ inline bool Surface::isOnSurface(const GeometryContext &gctx,
   // create the local position
   Vector2D lposition{0., 0.};
   // global to local transformation
-  bool gtlSuccess = globalToLocal(gctx, position, momentum, lposition);
+  bool gtlSuccess = globalToLocal<Derived>(gctx, position, momentum, lposition);
   if (gtlSuccess) {
     // No bounds
     if (bounds<Derived>() == nullptr) {
@@ -147,26 +147,21 @@ Surface::derivativeFactors(const GeometryContext &gctx,
       gctx, position, direction, rft, jacobian);
 }
 
-inline void Surface::localToGlobal(const GeometryContext &gctx,
-                                   const Vector2D &lposition,
-                                   const Vector3D & /*gmom*/,
-                                   Vector3D &position) const {
-  Vector3D loc3Dframe(lposition[eLOC_X], lposition[eLOC_Y], 0.);
-  /// the chance that there is no transform is almost 0, let's apply it
-  position = transform(gctx) * loc3Dframe;
+template <typename Derived>
+inline void
+Surface::localToGlobal(const GeometryContext &gctx, const Vector2D &lposition,
+                       const Vector3D &momentum, Vector3D &position) const {
+  static_cast<const Derived *>(this)->localToGlobal(gctx, lposition, momentum,
+                                                    position);
 }
 
+template <typename Derived>
 inline bool Surface::globalToLocal(const GeometryContext &gctx,
                                    const Vector3D &position,
-                                   const Vector3D & /*gmom*/,
+                                   const Vector3D &momentum,
                                    Acts::Vector2D &lposition) const {
-  /// the chance that there is no transform is almost 0, let's apply it
-  Vector3D loc3Dframe = (transform(gctx).inverse()) * position;
-  lposition = Vector2D(loc3Dframe.x(), loc3Dframe.y());
-  return ((loc3Dframe.z() * loc3Dframe.z() >
-           s_onSurfaceTolerance * s_onSurfaceTolerance)
-              ? false
-              : true);
+  return static_cast<const Derived *>(this)->globalToLocal(gctx, position,
+                                                           momentum, lposition);
 }
 
 inline const Vector3D Surface::normal(const GeometryContext &gctx,

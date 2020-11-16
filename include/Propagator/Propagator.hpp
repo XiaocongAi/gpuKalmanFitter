@@ -135,6 +135,9 @@ public:
   /// This struct holds the common state information for propagating
   /// which is independent of the actual stepper implementation.
   template <typename propagator_options_t> struct State {
+    /// Typedef the navigator surface type (surface must have the same type on
+    /// GPU currently)
+    using NavigationSurface = typename navigator_t::NavigationSurface;
 
     /// The default constructor
     State() = default;

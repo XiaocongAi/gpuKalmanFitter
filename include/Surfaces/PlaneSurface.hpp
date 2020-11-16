@@ -205,10 +205,10 @@ public:
   /// @param momentum global 3D momentum representation (optionally ignored)
   /// @param position global 3D position to be filled (given by reference for
   /// method symmetry)
-  //  ACTS_DEVICE_FUNC void localToGlobal(const GeometryContext &gctx,
-  //                                      const Vector2D &lposition,
-  //                                      const Vector3D &momentum,
-  //                                      Vector3D &position) const override;
+  ACTS_DEVICE_FUNC void localToGlobal(const GeometryContext &gctx,
+                                      const Vector2D &lposition,
+                                      const Vector3D &momentum,
+                                      Vector3D &position) const;
 
   /// Global to local transformation
   /// For planar surfaces the momentum is ignroed in the global to local
@@ -223,10 +223,10 @@ public:
   ///
   /// @return boolean indication if operation was successful (fail means global
   /// position was not on surface)
-  //  ACTS_DEVICE_FUNC bool globalToLocal(const GeometryContext &gctx,
-  //                                      const Vector3D &position,
-  //                                      const Vector3D &momentum,
-  //                                      Vector2D &lposition) const override;
+  ACTS_DEVICE_FUNC bool globalToLocal(const GeometryContext &gctx,
+                                      const Vector3D &position,
+                                      const Vector3D &momentum,
+                                      Vector2D &lposition) const;
 
   /// Method that calculates the correction due to incident angle
   ///

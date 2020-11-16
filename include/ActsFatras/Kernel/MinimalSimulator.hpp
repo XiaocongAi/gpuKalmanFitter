@@ -83,9 +83,9 @@ template <typename generator_t> struct MinimalSimulator {
     if (surface.surfaceMaterial().materialSlab()) {
       // Apply global to local
       Acts::Vector2D local(0., 0.);
-      surface.globalToLocal(state.options.geoContext,
-                            stepper.position(state.stepping),
-                            stepper.direction(state.stepping), local);
+      surface.globalToLocal<typename propagator_state_t::NavigationSurface>(
+          state.options.geoContext, stepper.position(state.stepping),
+          stepper.direction(state.stepping), local);
 
       Acts::MaterialSlab slab = surface.surfaceMaterial().materialSlab(local);
 

@@ -184,7 +184,8 @@ reinitializeJacobians(const GeometryContext &geoContext,
   Vector2D loc{0., 0.};
   const Vector3D position = parameters.segment<3>(eFreePos0);
   const Vector3D direction = parameters.segment<3>(eFreeDir0);
-  surface.globalToLocal(geoContext, position, direction, loc);
+  surface.globalToLocal<surface_derived_t>(geoContext, position, direction,
+                                           loc);
   BoundVector pars;
   //  pars << loc[eLOC_0], loc[eLOC_1], phi(direction), theta(direction),
   //      parameters[eFreeQOverP], parameters[eFreeTime];

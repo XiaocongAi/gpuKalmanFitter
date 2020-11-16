@@ -359,8 +359,8 @@ int main() {
       for (unsigned int i = 0; i < 3; i++) {
         Vector2D local = vertices.block<1, 2>(i, 0).transpose();
         Vector3D global;
-        surface->localToGlobal(GeometryContext(), local, Vector3D(1, 1, 1),
-                               global);
+        surface->localToGlobal<PlaneSurfaceType>(GeometryContext(), local,
+                                                 Vector3D(1, 1, 1), global);
         obj_surfaces << "v " << global.x() << " " << global.y() << " "
                      << global.z() << "\n";
       }

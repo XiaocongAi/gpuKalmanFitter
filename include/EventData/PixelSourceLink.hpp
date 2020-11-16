@@ -39,10 +39,11 @@ public:
 
   constexpr const meas_par_t &localPosition() const { return m_values; }
 
+  template <typename surface_derived_t>
   ACTS_DEVICE_FUNC Vector3D globalPosition(const GeometryContext &gctx) const {
     Vector3D global(0, 0, 0);
     Vector3D mom(1, 1, 1);
-    m_surface->localToGlobal(gctx, m_values, mom, global);
+    m_surface->localToGlobal<surface_derived_t>(gctx, m_values, mom, global);
     return global;
   }
 
