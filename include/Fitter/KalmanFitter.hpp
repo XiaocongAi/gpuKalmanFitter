@@ -264,7 +264,7 @@ private:
           targetReached.
           operator()<propagator_state_t, stepper_t, target_surface_t>(
               state, stepper, *targetSurface)) {
-        printf("Completing\n");
+        // printf("Completing\n");
         // Construct a tempory jacobian and path, which is necessary for calling
         // the boundState
         typename TrackStateType::Jacobian jac;
@@ -422,15 +422,18 @@ private:
       if (smoothedPars) {
         // printf("pos=%d,%d\n",(*smoothedPars).position().x(),
         // (*smoothedPars).position().y());
-        stepper.update(state.stepping, (*smoothedPars).position(),
-                       (*smoothedPars).momentum().normalized(),
-                       (*smoothedPars).momentum().norm(),
-                       (*smoothedPars).time());
+        const auto freeParams =
+            detail::coordinate_transformation::boundParameters2freeParameters<
+                NavigationSurface>(state.options.geoContext,
+                                   smoothedPars->parameters(),
+                                   smoothedPars->referenceSurface());
+        stepper.update(state.stepping, freeParams,
+                       *(smoothedPars->covariance()));
 
         // Reverse the propagation direction
-        state.stepping.stepSize =
-            ConstrainedStep(-1. * state.options.maxStepSize);
         state.stepping.navDir = backward;
+        state.stepping.stepSize = ConstrainedStep(
+            state.stepping.navDir * std::abs(state.options.maxStepSize));
         // Set accumulatd path to zero before targeting surface
         state.stepping.pathAccumulated = 0.;
 
@@ -570,6 +573,8 @@ public:
         kfOptions.geoContext, kfOptions.magFieldContext);
     kalmanOptions.initializer.surfaceSequence = surfaceSequence;
     kalmanOptions.initializer.surfaceSequenceSize = surfaceSequenceSize;
+    // Tells the direct navigator that the target surface is not empty
+    kalmanOptions.initializer.targetSurface = kfOptions.referenceSurface;
 
     // Catch the actor and set the measurements
     auto &kalmanActor = kalmanOptions.action;
@@ -648,6 +653,8 @@ public:
           kfOptions.geoContext, kfOptions.magFieldContext);
       kalmanOptions.initializer.surfaceSequence = surfaceSequence;
       kalmanOptions.initializer.surfaceSequenceSize = surfaceSequenceSize;
+      // Tells the direct navigator that the target surface is not empty
+      kalmanOptions.initializer.targetSurface = kfOptions.referenceSurface;
 
       // Catch the actor and set the measurements
       kalmanOptions.action.inputMeasurements = std::move(sourcelinks);

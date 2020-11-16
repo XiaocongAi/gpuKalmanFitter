@@ -28,6 +28,9 @@ struct DirectNavigatorInitializer {
   /// The surface sequence size
   size_t surfaceSequenceSize = 0;
 
+  /// The target surface
+  const Surface *targetSurface = nullptr;
+
   /// Actor result / state
   struct this_result {
     bool initialized = false;
@@ -52,6 +55,7 @@ struct DirectNavigatorInitializer {
       // Initialize the surface sequence
       state.navigation.surfaceSequence = surfaceSequence;
       state.navigation.surfaceSequenceSize = surfaceSequenceSize;
+      state.navigation.targetSurface = targetSurface;
       r.initialized = true;
     }
   }
