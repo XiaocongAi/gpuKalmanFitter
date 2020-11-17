@@ -48,10 +48,10 @@ static void show_usage(std::string name) {
 }
 
 int main(int argc, char *argv[]) {
-  unsigned int nTracks = 10000;
-  unsigned int nStreams = 1;
+  Size nTracks = 10000;
+  Size nStreams = 1;
   // The number of navigation surfaces
-  const unsigned int nSurfaces = 10;
+  const Size nSurfaces = 10;
   bool output = false;
   bool useSharedMemory = false;
   std::string device = "cpu";
@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
   // double p = 1 * Acts::units::_GeV;
   dim3 grid(20000), block(8, 8);
   // This should always be included
-  for (int i = 1; i < argc; ++i) {
+  for (Size i = 1; i < argc; ++i) {
     std::string arg = argv[i];
     if ((arg == "-h") or (arg == "--help")) {
       show_usage(argv[0]);
@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
   std::cout << grid.x << " " << grid.y << " " << block.x << " " << block.y
             << std::endl;
 
-  int devId = 0;
+  Size devId = 0;
 
   cudaDeviceProp prop;
   GPUERRCHK(cudaGetDeviceProperties(&prop, devId));
@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
   GPUERRCHK(cudaRuntimeGetVersion(&rtVersion));
   printf("cuda rt version: %i\n", rtVersion);
 
-  int tracksPerBlock = block.x * block.y;
+  Size tracksPerBlock = block.x * block.y;
 
   // Use 8*8 block if using one block for one track
   // @todo Extend to run multiple (block.z) tracks in one block
@@ -119,22 +119,21 @@ int main(int argc, char *argv[]) {
   }
 
   // The navigation surfaces
-  const unsigned int navigationSurfaceBytes =
-      sizeof(PlaneSurfaceType) * nSurfaces;
+  const Size navigationSurfaceBytes = sizeof(PlaneSurfaceType) * nSurfaces;
   // The track-specific objects
-  const auto dataBytes = FitDataSizeCalculator::totalBytes(nSurfaces, nTracks);
+  const Size dataBytes = FitDataSizeCalculator::totalBytes(nSurfaces, nTracks);
   // The last stream could could less tracks
-  const auto dataBytesPerStream =
+  const Size dataBytesPerStream =
       FitDataSizeCalculator::streamBytes(nSurfaces, nTracks, nStreams, 0);
-  const auto dataBytesLastStream = FitDataSizeCalculator::streamBytes(
+  const Size dataBytesLastStream = FitDataSizeCalculator::streamBytes(
       nSurfaces, nTracks, nStreams, nStreams - 1);
-  const unsigned int tracksPerStream = dataBytesPerStream[7];
-  const unsigned int tracksLastStream = dataBytesLastStream[7];
+  const Size tracksPerStream = dataBytesPerStream[7];
+  const Size tracksLastStream = dataBytesLastStream[7];
   std::cout << "tracksPerStream : tracksLastStream = " << tracksPerStream
             << " : " << tracksLastStream << std::endl;
 
   // @note shall we use this for the grid size?
-  const unsigned int blocksPerGrid =
+  const Size blocksPerGrid =
       (tracksPerStream + tracksPerBlock - 1) / tracksPerBlock;
   if (grid.x * grid.y < blocksPerGrid) {
     std::cout << "Grid size too small. It should be at least " << blocksPerGrid
@@ -161,7 +160,7 @@ int main(int argc, char *argv[]) {
   // Create the geometry
   // Set translation vectors
   std::vector<Acts::Vector3D> translations;
-  for (unsigned int isur = 0; isur < nSurfaces; isur++) {
+  for (Size isur = 0; isur < nSurfaces; isur++) {
     translations.push_back({(isur * 30. + 19) * Acts::units::_mm, 0., 0.});
   }
   // The silicon material
@@ -172,7 +171,7 @@ int main(int argc, char *argv[]) {
   // Unified memory allocation for geometry
   GPUERRCHK(cudaMallocManaged(&surfaces, sizeof(PlaneSurfaceType) * nSurfaces));
   std::cout << "Allocating the memory for the surfaces" << std::endl;
-  for (unsigned int isur = 0; isur < nSurfaces; isur++) {
+  for (Size isur = 0; isur < nSurfaces; isur++) {
     surfaces[isur] = PlaneSurfaceType(translations[isur],
                                       Acts::Vector3D(1, 0, 0), surfaceMaterial);
     if (not surfaces[isur].surfaceMaterial().materialSlab()) {
@@ -232,7 +231,7 @@ int main(int argc, char *argv[]) {
   runSimulation(gctx, mctx, rng, propagator, generatedParticles, validParticles,
                 simResult, surfacePtrs, nSurfaces);
   auto end_propagate = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> elapsed_seconds =
+  std::chrono::duration<float> elapsed_seconds =
       end_propagate - start_propagate;
   std::cout << "Time (ms) to run propagation tests: "
             << elapsed_seconds.count() * 1000 << std::endl;
@@ -245,8 +244,8 @@ int main(int argc, char *argv[]) {
   buildTargetSurfaces(validParticles, targetSurfaces);
 
   // The hit smearing resolution
-  std::array<double, 2> hitResolution = {30. * Acts::units::_mm,
-                                         30. * Acts::units::_mm};
+  std::array<float, 2> hitResolution = {30. * Acts::units::_mm,
+                                        30. * Acts::units::_mm};
   // Run hit smearing to create source links
   // @note pass the concreate PlaneSurfaceType pointer here
   runHitSmearing(gctx, rng, simResult, hitResolution, sourcelinks, surfaces,
@@ -259,7 +258,7 @@ int main(int argc, char *argv[]) {
   auto startParsCollection = runParticleSmearing(
       rng, gctx, validParticles, seedResolution, targetSurfaces, nTracks);
   // Initialize the boundState
-  for (unsigned int it = 0; it < nTracks; it++) {
+  for (Size it = 0; it < nTracks; it++) {
     boundStates[it].boundParams = startParsCollection[it].parameters();
     boundStates[it].boundCov = *startParsCollection[it].covariance();
   }
@@ -267,7 +266,7 @@ int main(int argc, char *argv[]) {
   // Prepare to perform fit to the created tracks
   KalmanFitterType kFitter(propagator);
   // Initialize the fitOptions and fit status
-  for (unsigned int it = 0; it < nTracks; it++) {
+  for (Size it = 0; it < nTracks; it++) {
     fitOptions[it] = FitOptionsType(gctx, mctx);
     fitStatus[it] = false;
   }
@@ -317,8 +316,8 @@ int main(int argc, char *argv[]) {
                          cudaMemcpyHostToDevice));
 
     // Run on device
-    for (unsigned int i = 0; i < nStreams; ++i) {
-      unsigned int offset = i * tracksPerStream;
+    for (Size i = 0; i < nStreams; ++i) {
+      Size offset = i * tracksPerStream;
       const auto streamTracks =
           (i < nStreams - 1) ? tracksPerStream : tracksLastStream;
       const auto streamDataBytes =
@@ -405,14 +404,14 @@ int main(int argc, char *argv[]) {
             "timing_gpu", "nTracks", std::to_string(nTracks), "nStreams",
             std::to_string(nStreams), "gridSize", dim3ToString(grid),
             "blockSize", dim3ToString(block), "sharedMemory",
-            std::to_string(static_cast<unsigned int>(useSharedMemory))),
+            std::to_string(static_cast<Size>(useSharedMemory))),
         ms / 1000);
 
   } else {
     /// Run on host
     auto start_fit = std::chrono::high_resolution_clock::now();
 #pragma omp parallel for num_threads(250)
-    for (int it = 0; it < nTracks; it++) {
+    for (Size it = 0; it < nTracks; it++) {
       // The fit result wrapper
       KalmanFitterResultType kfResult;
       kfResult.fittedStates = Acts::CudaKernelContainer<TSType>(
@@ -437,7 +436,7 @@ int main(int argc, char *argv[]) {
     std::cout << "Time (ms) to run KalmanFitter for " << nTracks << " : "
               << elapsed_seconds.count() * 1000 << std::endl;
   }
-  int threads = omp_get_num_threads();
+  Size threads = omp_get_num_threads();
 
   if (output) {
     std::cout << "writing KF results" << std::endl;
