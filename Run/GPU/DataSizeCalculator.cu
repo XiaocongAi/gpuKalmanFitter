@@ -46,7 +46,7 @@ std::array<Size, 8> streamBytes(Size nSurfaces, Size nTracks, Size nStreams,
   fitData[4] = sizeof(TSType) * nSurfaces * streamSize;
   fitData[5] = sizeof(Acts::BoundParameters<Acts::LineSurface>) * streamSize;
   fitData[6] = sizeof(bool) * streamSize;
-  fitData[7] = streamSize; 
+  fitData[7] = streamSize;
   return fitData;
 }
 } // namespace FitDataSizeCalculator

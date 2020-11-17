@@ -118,7 +118,7 @@ int main(int argc, char *argv[]) {
     tracksPerBlock = 1;
   }
 
-  // The navigation surfaces  
+  // The navigation surfaces
   const unsigned int navigationSurfaceBytes =
       sizeof(PlaneSurfaceType) * nSurfaces;
   // The track-specific objects
@@ -143,11 +143,11 @@ int main(int argc, char *argv[]) {
   }
 
   // The shared memory size
-  //using PropState = PropagatorType::State<PropOptionsType>;
-  //int sharedMemoryPerTrack = sizeof(Acts::PathLimitReached) +
+  // using PropState = PropagatorType::State<PropOptionsType>;
+  // int sharedMemoryPerTrack = sizeof(Acts::PathLimitReached) +
   //                           sizeof(PropState) + sizeof(bool) * 2 +
   //                           sizeof(Acts::PropagatorResult);
-  //std::cout << "shared memory is " << sharedMemoryPerTrack << std::endl;
+  // std::cout << "shared memory is " << sharedMemoryPerTrack << std::endl;
 
   // Create a test context
   Acts::GeometryContext gctx(0);
@@ -187,8 +187,8 @@ int main(int argc, char *argv[]) {
   Acts::PixelSourceLink *sourcelinks;
   BoundState *boundStates;
   Acts::LineSurface *targetSurfaces;
-  FitOptionsType *kfOptions;
-  TSType *fittedStates;
+  FitOptionsType *fitOptions;
+  TSType *fitStates;
   Acts::BoundParameters<Acts::LineSurface> *fitPars;
   bool *fitStatus;
   GPUERRCHK(
@@ -198,9 +198,8 @@ int main(int argc, char *argv[]) {
   GPUERRCHK(cudaMallocHost((void **)&targetSurfaces,
                            dataBytes[FitData::TargetSurface]));
   GPUERRCHK(
-      cudaMallocHost((void **)&kfOptions, dataBytes[FitData::FitOptions]));
-  GPUERRCHK(
-      cudaMallocHost((void **)&fittedStates, dataBytes[FitData::FitStates]));
+      cudaMallocHost((void **)&fitOptions, dataBytes[FitData::FitOptions]));
+  GPUERRCHK(cudaMallocHost((void **)&fitStates, dataBytes[FitData::FitStates]));
   GPUERRCHK(cudaMallocHost((void **)&fitPars, dataBytes[FitData::FitParams]));
   GPUERRCHK(cudaMallocHost((void **)&fitStatus, dataBytes[FitData::FitStatus]));
 
@@ -269,9 +268,9 @@ int main(int argc, char *argv[]) {
 
   // Prepare to perform fit to the created tracks
   KalmanFitterType kFitter(propagator);
-  // Initialize the kfOptions and fit status
+  // Initialize the fitOptions and fit status
   for (unsigned int it = 0; it < nTracks; it++) {
-    kfOptions[it] = FitOptionsType(gctx, mctx);
+    fitOptions[it] = FitOptionsType(gctx, mctx);
     fitStatus[it] = false;
   }
 
@@ -301,8 +300,8 @@ int main(int argc, char *argv[]) {
     // covariance
     BoundState *d_boundStates;
     Acts::LineSurface *d_targetSurfaces;
-    FitOptionsType *d_kfOptions;
-    TSType *d_fittedStates;
+    FitOptionsType *d_fitOptions;
+    TSType *d_fitStates;
     Acts::BoundParameters<Acts::LineSurface> *d_fitPars;
     bool *d_fitStatus;
 
@@ -310,8 +309,8 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaMalloc(&d_sourcelinks, dataBytes[FitData::SourceLinks]));
     GPUERRCHK(cudaMalloc(&d_boundStates, dataBytes[FitData::StartState]));
     GPUERRCHK(cudaMalloc(&d_targetSurfaces, dataBytes[FitData::TargetSurface]));
-    GPUERRCHK(cudaMalloc(&d_kfOptions, dataBytes[FitData::FitOptions]));
-    GPUERRCHK(cudaMalloc(&d_fittedStates, dataBytes[FitData::FitStates]));
+    GPUERRCHK(cudaMalloc(&d_fitOptions, dataBytes[FitData::FitOptions]));
+    GPUERRCHK(cudaMalloc(&d_fitStates, dataBytes[FitData::FitStates]));
     GPUERRCHK(cudaMalloc(&d_fitPars, dataBytes[FitData::FitParams]));
     GPUERRCHK(cudaMalloc(&d_fitStatus, dataBytes[FitData::FitStatus]));
 
@@ -340,11 +339,11 @@ int main(int argc, char *argv[]) {
                                 &targetSurfaces[offset],
                                 streamDataBytes[FitData::TargetSurface],
                                 cudaMemcpyHostToDevice, stream[i]));
-      GPUERRCHK(cudaMemcpyAsync(&d_kfOptions[offset], &kfOptions[offset],
+      GPUERRCHK(cudaMemcpyAsync(&d_fitOptions[offset], &fitOptions[offset],
                                 streamDataBytes[FitData::FitOptions],
                                 cudaMemcpyHostToDevice, stream[i]));
-      GPUERRCHK(cudaMemcpyAsync(&d_fittedStates[offset * nSurfaces],
-                                &fittedStates[offset * nSurfaces],
+      GPUERRCHK(cudaMemcpyAsync(&d_fitStates[offset * nSurfaces],
+                                &fitStates[offset * nSurfaces],
                                 streamDataBytes[FitData::FitStates],
                                 cudaMemcpyHostToDevice, stream[i]));
       GPUERRCHK(cudaMemcpyAsync(&d_fitPars[offset], &fitPars[offset],
@@ -358,19 +357,19 @@ int main(int argc, char *argv[]) {
       if (useSharedMemory) {
         fitKernelBlockPerTrack<<<grid, block, 0, stream[i]>>>(
             d_kFitter, d_sourcelinks, d_boundStates, d_targetSurfaces,
-            d_kfOptions, d_fittedStates, d_fitPars, d_fitStatus, surfacePtrs,
+            d_fitOptions, d_fitStates, d_fitPars, d_fitStatus, surfacePtrs,
             nSurfaces, streamTracks, offset);
       } else {
         fitKernelThreadPerTrack<<<grid, block, 0, stream[i]>>>(
             d_kFitter, d_sourcelinks, d_boundStates, d_targetSurfaces,
-            d_kfOptions, d_fittedStates, d_fitPars, d_fitStatus, surfacePtrs,
+            d_fitOptions, d_fitStates, d_fitPars, d_fitStatus, surfacePtrs,
             nSurfaces, streamTracks, offset);
       }
       GPUERRCHK(cudaEventRecord(stopEvent, stream[i]));
       GPUERRCHK(cudaEventSynchronize(stopEvent));
       // copy the fitted states to host
-      GPUERRCHK(cudaMemcpyAsync(&fittedStates[offset * nSurfaces],
-                                &d_fittedStates[offset * nSurfaces],
+      GPUERRCHK(cudaMemcpyAsync(&fitStates[offset * nSurfaces],
+                                &d_fitStates[offset * nSurfaces],
                                 streamDataBytes[FitData::FitStates],
                                 cudaMemcpyDeviceToHost, stream[i]));
       // copy the fitted params to host
@@ -390,8 +389,8 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaFree(d_sourcelinks));
     GPUERRCHK(cudaFree(d_boundStates));
     GPUERRCHK(cudaFree(d_targetSurfaces));
-    GPUERRCHK(cudaFree(d_kfOptions));
-    GPUERRCHK(cudaFree(d_fittedStates));
+    GPUERRCHK(cudaFree(d_fitOptions));
+    GPUERRCHK(cudaFree(d_fitStates));
     GPUERRCHK(cudaFree(d_fitPars));
     GPUERRCHK(cudaFree(d_fitStatus));
     GPUERRCHK(cudaFree(d_kFitter));
@@ -419,15 +418,15 @@ int main(int argc, char *argv[]) {
       // The fit result wrapper
       KalmanFitterResultType kfResult;
       kfResult.fittedStates = Acts::CudaKernelContainer<TSType>(
-          &fittedStates[it * nSurfaces], nSurfaces);
+          &fitStates[it * nSurfaces], nSurfaces);
       // @note when it >=35, we got different startPars[i] between CPU and GPU
       // The input source links wrapper
       auto sourcelinkTrack = Acts::CudaKernelContainer<Acts::PixelSourceLink>(
           sourcelinks + it * nSurfaces, nSurfaces);
-      kfOptions[it].referenceSurface = &targetSurfaces[it];
-      // Run the fit. The fittedStates will be changed here
+      fitOptions[it].referenceSurface = &targetSurfaces[it];
+      // Run the fit. The fitStates will be changed here
       auto status =
-          kFitter.fit(sourcelinkTrack, startParsCollection[it], kfOptions[it],
+          kFitter.fit(sourcelinkTrack, startParsCollection[it], fitOptions[it],
                       kfResult, surfacePtrs, nSurfaces);
       if (not status) {
         std::cout << "fit failure for track " << it << std::endl;
@@ -469,7 +468,7 @@ int main(int argc, char *argv[]) {
     stateFileName.append(std::to_string(nTracks)).append(".obj");
     paramFileName.append(std::to_string(nTracks)).append(".csv");
     rootFileName.append(std::to_string(nTracks)).append(".root");
-    writeStatesObj(fittedStates, fitStatus, nTracks, nSurfaces, stateFileName,
+    writeStatesObj(fitStates, fitStatus, nTracks, nSurfaces, stateFileName,
                    param);
     writeParamsCsv(fitPars, fitStatus, nTracks, paramFileName);
     writeParamsRoot(gctx, fitPars, fitStatus, validParticles, nTracks,
@@ -484,8 +483,8 @@ int main(int argc, char *argv[]) {
   GPUERRCHK(cudaFreeHost(sourcelinks));
   GPUERRCHK(cudaFreeHost(boundStates));
   GPUERRCHK(cudaFreeHost(targetSurfaces));
-  GPUERRCHK(cudaFreeHost(kfOptions));
-  GPUERRCHK(cudaFreeHost(fittedStates));
+  GPUERRCHK(cudaFreeHost(fitOptions));
+  GPUERRCHK(cudaFreeHost(fitStates));
   GPUERRCHK(cudaFreeHost(fitPars));
   GPUERRCHK(cudaFreeHost(fitStatus));
 
