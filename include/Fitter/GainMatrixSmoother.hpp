@@ -59,8 +59,8 @@ public:
           prev_ts->parameter.jacobian.transpose() *
           (BoundSymMatrix)(
               calculateInverse(*prev_ts->parameter.predicted.covariance()));
-      // if(G.hasNaN()) {
-      // return false;
+      // if (G.hasNaN()) {
+      //  printf("WARNING: G has NaN!\n");
       //}
 
       // Calculate the smoothed parameters
@@ -68,8 +68,6 @@ public:
                                  prev_ts->parameter.predicted.parameters();
       ParVector_t gainPars = G * prevDiffPars;
       smoothedPars = ts.parameter.filtered.parameters() + gainPars;
-      // G * (prev_ts->parameter.smoothed.parameters() -
-      //            prev_ts->parameter.predicted.parameters());
 
       // And the smoothed covariance
       smoothedCov =

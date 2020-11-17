@@ -102,10 +102,6 @@ __global__ void __launch_bounds__(256, 2)
         &tarSurfaces[threadId]);
     // Reset the target surface
     kfOptions[threadId].referenceSurface = &tarSurfaces[threadId];
-    printf("target surface center =(%f, %f, %f)\n",
-           tarSurfaces[threadId].center(0).x(),
-           tarSurfaces[threadId].center(0).y(),
-           tarSurfaces[threadId].center(0).z());
     // Perform the fit
     fitStatus[threadId] = kFitter->fit(
         Acts::CudaKernelContainer<PixelSourceLink>(
@@ -114,8 +110,6 @@ __global__ void __launch_bounds__(256, 2)
     // Set the fitted parameters
     // @WARNING The reference surface in fPars doesn't make sense actually
     fpars[threadId] = kfResult.fittedParameters;
-    printf("fittedParams = %f, %f, %f\n", fpars[threadId].position().x(),
-           fpars[threadId].position().y(), fpars[threadId].position().z());
   }
 }
 
@@ -135,23 +129,33 @@ __global__ void __launch_bounds__(256, 2)
   if (blockId < (nTracks + offset)) {
     // Use the CudaKernelContainer for the source links and fitted states
     // @note shared memory for the kfResult?
-    KalmanFitterResultType kfResult;
-    kfResult.fittedStates = CudaKernelContainer<TSType>(
-        fittedStates + blockId * nSurfaces, nSurfaces);
-    // Construct a start parameters (the geoContext is set to 0)
-    Acts::BoundParameters<Acts::LineSurface> startPars(
-        0, bStates[blockId].boundCov, bStates[blockId].boundParams,
-        &tarSurfaces[blockId]);
-    // Reset the target surface
-    kfOptions[blockId].referenceSurface = &tarSurfaces[blockId];
+    __shared__ KalmanFitterResultType kfResult;
+    __shared__ Acts::BoundParameters<Acts::LineSurface> startPars;
+    if (threadIdx.x == 0 and threadIdx.y == 0) {
+      kfResult = KalmanFitterResultType();
+      kfResult.fittedStates = CudaKernelContainer<TSType>(
+          fittedStates + blockId * nSurfaces, nSurfaces);
+      // Construct a start parameters (the geoContext is set to 0)
+      startPars = Acts::BoundParameters<Acts::LineSurface>(
+          0, bStates[blockId].boundCov, bStates[blockId].boundParams,
+          &tarSurfaces[blockId]);
+      // Reset the target surface
+      kfOptions[blockId].referenceSurface = &tarSurfaces[blockId];
+    }
+    __syncthreads();
     // Perform the fit
     kFitter->fitOnDevice(Acts::CudaKernelContainer<PixelSourceLink>(
                              sourcelinks + blockId * nSurfaces, nSurfaces),
                          startPars, kfOptions[blockId], kfResult,
                          fitStatus[blockId], surfacePtrs, nSurfaces);
-    // Set the fitted parameters
+    // Set the fitted parameters with the main thread
     // @WARNING The reference surface in fPars doesn't make sense actually
-    fpars[blockId] = kfResult.fittedParameters;
+    if (threadIdx.x == 0 and threadIdx.y == 0) {
+      fpars[blockId] = kfResult.fittedParameters;
+      //printf("fittedParams = %f, %f, %f\n", fpars[blockId].position().x(),
+      //       fpars[blockId].position().y(), fpars[blockId].position().z());
+    }
+    __syncthreads();
   }
 }
 
@@ -383,10 +387,6 @@ int main(int argc, char *argv[]) {
   Acts::LineSurface *targetSurfaces;
   GPUERRCHK(cudaMallocHost((void **)&targetSurfaces, targetSurfaceBytes));
   memcpy(targetSurfaces, targetSurfacesCollection.data(), targetSurfaceBytes);
-  for (int it = 0; it < nTracks; it++) {
-    std::cout << "target surface " << it << " has center at "
-              << targetSurfaces[it].center(0) << std::endl;
-  }
 
   // The hit smearing resolution
   std::array<double, 2> hitResolution = {30. * Acts::units::_mm,
