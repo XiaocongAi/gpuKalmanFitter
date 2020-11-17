@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
   bool output = false;
   std::string device;
   std::string bFieldFileName;
-  double p;
+  float p;
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
     if ((arg == "-h") or (arg == "--help")) {
@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
   runSimulation(gctx, mctx, rng, propagator, generatedParticles, validParticles,
                 simResult, surfacePtrs, nSurfaces);
   auto end_propagate = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> elapsed_seconds =
+  std::chrono::duration<float> elapsed_seconds =
       end_propagate - start_propagate;
   std::cout << "Time (ms) to run propagation tests: "
             << elapsed_seconds.count() * 1000 << std::endl;
@@ -131,8 +131,8 @@ int main(int argc, char *argv[]) {
   buildTargetSurfaces(validParticles, targetSurfaces.data());
 
   // The hit smearing resolution
-  std::array<double, 2> hitResolution = {30. * Acts::units::_mm,
-                                         30. * Acts::units::_mm};
+  std::array<float, 2> hitResolution = {30. * Acts::units::_mm,
+                                        30. * Acts::units::_mm};
   // Run sim hits smearing to create source links
   Acts::PixelSourceLink sourcelinks[nTracks * nSurfaces];
   // @note pass the concreate PlaneSurfaceType pointer here

@@ -69,13 +69,13 @@ struct KalmanFitterOptions {
   /// @param bwdFiltering Whether to run backward filtering as smoothing
   ACTS_DEVICE_FUNC
   KalmanFitterOptions(const GeometryContext &gctx,
-                      const MagneticFieldContext &mctx,
+                      const MagneticFieldContext &mctx, bool rsmoothing = true,
                       const OutlierFinder &outlierFinder_ = VoidOutlierFinder(),
                       const Surface *rSurface = nullptr,
                       bool mScattering = true, bool eLoss = true)
-      : geoContext(gctx), magFieldContext(mctx), outlierFinder(outlierFinder_),
-        referenceSurface(rSurface), multipleScattering(mScattering),
-        energyLoss(eLoss) {}
+      : geoContext(gctx), magFieldContext(mctx), smoothing(rsmoothing),
+        outlierFinder(outlierFinder_), referenceSurface(rSurface),
+        multipleScattering(mScattering), energyLoss(eLoss) {}
 
   /// Context object for the geometry
   GeometryContext geoContext;
@@ -87,6 +87,9 @@ struct KalmanFitterOptions {
 
   /// The reference Surface
   const Surface *referenceSurface = nullptr;
+
+  /// Whether to run smoothing
+  bool smoothing = true;
 
   /// Whether to consider multiple scattering
   bool multipleScattering = true;
@@ -196,6 +199,9 @@ private:
     /// Allows retrieving measurements for a surface
     InputMeasurementsType inputMeasurements;
 
+    /// Whether to run smoothing
+    bool smoothing = true;
+
     /// Whether to consider multiple scattering.
     bool multipleScattering = true;
 
@@ -249,11 +255,16 @@ private:
            (result.measurementStates > 0 and
             state.navigation.navigationBreak)) and
           !result.smoothed and !result.finished) {
-        // printf("Finalize/run smoothing\n");
-        auto res = finalize(state, stepper, result);
-        if (!res) {
-          printf("Error in finalize:\n");
-          result.result = false;
+        if (not smoothing) {
+          printf("Finish without smoothing\n");
+          result.finished = true;
+        } else {
+          // printf("Finalize/run smoothing\n");
+          auto res = finalize(state, stepper, result);
+          if (!res) {
+            printf("Error in finalize:\n");
+            result.result = false;
+          }
         }
       }
 
@@ -582,6 +593,7 @@ public:
     kalmanActor.targetSurface = kfOptions.referenceSurface;
     kalmanActor.multipleScattering = kfOptions.multipleScattering;
     kalmanActor.energyLoss = kfOptions.energyLoss;
+    kalmanActor.smoothing = kfOptions.smoothing;
 
     // Set config for outlier finder
     kalmanActor.m_outlierFinder = kfOptions.outlierFinder;
@@ -661,6 +673,7 @@ public:
       kalmanOptions.action.targetSurface = kfOptions.referenceSurface;
       kalmanOptions.action.multipleScattering = kfOptions.multipleScattering;
       kalmanOptions.action.energyLoss = kfOptions.energyLoss;
+      kalmanOptions.action.smoothing = kfOptions.smoothing;
 
       // Set config for outlier finder
       kalmanOptions.action.m_outlierFinder = kfOptions.outlierFinder;

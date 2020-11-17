@@ -121,11 +121,11 @@ int main(int argc, char *argv[]) {
   // The navigation surfaces
   const Size navigationSurfaceBytes = sizeof(PlaneSurfaceType) * nSurfaces;
   // The track-specific objects
-  const Size dataBytes = FitDataSizeCalculator::totalBytes(nSurfaces, nTracks);
+  const auto dataBytes = FitDataSizeCalculator::totalBytes(nSurfaces, nTracks);
   // The last stream could could less tracks
-  const Size dataBytesPerStream =
+  const auto dataBytesPerStream =
       FitDataSizeCalculator::streamBytes(nSurfaces, nTracks, nStreams, 0);
-  const Size dataBytesLastStream = FitDataSizeCalculator::streamBytes(
+  const auto dataBytesLastStream = FitDataSizeCalculator::streamBytes(
       nSurfaces, nTracks, nStreams, nStreams - 1);
   const Size tracksPerStream = dataBytesPerStream[7];
   const Size tracksLastStream = dataBytesLastStream[7];
