@@ -13,6 +13,7 @@
 #include "Test/Helper.hpp"
 #include "Test/Logger.hpp"
 
+#include "DataSizeCalculator.cu"
 #include "Kernels.cu"
 
 #include <chrono>
@@ -49,6 +50,8 @@ static void show_usage(std::string name) {
 int main(int argc, char *argv[]) {
   unsigned int nTracks = 10000;
   unsigned int nStreams = 1;
+  // The number of navigation surfaces
+  const unsigned int nSurfaces = 10;
   bool output = false;
   bool useSharedMemory = false;
   std::string device = "cpu";
@@ -115,10 +118,18 @@ int main(int argc, char *argv[]) {
     tracksPerBlock = 1;
   }
 
+  // The navigation surfaces  
+  const unsigned int navigationSurfaceBytes =
+      sizeof(PlaneSurfaceType) * nSurfaces;
+  // The track-specific objects
+  const auto dataBytes = FitDataSizeCalculator::totalBytes(nSurfaces, nTracks);
   // The last stream could could less tracks
-  const unsigned int tracksPerStream = (nTracks + nStreams - 1) / nStreams;
-  const unsigned int tracksLastStream =
-      tracksPerStream - (tracksPerStream * nStreams - nTracks);
+  const auto dataBytesPerStream =
+      FitDataSizeCalculator::streamBytes(nSurfaces, nTracks, nStreams, 0);
+  const auto dataBytesLastStream = FitDataSizeCalculator::streamBytes(
+      nSurfaces, nTracks, nStreams, nStreams - 1);
+  const unsigned int tracksPerStream = dataBytesPerStream[7];
+  const unsigned int tracksLastStream = dataBytesLastStream[7];
   std::cout << "tracksPerStream : tracksLastStream = " << tracksPerStream
             << " : " << tracksLastStream << std::endl;
 
@@ -132,70 +143,11 @@ int main(int argc, char *argv[]) {
   }
 
   // The shared memory size
-  using PropState = PropagatorType::State<PropOptionsType>;
-  int sharedMemoryPerTrack = sizeof(Acts::PathLimitReached) +
-                             sizeof(PropState) + sizeof(bool) * 2 +
-                             sizeof(Acts::PropagatorResult);
-  std::cout << "shared memory is " << sharedMemoryPerTrack << std::endl;
-
-  // The number of navigation surfaces
-  const unsigned int nSurfaces = 10;
-  // The navigation surfaces is common for all tracks
-  const unsigned int navigationSurfaceBytes =
-      sizeof(PlaneSurfaceType) * nSurfaces;
-  // The track-specific objects
-  const unsigned int sourcelinksBytes =
-      sizeof(Acts::PixelSourceLink) * nSurfaces * nTracks;
-  // const unsigned int sParsBytes = sizeof(Acts::CurvilinearParameters) *
-  // nTracks;
-  const unsigned int bStatesBytes = sizeof(BoundState) * nTracks;
-  const unsigned int fParsBytes =
-      sizeof(Acts::BoundParameters<Acts::LineSurface>) * nTracks;
-  const unsigned int tsBytes = sizeof(TSType) * nSurfaces * nTracks;
-  const unsigned int targetSurfaceBytes = sizeof(Acts::LineSurface) * nTracks;
-  const unsigned int statusBytes = sizeof(bool) * nTracks;
-  const unsigned int optionBytes = sizeof(FitOptionsType) * nTracks;
-  std::cout << "surface Bytes = " << navigationSurfaceBytes << std::endl;
-  std::cout << "source links Bytes = " << sourcelinksBytes << std::endl;
-  // std::cout << "start pars Bytes = " << sParsBytes << std::endl;
-  std::cout << "start pars Bytes = " << bStatesBytes << std::endl;
-  std::cout << "kf options Bytes = " << optionBytes << std::endl;
-  std::cout << "fit states Bytes = " << tsBytes << std::endl;
-  std::cout << "fit pars Bytes = " << fParsBytes << std::endl;
-  std::cout << "target surface Bytes = " << targetSurfaceBytes << std::endl;
-
-  const unsigned int perSourcelinksBytes =
-      sizeof(Acts::PixelSourceLink) * nSurfaces * tracksPerStream;
-  const unsigned int lastSourcelinksBytes =
-      sizeof(Acts::PixelSourceLink) * nSurfaces * tracksLastStream;
-
-  const unsigned int perTSsBytes = sizeof(TSType) * nSurfaces * tracksPerStream;
-  const unsigned int lastTSsBytes =
-      sizeof(TSType) * nSurfaces * tracksLastStream;
-
-  // const unsigned int perStartParsBytes =
-  //    sizeof(Acts::CurvilinearParameters) * tracksPerStream;
-  // const unsigned int lastStartParsBytes =
-  //    sizeof(Acts::CurvilinearParameters) * tracksLastStream;
-  const unsigned int perStartParsBytes = sizeof(BoundState) * tracksPerStream;
-  const unsigned int lastStartParsBytes = sizeof(BoundState) * tracksLastStream;
-
-  const unsigned int perFitParsBytes =
-      sizeof(Acts::BoundParameters<Acts::LineSurface>) * tracksPerStream;
-  const unsigned int lastFitParsBytes =
-      sizeof(Acts::BoundParameters<Acts::LineSurface>) * tracksLastStream;
-
-  const unsigned int perTarSurfacesBytes =
-      sizeof(Acts::LineSurface) * tracksPerStream;
-  const unsigned int lastTarSurfacesBytes =
-      sizeof(Acts::LineSurface) * tracksLastStream;
-
-  const unsigned int perStatusBytes = sizeof(bool) * tracksPerStream;
-  const unsigned int lastStatusBytes = sizeof(bool) * tracksLastStream;
-
-  const unsigned int perOptionBytes = sizeof(FitOptionsType) * tracksPerStream;
-  const unsigned int lastOptionBytes =
-      sizeof(FitOptionsType) * tracksLastStream;
+  //using PropState = PropagatorType::State<PropOptionsType>;
+  //int sharedMemoryPerTrack = sizeof(Acts::PathLimitReached) +
+  //                           sizeof(PropState) + sizeof(bool) * 2 +
+  //                           sizeof(Acts::PropagatorResult);
+  //std::cout << "shared memory is " << sharedMemoryPerTrack << std::endl;
 
   // Create a test context
   Acts::GeometryContext gctx(0);
@@ -230,6 +182,27 @@ int main(int argc, char *argv[]) {
   const Acts::Surface *surfacePtrs = surfaces;
   std::cout << "Creating " << nSurfaces << " boundless plane surfaces"
             << std::endl;
+
+  // Pinned memory for data objects
+  Acts::PixelSourceLink *sourcelinks;
+  BoundState *boundStates;
+  Acts::LineSurface *targetSurfaces;
+  FitOptionsType *kfOptions;
+  TSType *fittedStates;
+  Acts::BoundParameters<Acts::LineSurface> *fitPars;
+  bool *fitStatus;
+  GPUERRCHK(
+      cudaMallocHost((void **)&sourcelinks, dataBytes[FitData::SourceLinks]));
+  GPUERRCHK(
+      cudaMallocHost((void **)&boundStates, dataBytes[FitData::StartState]));
+  GPUERRCHK(cudaMallocHost((void **)&targetSurfaces,
+                           dataBytes[FitData::TargetSurface]));
+  GPUERRCHK(
+      cudaMallocHost((void **)&kfOptions, dataBytes[FitData::FitOptions]));
+  GPUERRCHK(
+      cudaMallocHost((void **)&fittedStates, dataBytes[FitData::FitStates]));
+  GPUERRCHK(cudaMallocHost((void **)&fitPars, dataBytes[FitData::FitParams]));
+  GPUERRCHK(cudaMallocHost((void **)&fitStatus, dataBytes[FitData::FitStatus]));
 
   // Prepare to run the particles generation
   ActsExamples::GaussianVertexGenerator vertexGen;
@@ -271,17 +244,12 @@ int main(int argc, char *argv[]) {
 
   // Build the target surfaces based on the truth particle position
   auto targetSurfacesCollection = buildTargetSurfaces(validParticles);
-  // Pinned memory for the target surfaces
-  Acts::LineSurface *targetSurfaces;
-  GPUERRCHK(cudaMallocHost((void **)&targetSurfaces, targetSurfaceBytes));
-  memcpy(targetSurfaces, targetSurfacesCollection.data(), targetSurfaceBytes);
+  memcpy(targetSurfaces, targetSurfacesCollection.data(),
+         dataBytes[FitData::TargetSurface]);
 
   // The hit smearing resolution
   std::array<double, 2> hitResolution = {30. * Acts::units::_mm,
                                          30. * Acts::units::_mm};
-  // Pinned memory for source links
-  Acts::PixelSourceLink *sourcelinks;
-  GPUERRCHK(cudaMallocHost((void **)&sourcelinks, sourcelinksBytes));
   // Run hit smearing to create source links
   // @note pass the concreate PlaneSurfaceType pointer here
   runHitSmearing(gctx, rng, simResult, hitResolution, sourcelinks, surfaces,
@@ -293,36 +261,17 @@ int main(int argc, char *argv[]) {
   // reference surface
   auto startParsCollection = runParticleSmearing(
       rng, gctx, validParticles, seedResolution, targetSurfaces, nTracks);
-  // Pinned memory for starting track parameters to be transferred to GPU
-  BoundState *boundStates;
-  GPUERRCHK(cudaMallocHost((void **)&boundStates, bStatesBytes));
   // Initialize the boundState
   for (unsigned int it = 0; it < nTracks; it++) {
     boundStates[it].boundParams = startParsCollection[it].parameters();
     boundStates[it].boundCov = *startParsCollection[it].covariance();
   }
 
-  // The fitted parameters
-  Acts::BoundParameters<Acts::LineSurface> *fitPars;
-  GPUERRCHK(cudaMallocHost((void **)&fitPars, fParsBytes));
-
   // Prepare to perform fit to the created tracks
   KalmanFitterType kFitter(propagator);
-
-  // Pinned memory for KF options
-  FitOptionsType *kfOptions;
-  GPUERRCHK(cudaMallocHost((void **)&kfOptions, optionBytes));
-  // Pinned memory for KF fitted tracks
-  TSType *fittedStates;
-  GPUERRCHK(cudaMallocHost((void **)&fittedStates, tsBytes));
-  // Pinned memory for KF fitted parameters
-  // Pinned memory for KF fit status
-  bool *fitStatus;
-  GPUERRCHK(cudaMallocHost((void **)&fitStatus, statusBytes));
   // Initialize the kfOptions and fit status
   for (unsigned int it = 0; it < nTracks; it++) {
     kfOptions[it] = FitOptionsType(gctx, mctx);
-    // kfOptions[it].referenceSurface = &startPars[it].referenceSurface();
     fitStatus[it] = false;
   }
 
@@ -337,6 +286,9 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaStreamCreate(&stream[i]));
   }
 
+  // @note: prefetch the surface or not
+  cudaMemPrefetchAsync(surfaces, navigationSurfaceBytes, devId, stream[0]);
+
   // Running directly on host or offloading to GPU
   bool useGPU = (device == "gpu");
   if (useGPU) {
@@ -347,23 +299,21 @@ int main(int argc, char *argv[]) {
     Acts::PixelSourceLink *d_sourcelinks;
     // The start pars will be constructed on GPU with bound vector and
     // covariance
-    // Acts::BoundParameters<Acts::LineSurface> *d_startPars;
     BoundState *d_boundStates;
-    Acts::BoundParameters<Acts::LineSurface> *d_fitPars;
+    Acts::LineSurface *d_targetSurfaces;
     FitOptionsType *d_kfOptions;
     TSType *d_fittedStates;
+    Acts::BoundParameters<Acts::LineSurface> *d_fitPars;
     bool *d_fitStatus;
-    Acts::LineSurface *d_targetSurfaces;
 
     GPUERRCHK(cudaMalloc(&d_kFitter, sizeof(KalmanFitterType)));
-    GPUERRCHK(cudaMalloc(&d_sourcelinks, sourcelinksBytes));
-    // GPUERRCHK(cudaMalloc(&d_startPars, sParsBytes));
-    GPUERRCHK(cudaMalloc(&d_boundStates, bStatesBytes));
-    GPUERRCHK(cudaMalloc(&d_fitPars, fParsBytes));
-    GPUERRCHK(cudaMalloc(&d_kfOptions, optionBytes));
-    GPUERRCHK(cudaMalloc(&d_fittedStates, tsBytes));
-    GPUERRCHK(cudaMalloc(&d_fitStatus, statusBytes));
-    GPUERRCHK(cudaMalloc(&d_targetSurfaces, targetSurfaceBytes));
+    GPUERRCHK(cudaMalloc(&d_sourcelinks, dataBytes[FitData::SourceLinks]));
+    GPUERRCHK(cudaMalloc(&d_boundStates, dataBytes[FitData::StartState]));
+    GPUERRCHK(cudaMalloc(&d_targetSurfaces, dataBytes[FitData::TargetSurface]));
+    GPUERRCHK(cudaMalloc(&d_kfOptions, dataBytes[FitData::FitOptions]));
+    GPUERRCHK(cudaMalloc(&d_fittedStates, dataBytes[FitData::FitStates]));
+    GPUERRCHK(cudaMalloc(&d_fitPars, dataBytes[FitData::FitParams]));
+    GPUERRCHK(cudaMalloc(&d_fitStatus, dataBytes[FitData::FitStatus]));
 
     // Copy the KalmanFitter from host to device (shared between all tracks)
     GPUERRCHK(cudaMemcpy(d_kFitter, &kFitter, sizeof(KalmanFitterType),
@@ -372,52 +322,36 @@ int main(int argc, char *argv[]) {
     // Run on device
     for (unsigned int i = 0; i < nStreams; ++i) {
       unsigned int offset = i * tracksPerStream;
-      // The number of tracks handled in this stream
-      unsigned int streamTracks = tracksPerStream;
-      unsigned int slBytes = perSourcelinksBytes;
-      unsigned int spBytes = perStartParsBytes;
-      unsigned int fpBytes = perFitParsBytes;
-      unsigned int tsBytes = perTSsBytes;
-      unsigned int stBytes = perStatusBytes;
-      unsigned int opBytes = perOptionBytes;
-      unsigned int asBytes = perTarSurfacesBytes;
-      if (i == (nStreams - 1)) {
-        streamTracks = tracksLastStream;
-        slBytes = lastSourcelinksBytes;
-        spBytes = lastStartParsBytes;
-        fpBytes = lastFitParsBytes;
-        tsBytes = lastTSsBytes;
-        stBytes = lastStatusBytes;
-        opBytes = lastOptionBytes;
-        asBytes = lastTarSurfacesBytes;
-      }
-
-      if (i == 0) {
-        // @note: prefetch the surface or not
-        cudaMemPrefetchAsync(surfaces, navigationSurfaceBytes, devId,
-                             stream[i]);
-      }
+      const auto streamTracks =
+          (i < nStreams - 1) ? tracksPerStream : tracksLastStream;
+      const auto streamDataBytes =
+          (i < nStreams - 1) ? dataBytesPerStream : dataBytesLastStream;
 
       // Copy the sourcelinsk, starting parameters and fitted tracks from host
       // to device
       GPUERRCHK(cudaMemcpyAsync(&d_sourcelinks[offset * nSurfaces],
-                                &sourcelinks[offset * nSurfaces], slBytes,
+                                &sourcelinks[offset * nSurfaces],
+                                streamDataBytes[FitData::SourceLinks],
                                 cudaMemcpyHostToDevice, stream[i]));
-      // GPUERRCHK(cudaMemcpyAsync(&d_startPars[offset], &startPars[offset],
-      //                           spBytes, cudaMemcpyHostToDevice, stream[i]));
       GPUERRCHK(cudaMemcpyAsync(&d_boundStates[offset], &boundStates[offset],
-                                spBytes, cudaMemcpyHostToDevice, stream[i]));
-      GPUERRCHK(cudaMemcpyAsync(&d_fitPars[offset], &fitPars[offset], fpBytes,
+                                streamDataBytes[FitData::StartState],
                                 cudaMemcpyHostToDevice, stream[i]));
-      GPUERRCHK(cudaMemcpyAsync(&d_fittedStates[offset * nSurfaces],
-                                &fittedStates[offset * nSurfaces], tsBytes,
+      GPUERRCHK(cudaMemcpyAsync(&d_targetSurfaces[offset],
+                                &targetSurfaces[offset],
+                                streamDataBytes[FitData::TargetSurface],
                                 cudaMemcpyHostToDevice, stream[i]));
       GPUERRCHK(cudaMemcpyAsync(&d_kfOptions[offset], &kfOptions[offset],
-                                opBytes, cudaMemcpyHostToDevice, stream[i]));
+                                streamDataBytes[FitData::FitOptions],
+                                cudaMemcpyHostToDevice, stream[i]));
+      GPUERRCHK(cudaMemcpyAsync(&d_fittedStates[offset * nSurfaces],
+                                &fittedStates[offset * nSurfaces],
+                                streamDataBytes[FitData::FitStates],
+                                cudaMemcpyHostToDevice, stream[i]));
+      GPUERRCHK(cudaMemcpyAsync(&d_fitPars[offset], &fitPars[offset],
+                                streamDataBytes[FitData::FitParams],
+                                cudaMemcpyHostToDevice, stream[i]));
       GPUERRCHK(cudaMemcpyAsync(&d_fitStatus[offset], &fitStatus[offset],
-                                stBytes, cudaMemcpyHostToDevice, stream[i]));
-      GPUERRCHK(cudaMemcpyAsync(&d_targetSurfaces[offset],
-                                &targetSurfaces[offset], asBytes,
+                                streamDataBytes[FitData::FitStatus],
                                 cudaMemcpyHostToDevice, stream[i]));
 
       // Use shared memory for one track if requested
@@ -436,14 +370,17 @@ int main(int argc, char *argv[]) {
       GPUERRCHK(cudaEventSynchronize(stopEvent));
       // copy the fitted states to host
       GPUERRCHK(cudaMemcpyAsync(&fittedStates[offset * nSurfaces],
-                                &d_fittedStates[offset * nSurfaces], tsBytes,
+                                &d_fittedStates[offset * nSurfaces],
+                                streamDataBytes[FitData::FitStates],
                                 cudaMemcpyDeviceToHost, stream[i]));
       // copy the fitted params to host
-      GPUERRCHK(cudaMemcpyAsync(&fitPars[offset], &d_fitPars[offset], fpBytes,
+      GPUERRCHK(cudaMemcpyAsync(&fitPars[offset], &d_fitPars[offset],
+                                streamDataBytes[FitData::FitParams],
                                 cudaMemcpyDeviceToHost, stream[i]));
       // copy the fit status to host
       GPUERRCHK(cudaMemcpyAsync(&fitStatus[offset], &d_fitStatus[offset],
-                                stBytes, cudaMemcpyDeviceToHost, stream[i]));
+                                streamDataBytes[FitData::FitStatus],
+                                cudaMemcpyDeviceToHost, stream[i]));
     }
 
     GPUERRCHK(cudaPeekAtLastError());
@@ -451,14 +388,13 @@ int main(int argc, char *argv[]) {
 
     // Free the memory on device
     GPUERRCHK(cudaFree(d_sourcelinks));
-    // GPUERRCHK(cudaFree(d_startPars));
     GPUERRCHK(cudaFree(d_boundStates));
+    GPUERRCHK(cudaFree(d_targetSurfaces));
+    GPUERRCHK(cudaFree(d_kfOptions));
     GPUERRCHK(cudaFree(d_fittedStates));
     GPUERRCHK(cudaFree(d_fitPars));
-    GPUERRCHK(cudaFree(d_kfOptions));
     GPUERRCHK(cudaFree(d_fitStatus));
     GPUERRCHK(cudaFree(d_kFitter));
-    GPUERRCHK(cudaFree(d_targetSurfaces));
 
     GPUERRCHK(cudaEventRecord(stopEvent, 0));
     GPUERRCHK(cudaEventSynchronize(stopEvent));
@@ -546,10 +482,11 @@ int main(int argc, char *argv[]) {
   // Free the managed/pinned memory
   GPUERRCHK(cudaFree(surfaces));
   GPUERRCHK(cudaFreeHost(sourcelinks));
-  //  GPUERRCHK(cudaFreeHost(startPars));
   GPUERRCHK(cudaFreeHost(boundStates));
   GPUERRCHK(cudaFreeHost(targetSurfaces));
+  GPUERRCHK(cudaFreeHost(kfOptions));
   GPUERRCHK(cudaFreeHost(fittedStates));
+  GPUERRCHK(cudaFreeHost(fitPars));
   GPUERRCHK(cudaFreeHost(fitStatus));
 
   return 0;
