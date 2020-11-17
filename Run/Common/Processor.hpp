@@ -118,16 +118,14 @@ void runSimulation(const Acts::GeometryContext &gctx,
   }
 }
 
-TargetSurfaceContainer
-buildTargetSurfaces(const SimParticleContainer &validParticles) {
-  // Reserve the container
-  TargetSurfaceContainer surfaces;
-  surfaces.reserve(validParticles.size());
-
-  for (const auto particle : validParticles) {
-    surfaces.emplace_back(particle.position());
+void buildTargetSurfaces(const SimParticleContainer &validParticles,
+                         Acts::LineSurface *targetSurfaces) {
+  // Write directly into the container
+  unsigned int ip = 0;
+  for (const auto &particle : validParticles) {
+    targetSurfaces[ip] = Acts::LineSurface(particle.position());
+    ip++;
   }
-  return surfaces;
 }
 
 // @note using concreate surface type to avoid trivial advance of the

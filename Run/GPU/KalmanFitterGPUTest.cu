@@ -242,9 +242,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Build the target surfaces based on the truth particle position
-  auto targetSurfacesCollection = buildTargetSurfaces(validParticles);
-  memcpy(targetSurfaces, targetSurfacesCollection.data(),
-         dataBytes[FitData::TargetSurface]);
+  buildTargetSurfaces(validParticles, targetSurfaces);
 
   // The hit smearing resolution
   std::array<double, 2> hitResolution = {30. * Acts::units::_mm,
