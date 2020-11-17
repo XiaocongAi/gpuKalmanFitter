@@ -196,9 +196,9 @@ ParametersContainer
 runParticleSmearing(random_engine_t &rng, const Acts::GeometryContext &gctx,
                     const SimParticleContainer &validParticles,
                     const ParticleSmearingParameters &resolution,
-                    const TargetSurfaceContainer &targetSurfaces) {
-  if (validParticles.size() != targetSurfaces.size()) {
-    std::runtime_error("validParticles size not equal to targetSurfaces size!");
+                    const Acts::LineSurface *targetSurfaces, size_t nTracks) {
+  if (validParticles.size() != nTracks) {
+    std::runtime_error("validParticles size not equal to number of tracks!");
   }
 
   // The normal dist

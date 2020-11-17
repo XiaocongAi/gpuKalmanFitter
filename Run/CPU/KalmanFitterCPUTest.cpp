@@ -168,8 +168,9 @@ int main(int argc, char *argv[]) {
   ParticleSmearingParameters seedResolution;
   // Run truth seed smearing to create starting parameters with provided
   // reference surface
-  auto startPars = runParticleSmearing(rng, gctx, validParticles,
-                                       seedResolution, targetSurfaces);
+  auto startPars =
+      runParticleSmearing(rng, gctx, validParticles, seedResolution,
+                          targetSurfaces.data(), nTracks);
 
   // Prepare to perform fit to the created tracks
   KalmanFitterType kFitter(propagator);

@@ -54,6 +54,11 @@ static void show_usage(std::string name) {
             << std::endl;
 }
 
+struct BoundState {
+  Acts::BoundVector boundParams;
+  Acts::BoundMatrix boundCov;
+};
+
 using Stepper = Acts::EigenStepper<Test::ConstantBField>;
 using PropagatorType = Acts::Propagator<Stepper>;
 using PropResultType = Acts::PropagatorResult;
@@ -64,7 +69,7 @@ using KalmanFitterType =
 using KalmanFitterResultType =
     Acts::KalmanFitterResult<Acts::PixelSourceLink,
                              Acts::BoundParameters<PlaneSurfaceType>,
-                             PlaneSurfaceType>;
+                             Acts::LineSurface>;
 using TSType = typename KalmanFitterResultType::TrackStateType;
 using FitOptionsType = Acts::KalmanFitterOptions<Acts::VoidOutlierFinder>;
 
@@ -72,9 +77,9 @@ using FitOptionsType = Acts::KalmanFitterOptions<Acts::VoidOutlierFinder>;
 __global__ void __launch_bounds__(256, 2)
     fitKernelThreadPerTrack(KalmanFitterType *kFitter,
                             Acts::PixelSourceLink *sourcelinks,
-                            Acts::CurvilinearParameters *spars,
+                            BoundState *bStates, Acts::LineSurface *tarSurfaces,
                             FitOptionsType *kfOptions, TSType *fittedStates,
-                            Acts::BoundParameters<PlaneSurfaceType> *fpars,
+                            Acts::BoundParameters<Acts::LineSurface> *fpars,
                             bool *fitStatus, const Acts::Surface *surfacePtrs,
                             int nSurfaces, int nTracks, int offset) {
   // In case of 1D grid and 1D block, the threadId = blockDim.x*blockIdx.x +
@@ -87,24 +92,39 @@ __global__ void __launch_bounds__(256, 2)
 
   // Different threads handles different track
   if (threadId < (nTracks + offset)) {
-    // Use the CudaKernelContainer for the source links and fitted tracks
+    // Use the CudaKernelContainer for the source links and fitted states
     KalmanFitterResultType kfResult;
     kfResult.fittedStates = CudaKernelContainer<TSType>(
         fittedStates + threadId * nSurfaces, nSurfaces);
+    // Construct a start parameters (the geoContext is set to 0)
+    Acts::BoundParameters<Acts::LineSurface> startPars(
+        0, bStates[threadId].boundCov, bStates[threadId].boundParams,
+        &tarSurfaces[threadId]);
+    // Reset the target surface
+    kfOptions[threadId].referenceSurface = &tarSurfaces[threadId];
+    printf("target surface center =(%f, %f, %f)\n",
+           tarSurfaces[threadId].center(0).x(),
+           tarSurfaces[threadId].center(0).y(),
+           tarSurfaces[threadId].center(0).z());
+    // Perform the fit
     fitStatus[threadId] = kFitter->fit(
         Acts::CudaKernelContainer<PixelSourceLink>(
             sourcelinks + threadId * nSurfaces, nSurfaces),
-        spars[threadId], kfOptions[threadId], kfResult, surfacePtrs, nSurfaces);
+        startPars, kfOptions[threadId], kfResult, surfacePtrs, nSurfaces);
+    // Set the fitted parameters
+    // @WARNING The reference surface in fPars doesn't make sense actually
     fpars[threadId] = kfResult.fittedParameters;
+    printf("fittedParams = %f, %f, %f\n", fpars[threadId].position().x(),
+           fpars[threadId].position().y(), fpars[threadId].position().z());
   }
 }
 
 __global__ void __launch_bounds__(256, 2)
     fitKernelBlockPerTrack(KalmanFitterType *kFitter,
                            Acts::PixelSourceLink *sourcelinks,
-                           Acts::CurvilinearParameters *spars,
+                           BoundState *bStates, Acts::LineSurface *tarSurfaces,
                            FitOptionsType *kfOptions, TSType *fittedStates,
-                           Acts::BoundParameters<PlaneSurfaceType> *fpars,
+                           Acts::BoundParameters<Acts::LineSurface> *fpars,
                            bool *fitStatus, const Acts::Surface *surfacePtrs,
                            int nSurfaces, int nTracks, int offset) {
   // @note This will have problem if the number of blocks is smaller than the
@@ -113,14 +133,24 @@ __global__ void __launch_bounds__(256, 2)
 
   // All threads in this block handles the same track
   if (blockId < (nTracks + offset)) {
-    // Use the CudaKernelContainer for the source links and fitted tracks
+    // Use the CudaKernelContainer for the source links and fitted states
+    // @note shared memory for the kfResult?
     KalmanFitterResultType kfResult;
     kfResult.fittedStates = CudaKernelContainer<TSType>(
         fittedStates + blockId * nSurfaces, nSurfaces);
+    // Construct a start parameters (the geoContext is set to 0)
+    Acts::BoundParameters<Acts::LineSurface> startPars(
+        0, bStates[blockId].boundCov, bStates[blockId].boundParams,
+        &tarSurfaces[blockId]);
+    // Reset the target surface
+    kfOptions[blockId].referenceSurface = &tarSurfaces[blockId];
+    // Perform the fit
     kFitter->fitOnDevice(Acts::CudaKernelContainer<PixelSourceLink>(
                              sourcelinks + blockId * nSurfaces, nSurfaces),
-                         spars[blockId], kfOptions[blockId], kfResult,
+                         startPars, kfOptions[blockId], kfResult,
                          fitStatus[blockId], surfacePtrs, nSurfaces);
+    // Set the fitted parameters
+    // @WARNING The reference surface in fPars doesn't make sense actually
     fpars[blockId] = kfResult.fittedParameters;
   }
 }
@@ -216,42 +246,57 @@ int main(int argc, char *argv[]) {
                              sizeof(bool) * 2 + sizeof(PropagatorResult);
   std::cout << "shared memory is " << sharedMemoryPerTrack << std::endl;
 
-  // The number of test surfaces
+  // The number of navigation surfaces
   const unsigned int nSurfaces = 10;
-  const unsigned int surfaceBytes = sizeof(PlaneSurfaceType) * nSurfaces;
+  // The navigation surfaces is common for all tracks
+  const unsigned int navigationSurfaceBytes =
+      sizeof(PlaneSurfaceType) * nSurfaces;
+  // The track-specific objects
   const unsigned int sourcelinksBytes =
       sizeof(PixelSourceLink) * nSurfaces * nTracks;
-  const unsigned int sParsBytes = sizeof(Acts::CurvilinearParameters) * nTracks;
+  // const unsigned int sParsBytes = sizeof(Acts::CurvilinearParameters) *
+  // nTracks;
+  const unsigned int bStatesBytes = sizeof(BoundState) * nTracks;
   const unsigned int fParsBytes =
-      sizeof(Acts::BoundParameters<PlaneSurfaceType>) * nTracks;
+      sizeof(Acts::BoundParameters<Acts::LineSurface>) * nTracks;
   const unsigned int tsBytes = sizeof(TSType) * nSurfaces * nTracks;
+  const unsigned int targetSurfaceBytes = sizeof(Acts::LineSurface) * nTracks;
   const unsigned int statusBytes = sizeof(bool) * nTracks;
   const unsigned int optionBytes = sizeof(FitOptionsType) * nTracks;
-  std::cout << "surface Bytes = " << surfaceBytes << std::endl;
+  std::cout << "surface Bytes = " << navigationSurfaceBytes << std::endl;
   std::cout << "source links Bytes = " << sourcelinksBytes << std::endl;
-  std::cout << "start pars Bytes = " << sParsBytes << std::endl;
+  // std::cout << "start pars Bytes = " << sParsBytes << std::endl;
+  std::cout << "start pars Bytes = " << bStatesBytes << std::endl;
   std::cout << "kf options Bytes = " << optionBytes << std::endl;
-  std::cout << "fit pars Bytes = " << fParsBytes << std::endl;
   std::cout << "fit states Bytes = " << tsBytes << std::endl;
+  std::cout << "fit pars Bytes = " << fParsBytes << std::endl;
+  std::cout << "target surface Bytes = " << targetSurfaceBytes << std::endl;
 
   const unsigned int perSourcelinksBytes =
       sizeof(Acts::PixelSourceLink) * nSurfaces * tracksPerStream;
   const unsigned int lastSourcelinksBytes =
       sizeof(Acts::PixelSourceLink) * nSurfaces * tracksLastStream;
 
-  const unsigned int perStartParsBytes =
-      sizeof(Acts::CurvilinearParameters) * tracksPerStream;
-  const unsigned int lastStartParsBytes =
-      sizeof(Acts::CurvilinearParameters) * tracksLastStream;
-
-  const unsigned int perFitParsBytes =
-      sizeof(Acts::BoundParameters<PlaneSurfaceType>) * tracksPerStream;
-  const unsigned int lastFitParsBytes =
-      sizeof(Acts::BoundParameters<PlaneSurfaceType>) * tracksLastStream;
-
   const unsigned int perTSsBytes = sizeof(TSType) * nSurfaces * tracksPerStream;
   const unsigned int lastTSsBytes =
       sizeof(TSType) * nSurfaces * tracksLastStream;
+
+  // const unsigned int perStartParsBytes =
+  //    sizeof(Acts::CurvilinearParameters) * tracksPerStream;
+  // const unsigned int lastStartParsBytes =
+  //    sizeof(Acts::CurvilinearParameters) * tracksLastStream;
+  const unsigned int perStartParsBytes = sizeof(BoundState) * tracksPerStream;
+  const unsigned int lastStartParsBytes = sizeof(BoundState) * tracksLastStream;
+
+  const unsigned int perFitParsBytes =
+      sizeof(Acts::BoundParameters<Acts::LineSurface>) * tracksPerStream;
+  const unsigned int lastFitParsBytes =
+      sizeof(Acts::BoundParameters<Acts::LineSurface>) * tracksLastStream;
+
+  const unsigned int perTarSurfacesBytes =
+      sizeof(Acts::LineSurface) * tracksPerStream;
+  const unsigned int lastTarSurfacesBytes =
+      sizeof(Acts::LineSurface) * tracksLastStream;
 
   const unsigned int perStatusBytes = sizeof(bool) * tracksPerStream;
   const unsigned int lastStatusBytes = sizeof(bool) * tracksLastStream;
@@ -332,6 +377,17 @@ int main(int argc, char *argv[]) {
     writeSimHitsObj(simResult);
   }
 
+  // Build the target surfaces based on the truth particle position
+  auto targetSurfacesCollection = buildTargetSurfaces(validParticles);
+  // Pinned memory for the target surfaces
+  Acts::LineSurface *targetSurfaces;
+  GPUERRCHK(cudaMallocHost((void **)&targetSurfaces, targetSurfaceBytes));
+  memcpy(targetSurfaces, targetSurfacesCollection.data(), targetSurfaceBytes);
+  for (int it = 0; it < nTracks; it++) {
+    std::cout << "target surface " << it << " has center at "
+              << targetSurfaces[it].center(0) << std::endl;
+  }
+
   // The hit smearing resolution
   std::array<double, 2> hitResolution = {30. * Acts::units::_mm,
                                          30. * Acts::units::_mm};
@@ -345,15 +401,21 @@ int main(int argc, char *argv[]) {
 
   // The particle smearing resolution
   ParticleSmearingParameters seedResolution;
-  // Run truth seed smearing to create starting parameters
-  auto startParsCollection =
-      runParticleSmearing(rng, gctx, validParticles, seedResolution, nTracks);
+  // Run truth seed smearing to create starting parameters with provided
+  // reference surface
+  auto startParsCollection = runParticleSmearing(
+      rng, gctx, validParticles, seedResolution, targetSurfaces, nTracks);
   // Pinned memory for starting track parameters to be transferred to GPU
-  Acts::CurvilinearParameters *startPars;
-  GPUERRCHK(cudaMallocHost((void **)&startPars, sParsBytes));
-  // Copy to the pinned memory
-  memcpy(startPars, startParsCollection.data(), sParsBytes);
-  Acts::BoundParameters<PlaneSurfaceType> *fitPars;
+  BoundState *boundStates;
+  GPUERRCHK(cudaMallocHost((void **)&boundStates, bStatesBytes));
+  // Initialize the boundState
+  for (unsigned int it = 0; it < nTracks; it++) {
+    boundStates[it].boundParams = startParsCollection[it].parameters();
+    boundStates[it].boundCov = *startParsCollection[it].covariance();
+  }
+
+  // The fitted parameters
+  Acts::BoundParameters<Acts::LineSurface> *fitPars;
   GPUERRCHK(cudaMallocHost((void **)&fitPars, fParsBytes));
 
   // Prepare to perform fit to the created tracks
@@ -372,7 +434,7 @@ int main(int argc, char *argv[]) {
   // Initialize the kfOptions and fit status
   for (unsigned int it = 0; it < nTracks; it++) {
     kfOptions[it] = FitOptionsType(gctx, mctx);
-    kfOptions[it].referenceSurface = &startPars[it].referenceSurface();
+    // kfOptions[it].referenceSurface = &startPars[it].referenceSurface();
     fitStatus[it] = false;
   }
 
@@ -395,19 +457,25 @@ int main(int argc, char *argv[]) {
     // Allocate memory on device
     KalmanFitterType *d_kFitter;
     Acts::PixelSourceLink *d_sourcelinks;
-    Acts::CurvilinearParameters *d_startPars;
-    Acts::BoundParameters<PlaneSurfaceType> *d_fitPars;
+    // The start pars will be constructed on GPU with bound vector and
+    // covariance
+    // Acts::BoundParameters<Acts::LineSurface> *d_startPars;
+    BoundState *d_boundStates;
+    Acts::BoundParameters<Acts::LineSurface> *d_fitPars;
     FitOptionsType *d_kfOptions;
     TSType *d_fittedStates;
     bool *d_fitStatus;
+    Acts::LineSurface *d_targetSurfaces;
 
     GPUERRCHK(cudaMalloc(&d_kFitter, sizeof(KalmanFitterType)));
     GPUERRCHK(cudaMalloc(&d_sourcelinks, sourcelinksBytes));
-    GPUERRCHK(cudaMalloc(&d_startPars, sParsBytes));
+    // GPUERRCHK(cudaMalloc(&d_startPars, sParsBytes));
+    GPUERRCHK(cudaMalloc(&d_boundStates, bStatesBytes));
     GPUERRCHK(cudaMalloc(&d_fitPars, fParsBytes));
     GPUERRCHK(cudaMalloc(&d_kfOptions, optionBytes));
     GPUERRCHK(cudaMalloc(&d_fittedStates, tsBytes));
     GPUERRCHK(cudaMalloc(&d_fitStatus, statusBytes));
+    GPUERRCHK(cudaMalloc(&d_targetSurfaces, targetSurfaceBytes));
 
     // Copy the KalmanFitter from host to device (shared between all tracks)
     GPUERRCHK(cudaMemcpy(d_kFitter, &kFitter, sizeof(KalmanFitterType),
@@ -424,6 +492,7 @@ int main(int argc, char *argv[]) {
       unsigned int tsBytes = perTSsBytes;
       unsigned int stBytes = perStatusBytes;
       unsigned int opBytes = perOptionBytes;
+      unsigned int asBytes = perTarSurfacesBytes;
       if (i == (nStreams - 1)) {
         streamTracks = tracksLastStream;
         slBytes = lastSourcelinksBytes;
@@ -432,11 +501,13 @@ int main(int argc, char *argv[]) {
         tsBytes = lastTSsBytes;
         stBytes = lastStatusBytes;
         opBytes = lastOptionBytes;
+        asBytes = lastTarSurfacesBytes;
       }
 
       if (i == 0) {
         // @note: prefetch the surface or not
-        cudaMemPrefetchAsync(surfaces, surfaceBytes, devId, stream[i]);
+        cudaMemPrefetchAsync(surfaces, navigationSurfaceBytes, devId,
+                             stream[i]);
       }
 
       // Copy the sourcelinsk, starting parameters and fitted tracks from host
@@ -444,7 +515,9 @@ int main(int argc, char *argv[]) {
       GPUERRCHK(cudaMemcpyAsync(&d_sourcelinks[offset * nSurfaces],
                                 &sourcelinks[offset * nSurfaces], slBytes,
                                 cudaMemcpyHostToDevice, stream[i]));
-      GPUERRCHK(cudaMemcpyAsync(&d_startPars[offset], &startPars[offset],
+      // GPUERRCHK(cudaMemcpyAsync(&d_startPars[offset], &startPars[offset],
+      //                           spBytes, cudaMemcpyHostToDevice, stream[i]));
+      GPUERRCHK(cudaMemcpyAsync(&d_boundStates[offset], &boundStates[offset],
                                 spBytes, cudaMemcpyHostToDevice, stream[i]));
       GPUERRCHK(cudaMemcpyAsync(&d_fitPars[offset], &fitPars[offset], fpBytes,
                                 cudaMemcpyHostToDevice, stream[i]));
@@ -453,20 +526,23 @@ int main(int argc, char *argv[]) {
                                 cudaMemcpyHostToDevice, stream[i]));
       GPUERRCHK(cudaMemcpyAsync(&d_kfOptions[offset], &kfOptions[offset],
                                 opBytes, cudaMemcpyHostToDevice, stream[i]));
-      GPUERRCHK(cudaMemcpyAsync(
-          &d_fitStatus[offset], &fitStatus[offset], stBytes,
-          cudaMemcpyHostToDevice,
-          stream[i])); // Use shared memory for one track if requested
+      GPUERRCHK(cudaMemcpyAsync(&d_fitStatus[offset], &fitStatus[offset],
+                                stBytes, cudaMemcpyHostToDevice, stream[i]));
+      GPUERRCHK(cudaMemcpyAsync(&d_targetSurfaces[offset],
+                                &targetSurfaces[offset], asBytes,
+                                cudaMemcpyHostToDevice, stream[i]));
+
+      // Use shared memory for one track if requested
       if (useSharedMemory) {
         fitKernelBlockPerTrack<<<grid, block, 0, stream[i]>>>(
-            d_kFitter, d_sourcelinks, d_startPars, d_kfOptions, d_fittedStates,
-            d_fitPars, d_fitStatus, surfacePtrs, nSurfaces, streamTracks,
-            offset);
+            d_kFitter, d_sourcelinks, d_boundStates, d_targetSurfaces,
+            d_kfOptions, d_fittedStates, d_fitPars, d_fitStatus, surfacePtrs,
+            nSurfaces, streamTracks, offset);
       } else {
         fitKernelThreadPerTrack<<<grid, block, 0, stream[i]>>>(
-            d_kFitter, d_sourcelinks, d_startPars, d_kfOptions, d_fittedStates,
-            d_fitPars, d_fitStatus, surfacePtrs, nSurfaces, streamTracks,
-            offset);
+            d_kFitter, d_sourcelinks, d_boundStates, d_targetSurfaces,
+            d_kfOptions, d_fittedStates, d_fitPars, d_fitStatus, surfacePtrs,
+            nSurfaces, streamTracks, offset);
       }
       GPUERRCHK(cudaEventRecord(stopEvent, stream[i]));
       GPUERRCHK(cudaEventSynchronize(stopEvent));
@@ -487,12 +563,14 @@ int main(int argc, char *argv[]) {
 
     // Free the memory on device
     GPUERRCHK(cudaFree(d_sourcelinks));
-    GPUERRCHK(cudaFree(d_startPars));
+    // GPUERRCHK(cudaFree(d_startPars));
+    GPUERRCHK(cudaFree(d_boundStates));
     GPUERRCHK(cudaFree(d_fittedStates));
     GPUERRCHK(cudaFree(d_fitPars));
     GPUERRCHK(cudaFree(d_kfOptions));
     GPUERRCHK(cudaFree(d_fitStatus));
     GPUERRCHK(cudaFree(d_kFitter));
+    GPUERRCHK(cudaFree(d_targetSurfaces));
 
     GPUERRCHK(cudaEventRecord(stopEvent, 0));
     GPUERRCHK(cudaEventSynchronize(stopEvent));
@@ -522,6 +600,7 @@ int main(int argc, char *argv[]) {
       // The input source links wrapper
       auto sourcelinkTrack = Acts::CudaKernelContainer<PixelSourceLink>(
           sourcelinks + it * nSurfaces, nSurfaces);
+      kfOptions[it].referenceSurface = &targetSurfaces[it];
       // Run the fit. The fittedStates will be changed here
       auto status =
           kFitter.fit(sourcelinkTrack, startParsCollection[it], kfOptions[it],
@@ -530,6 +609,7 @@ int main(int argc, char *argv[]) {
         std::cout << "fit failure for track " << it << std::endl;
       }
       fitStatus[it] = status;
+      fitPars[it] = kfResult.fittedParameters;
     }
     auto end_fit = std::chrono::high_resolution_clock::now();
     elapsed_seconds = end_fit - start_fit;
@@ -542,6 +622,7 @@ int main(int argc, char *argv[]) {
     std::cout << "writing KF results" << std::endl;
     std::string stateFileName;
     std::string paramFileName;
+    std::string rootFileName;
 
     std::string param = "smoothed";
     stateFileName.append("fitted_");
@@ -549,18 +630,26 @@ int main(int argc, char *argv[]) {
 
     paramFileName.append("fitted_");
     paramFileName.append("param");
+
+    rootFileName.append("fitted_");
+    rootFileName.append("param");
     if (useGPU) {
       stateFileName.append("_gpu_nTracks_");
       paramFileName.append("_gpu_nTracks_");
+      rootFileName.append("_gpu_nTracks_");
     } else {
       stateFileName.append("_semi_cpu_nTracks_");
       paramFileName.append("_semi_cpu_nTracks_");
+      rootFileName.append("_semi_cpu_nTracks_");
     }
     stateFileName.append(std::to_string(nTracks)).append(".obj");
     paramFileName.append(std::to_string(nTracks)).append(".csv");
+    rootFileName.append(std::to_string(nTracks)).append(".root");
     writeStatesObj(fittedStates, fitStatus, nTracks, nSurfaces, stateFileName,
                    param);
     writeParamsCsv(fitPars, fitStatus, nTracks, paramFileName);
+    writeParamsRoot(gctx, fitPars, fitStatus, validParticles, nTracks,
+                    rootFileName, "params");
   }
 
   std::cout << "------------------------  ending  -----------------------"
@@ -569,7 +658,9 @@ int main(int argc, char *argv[]) {
   // Free the managed/pinned memory
   GPUERRCHK(cudaFree(surfaces));
   GPUERRCHK(cudaFreeHost(sourcelinks));
-  GPUERRCHK(cudaFreeHost(startPars));
+  //  GPUERRCHK(cudaFreeHost(startPars));
+  GPUERRCHK(cudaFreeHost(boundStates));
+  GPUERRCHK(cudaFreeHost(targetSurfaces));
   GPUERRCHK(cudaFreeHost(fittedStates));
   GPUERRCHK(cudaFreeHost(fitStatus));
 
