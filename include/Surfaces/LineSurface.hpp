@@ -43,13 +43,12 @@ public:
   /// @param gctx The current geometry context object, e.g. alignment
   /// @param other is the source cone surface
   /// @param shift is the additional transform applied after copying
-  ACTS_DEVICE_FUNC LineSurface(const GeometryContext &gctx,
-                               const LineSurface &other,
-                               const Transform3D &shift);
+  LineSurface(const GeometryContext &gctx, const LineSurface &other,
+              const Transform3D &shift);
 
   /// Constructor from the transform
   ///
-  ACTS_DEVICE_FUNC LineSurface(const Transform3D &transform);
+  LineSurface(const Transform3D &transform);
 
   /// Constructor from GlobalPosition
   ///

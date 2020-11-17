@@ -150,9 +150,10 @@ inline const BoundRowVector LineSurface::derivativeFactors(
   // the vector between position and center
   ActsRowVectorD<3> pc = (position - center(gctx)).transpose();
   // the longitudinal component vector (alogn local z)
-  ActsRowVectorD<3> locz = rft.block<1, 3>(1, 0);
+  // ActsRowVectorD<3> locz = rft.block<1, 3>(1, 0);
+  ActsRowVectorD<3> locz = rft.row(1);
   // build the norm vector comonent by subtracting the longitudinal one
-  double long_c = locz * direction;
+  double long_c = locz.transpose().dot(direction);
   ActsRowVectorD<3> norm_vec = direction.transpose() - long_c * locz;
   // calculate the s factors for the dependency on X
   const BoundRowVector s_vec =
@@ -167,9 +168,18 @@ inline const BoundRowVector LineSurface::derivativeFactors(
       ActsMatrixD<3, eBoundParametersSize>::Zero();
   long_mat.colwise() += locz.transpose();
   // build the combined normal & longitudinal components
-  return (norm *
-          (s_vec - pc * (long_mat * d_vec.asDiagonal() -
-                         jacobian.block<3, eBoundParametersSize>(4, 0))));
+  BoundMatrix diagMatrix = BoundMatrix::Zero();
+  diagMatrix(0, 0) = s_vec(0);
+  diagMatrix(1, 1) = s_vec(1);
+  diagMatrix(2, 2) = s_vec(2);
+  diagMatrix(3, 3) = s_vec(3);
+  diagMatrix(4, 4) = s_vec(4);
+  diagMatrix(5, 5) = s_vec(5);
+  ActsMatrixD<3, eBoundParametersSize> diffMatrix = long_mat * diagMatrix;
+  diffMatrix = diffMatrix - jacobian.block<3, eBoundParametersSize>(4, 0);
+  BoundRowVector row_vec = pc * diffMatrix;
+
+  return norm * (s_vec - row_vec);
 }
 
 inline void LineSurface::localToGlobal(const GeometryContext &gctx,
