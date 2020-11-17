@@ -29,7 +29,8 @@ using Stepper = Acts::EigenStepper<Test::ConstantBField>;
 using PropagatorType = Acts::Propagator<Stepper>;
 using PropResultType = Acts::PropagatorResult;
 using PropOptionsType = Acts::PropagatorOptions<Simulator, Test::VoidAborter>;
-using Smoother = GainMatrixSmoother<Acts::BoundParameters<PlaneSurfaceType>>;
+using Smoother =
+    Acts::GainMatrixSmoother<Acts::BoundParameters<PlaneSurfaceType>>;
 using KalmanFitterType =
     Acts::KalmanFitter<PropagatorType, Acts::GainMatrixUpdater, Smoother>;
 using KalmanFitterResultType =

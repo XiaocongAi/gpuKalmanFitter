@@ -66,8 +66,8 @@ int main(int argc, char *argv[]) {
   auto rng = randomNumbers->spawnGenerator(0);
 
   // Create a test context
-  GeometryContext gctx;
-  MagneticFieldContext mctx;
+  Acts::GeometryContext gctx;
+  Acts::MagneticFieldContext mctx;
 
   // Create the geometry
   size_t nSurfaces = 10;
@@ -159,10 +159,10 @@ int main(int argc, char *argv[]) {
   for (int it = 0; it < nTracks; it++) {
     // The fit result wrapper
     KalmanFitterResultType kfResult;
-    kfResult.fittedStates = CudaKernelContainer<TSType>(
+    kfResult.fittedStates = Acts::CudaKernelContainer<TSType>(
         fittedStates.data() + it * nSurfaces, nSurfaces);
     // The input source links wrapper
-    auto sourcelinkTrack = CudaKernelContainer<PixelSourceLink>(
+    auto sourcelinkTrack = Acts::CudaKernelContainer<Acts::PixelSourceLink>(
         sourcelinks + it * nSurfaces, nSurfaces);
     // @todo Use perigee surface as the target surface. Needs a perigee surface
     // object

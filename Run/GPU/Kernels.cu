@@ -23,7 +23,7 @@ __global__ void __launch_bounds__(256, 2)
   if (threadId < (nTracks + offset)) {
     // Use the CudaKernelContainer for the source links and fitted states
     KalmanFitterResultType kfResult;
-    kfResult.fittedStates = CudaKernelContainer<TSType>(
+    kfResult.fittedStates = Acts::CudaKernelContainer<TSType>(
         fittedStates + threadId * nSurfaces, nSurfaces);
     // Construct a start parameters (the geoContext is set to 0)
     Acts::BoundParameters<Acts::LineSurface> startPars(
@@ -33,7 +33,7 @@ __global__ void __launch_bounds__(256, 2)
     kfOptions[threadId].referenceSurface = &tarSurfaces[threadId];
     // Perform the fit
     fitStatus[threadId] = kFitter->fit(
-        Acts::CudaKernelContainer<PixelSourceLink>(
+        Acts::CudaKernelContainer<Acts::PixelSourceLink>(
             sourcelinks + threadId * nSurfaces, nSurfaces),
         startPars, kfOptions[threadId], kfResult, surfacePtrs, nSurfaces);
     // Set the fitted parameters
@@ -62,7 +62,7 @@ __global__ void __launch_bounds__(256, 2)
     __shared__ Acts::BoundParameters<Acts::LineSurface> startPars;
     if (threadIdx.x == 0 and threadIdx.y == 0) {
       kfResult = KalmanFitterResultType();
-      kfResult.fittedStates = CudaKernelContainer<TSType>(
+      kfResult.fittedStates = Acts::CudaKernelContainer<TSType>(
           fittedStates + blockId * nSurfaces, nSurfaces);
       // Construct a start parameters (the geoContext is set to 0)
       startPars = Acts::BoundParameters<Acts::LineSurface>(
@@ -73,7 +73,7 @@ __global__ void __launch_bounds__(256, 2)
     }
     __syncthreads();
     // Perform the fit
-    kFitter->fitOnDevice(Acts::CudaKernelContainer<PixelSourceLink>(
+    kFitter->fitOnDevice(Acts::CudaKernelContainer<Acts::PixelSourceLink>(
                              sourcelinks + blockId * nSurfaces, nSurfaces),
                          startPars, kfOptions[blockId], kfResult,
                          fitStatus[blockId], surfacePtrs, nSurfaces);
@@ -87,4 +87,3 @@ __global__ void __launch_bounds__(256, 2)
     __syncthreads();
   }
 }
-

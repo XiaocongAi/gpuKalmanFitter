@@ -1,7 +1,5 @@
 #include "Utilities/Profiling.hpp"
 
-using namespace Acts;
-
 template <typename S, typename N>
 template <typename parameters_t, typename propagator_options_t,
           typename path_aborter_t>
@@ -11,7 +9,7 @@ ACTS_DEVICE_FUNC Acts::PropagatorResult Acts::Propagator<S, N>::propagate(
     const {
   PUSH_RANGE("propagate", 1);
 
-  Acts::PropagatorResult result;
+  PropagatorResult result;
 
   using StateType = State<propagator_options_t>;
   StateType state(start, options);

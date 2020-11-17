@@ -133,8 +133,9 @@ int main(int argc, char *argv[]) {
 
   // The shared memory size
   using PropState = PropagatorType::State<PropOptionsType>;
-  int sharedMemoryPerTrack = sizeof(PathLimitReached) + sizeof(PropState) +
-                             sizeof(bool) * 2 + sizeof(PropagatorResult);
+  int sharedMemoryPerTrack = sizeof(Acts::PathLimitReached) +
+                             sizeof(PropState) + sizeof(bool) * 2 +
+                             sizeof(Acts::PropagatorResult);
   std::cout << "shared memory is " << sharedMemoryPerTrack << std::endl;
 
   // The number of navigation surfaces
@@ -144,7 +145,7 @@ int main(int argc, char *argv[]) {
       sizeof(PlaneSurfaceType) * nSurfaces;
   // The track-specific objects
   const unsigned int sourcelinksBytes =
-      sizeof(PixelSourceLink) * nSurfaces * nTracks;
+      sizeof(Acts::PixelSourceLink) * nSurfaces * nTracks;
   // const unsigned int sParsBytes = sizeof(Acts::CurvilinearParameters) *
   // nTracks;
   const unsigned int bStatesBytes = sizeof(BoundState) * nTracks;
@@ -485,7 +486,7 @@ int main(int argc, char *argv[]) {
           &fittedStates[it * nSurfaces], nSurfaces);
       // @note when it >=35, we got different startPars[i] between CPU and GPU
       // The input source links wrapper
-      auto sourcelinkTrack = Acts::CudaKernelContainer<PixelSourceLink>(
+      auto sourcelinkTrack = Acts::CudaKernelContainer<Acts::PixelSourceLink>(
           sourcelinks + it * nSurfaces, nSurfaces);
       kfOptions[it].referenceSurface = &targetSurfaces[it];
       // Run the fit. The fittedStates will be changed here
