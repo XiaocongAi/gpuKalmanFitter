@@ -1,18 +1,6 @@
 #pragma once
 
-#include "ActsExamples/Generator.hpp"
-#include "ActsExamples/RandomNumbers.hpp"
-
-#include "ActsFatras/EventData/Barcode.hpp"
-#include "ActsFatras/EventData/Particle.hpp"
-#include "ActsFatras/Kernel/MinimalSimulator.hpp"
-
-#include "EventData/TrackParameters.hpp"
-#include "Geometry/GeometryContext.hpp"
-#include "Surfaces/LineSurface.hpp"
-#include "Utilities/Definitions.hpp"
-#include "Utilities/ParameterDefinitions.hpp"
-#include "Utilities/Units.hpp"
+#include "FitData.hpp"
 #include "Utilities/detail/periodic.hpp"
 
 #include "Test/Helper.hpp"
@@ -22,16 +10,11 @@
 #include <random>
 #include <vector>
 
-using Simulator = ActsFatras::MinimalSimulator<ActsExamples::RandomEngine>;
 using SimParticleContainer = std::vector<ActsFatras::Particle>;
 using SimResultContainer = std::vector<Simulator::result_type>;
 using ParametersContainer =
     std::vector<Acts::BoundParameters<Acts::LineSurface>>;
 using TargetSurfaceContainer = std::vector<Acts::LineSurface>;
-// @note using concreate surface type to avoid trivial advance of the
-// Acts::Surface* to the PlaneSurfaceType* as in the DirectNavigator
-using PlaneSurfaceType = Acts::PlaneSurface<Acts::InfiniteBounds>;
-using PropOptionsType = Acts::PropagatorOptions<Simulator, Test::VoidAborter>;
 
 struct ParticleSmearingParameters {
   /// Constant term of the d0 resolution.
@@ -147,6 +130,8 @@ buildTargetSurfaces(const SimParticleContainer &validParticles) {
   return surfaces;
 }
 
+// @note using concreate surface type to avoid trivial advance of the
+// Acts::Surface* to the PlaneSurfaceType* as in the DirectNavigator
 template <typename random_engine_t>
 void runHitSmearing(const Acts::GeometryContext &gctx, random_engine_t &rng,
                     const SimResultContainer &simResults,

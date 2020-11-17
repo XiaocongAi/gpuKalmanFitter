@@ -1,27 +1,17 @@
-#include "EventData/PixelSourceLink.hpp"
-#include "EventData/TrackParameters.hpp"
-#include "Fitter/GainMatrixSmoother.hpp"
-#include "Fitter/GainMatrixUpdater.hpp"
-#include "Fitter/KalmanFitter.hpp"
-#include "Material/HomogeneousSurfaceMaterial.hpp"
-#include "Propagator/EigenStepper.hpp"
-#include "Propagator/Propagator.hpp"
-#include "Utilities/CudaHelper.hpp"
-#include "Utilities/ParameterDefinitions.hpp"
-#include "Utilities/Profiling.hpp"
-#include "Utilities/Units.hpp"
+#include "FitData.hpp"
+#include "Processor.hpp"
+#include "Writer.hpp"
 
-#include "ActsExamples/Generator.hpp"
+#include "Material/HomogeneousSurfaceMaterial.hpp"
+#include "Utilities/CudaHelper.hpp"
+#include "Utilities/Profiling.hpp"
+
 #include "ActsExamples/MultiplicityGenerators.hpp"
 #include "ActsExamples/ParametricParticleGenerator.hpp"
-#include "ActsExamples/RandomNumbers.hpp"
 #include "ActsExamples/VertexGenerators.hpp"
 
 #include "Test/Helper.hpp"
 #include "Test/Logger.hpp"
-
-#include "Processor.hpp"
-#include "Writer.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -53,25 +43,6 @@ static void show_usage(std::string name) {
                "one track or not\n"
             << std::endl;
 }
-
-struct BoundState {
-  Acts::BoundVector boundParams;
-  Acts::BoundMatrix boundCov;
-};
-
-using Stepper = Acts::EigenStepper<Test::ConstantBField>;
-using PropagatorType = Acts::Propagator<Stepper>;
-using PropResultType = Acts::PropagatorResult;
-using PropOptionsType = Acts::PropagatorOptions<Simulator, Test::VoidAborter>;
-using Smoother = GainMatrixSmoother<Acts::BoundParameters<PlaneSurfaceType>>;
-using KalmanFitterType =
-    Acts::KalmanFitter<PropagatorType, Acts::GainMatrixUpdater, Smoother>;
-using KalmanFitterResultType =
-    Acts::KalmanFitterResult<Acts::PixelSourceLink,
-                             Acts::BoundParameters<PlaneSurfaceType>,
-                             Acts::LineSurface>;
-using TSType = typename KalmanFitterResultType::TrackStateType;
-using FitOptionsType = Acts::KalmanFitterOptions<Acts::VoidOutlierFinder>;
 
 // Device code
 __global__ void __launch_bounds__(256, 2)
@@ -152,7 +123,7 @@ __global__ void __launch_bounds__(256, 2)
     // @WARNING The reference surface in fPars doesn't make sense actually
     if (threadIdx.x == 0 and threadIdx.y == 0) {
       fpars[blockId] = kfResult.fittedParameters;
-      //printf("fittedParams = %f, %f, %f\n", fpars[blockId].position().x(),
+      // printf("fittedParams = %f, %f, %f\n", fpars[blockId].position().x(),
       //       fpars[blockId].position().y(), fpars[blockId].position().z());
     }
     __syncthreads();

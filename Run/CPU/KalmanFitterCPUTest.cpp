@@ -1,25 +1,15 @@
-#include "EventData/PixelSourceLink.hpp"
-#include "EventData/TrackParameters.hpp"
-#include "Fitter/GainMatrixSmoother.hpp"
-#include "Fitter/GainMatrixUpdater.hpp"
-#include "Fitter/KalmanFitter.hpp"
-#include "Material/HomogeneousSurfaceMaterial.hpp"
-#include "Propagator/EigenStepper.hpp"
-#include "Propagator/Propagator.hpp"
-#include "Utilities/ParameterDefinitions.hpp"
-#include "Utilities/Units.hpp"
+#include "FitData.hpp"
+#include "Processor.hpp"
+#include "Writer.hpp"
 
-#include "ActsExamples/Generator.hpp"
+#include "Material/HomogeneousSurfaceMaterial.hpp"
+
 #include "ActsExamples/MultiplicityGenerators.hpp"
 #include "ActsExamples/ParametricParticleGenerator.hpp"
-#include "ActsExamples/RandomNumbers.hpp"
 #include "ActsExamples/VertexGenerators.hpp"
 
 #include "Test/Helper.hpp"
 #include "Test/Logger.hpp"
-
-#include "Processor.hpp"
-#include "Writer.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -41,22 +31,6 @@ static void show_usage(std::string name) {
             << "\t-r,--threads \tSpecify the number of threads\n"
             << std::endl;
 }
-
-using Stepper = Acts::EigenStepper<Test::ConstantBField>;
-using PropagatorType = Acts::Propagator<Stepper>;
-using PropResultType = Acts::PropagatorResult;
-using PropOptionsType = Acts::PropagatorOptions<Simulator, Test::VoidAborter>;
-using Smoother =
-    Acts::GainMatrixSmoother<Acts::BoundParameters<PlaneSurfaceType>>;
-using KalmanFitterType =
-    Acts::KalmanFitter<PropagatorType, Acts::GainMatrixUpdater, Smoother>;
-//@note the target surface type will be changed to perigee surface
-using KalmanFitterResultType =
-    Acts::KalmanFitterResult<Acts::PixelSourceLink,
-                             Acts::BoundParameters<PlaneSurfaceType>,
-                             Acts::LineSurface>;
-using TSType = typename KalmanFitterResultType::TrackStateType;
-using FitOptionsType = Acts::KalmanFitterOptions<Acts::VoidOutlierFinder>;
 
 int main(int argc, char *argv[]) {
   unsigned int nTracks = 10000;
