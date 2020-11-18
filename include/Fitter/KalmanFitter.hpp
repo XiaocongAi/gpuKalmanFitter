@@ -243,7 +243,7 @@ private:
             state.navigation.navigationBreak)) and
           !result.smoothed and !result.finished) {
         if (not smoothing) {
-          printf("Finish without smoothing\n");
+          // printf("Finish without smoothing\n");
           result.finished = true;
         } else {
           // printf("Finalize/run smoothing\n");
@@ -453,64 +453,64 @@ private:
     __device__ void actionOnDevice(propagator_state_t &state,
                                    const stepper_t &stepper,
                                    result_type &result) const {
+      const bool IS_MAIN_THREAD = (threadIdx.x == 0 && threadIdx.y == 0);
       // printf("KalmanFitter step\n");
 
       // Update:
       // - Waiting for a current surface
       auto surface = state.navigation.currentSurface;
       if (surface != nullptr and !result.smoothed and !result.finished) {
-        auto res = filter(surface, state, stepper, result);
+        auto res = filterOnDevice(surface, state, stepper, result);
         if (!res) {
           printf("Error in filter:\n");
           result.result = false;
         }
       }
 
-      //      bool IS_MAIN_THREAD = true;
-      //      #ifdef __CUDA_ARCH__
-      //      	IS_MAIN_THREAD = threadIdx.x == 0 && threadIdx.y == 0;
-      //      #endif
-
-      // Finalization:
-      // when all track states have been handled or the navigation is breaked,
-      // reset navigation&stepping before run backward filtering or
-      // proceed to run smoothing
-      if ((result.measurementStates == inputMeasurements.size() or
-           (result.measurementStates > 0 and
-            state.navigation.navigationBreak)) and
-          !result.smoothed and !result.finished) {
-        if (not smoothing) {
-          //printf("Finish without smoothing\n");
-          result.finished = true;
-        } else {
-          // printf("Finalize/run smoothing\n");
-          auto res = finalize(state, stepper, result);
-          if (!res) {
-            printf("Error in finalize:\n");
-            result.result = false;
+      if (IS_MAIN_THREAD) {
+        // Finalization:
+        // when all track states have been handled or the navigation is breaked,
+        // reset navigation&stepping before run backward filtering or
+        // proceed to run smoothing
+        if ((result.measurementStates == inputMeasurements.size() or
+             (result.measurementStates > 0 and
+              state.navigation.navigationBreak)) and
+            !result.smoothed and !result.finished) {
+          if (not smoothing) {
+            // printf("Finish without smoothing\n");
+            result.finished = true;
+          } else {
+            // printf("Finalize/run smoothing\n");
+            auto res = finalize(state, stepper, result);
+            if (!res) {
+              printf("Error in finalize:\n");
+              result.result = false;
+            }
           }
         }
-      }
 
-      // Post-finalization:
-      // - Progress to target/reference surface and built the final track
-      // parameters
-      if (result.smoothed and !result.finished and
-          targetReached.
-          operator()<propagator_state_t, stepper_t, target_surface_t>(
-              state, stepper, *targetSurface)) {
-        // printf("Completing\n");
-        // Construct a tempory jacobian and path, which is necessary for calling
-        // the boundState
-        typename TrackStateType::Jacobian jac;
-        double path;
-        // Transport & bind the parameter to the final surface
-        stepper.template boundState<target_surface_t>(
-            state.stepping, *targetSurface, result.fittedParameters, jac, path);
+        // Post-finalization:
+        // - Progress to target/reference surface and built the final track
+        // parameters
+        if (result.smoothed and !result.finished and
+            targetReached.
+            operator()<propagator_state_t, stepper_t, target_surface_t>(
+                state, stepper, *targetSurface)) {
+          // printf("Completing\n");
+          // Construct a tempory jacobian and path, which is necessary for
+          // calling the boundState
+          typename TrackStateType::Jacobian jac;
+          double path;
+          // Transport & bind the parameter to the final surface
+          stepper.template boundState<target_surface_t>(
+              state.stepping, *targetSurface, result.fittedParameters, jac,
+              path);
 
-        // Remember the track fitting is done
-        result.finished = true;
+          // Remember the track fitting is done
+          result.finished = true;
+        }
       }
+      __syncthreads();
     }
 
     /// @brief Kalman actor operation : update on device with multiple threads
@@ -527,26 +527,37 @@ private:
     __device__ bool
     filterOnDevice(const Surface *surface, propagator_state_t &state,
                    const stepper_t &stepper, result_type &result) const {
-      // Try to find the surface in the measurement surfaces
-      SurfaceFinder sFinder{surface};
-      auto sourcelink_it = inputMeasurements.find_if(sFinder);
-      // No source link, still return true
-      if (sourcelink_it == inputMeasurements.end()) {
+      const bool IS_MAIN_THREAD = (threadIdx.x == 0 && threadIdx.y == 0);
+      __shared__ bool sourcelinkFound;
+      __shared__ bool updateRes;
+
+      if (IS_MAIN_THREAD) {
+        // Initialize the status
+        sourcelinkFound = false;
+        // Try to find the surface in the measurement surfaces
+        SurfaceFinder sFinder{surface};
+        auto sourcelink_it = inputMeasurements.find_if(sFinder);
+        // No source link, still return true
+        if (sourcelink_it != inputMeasurements.end()) {
+          sourcelinkFound = true;
+          // create track state on the vector from sourcelink
+          result.fittedStates[result.measurementStates] =
+              TrackStateType(*sourcelink_it);
+        }
+      }
+      __syncthreads();
+
+      if (not sourcelinkFound) {
         return true;
       }
+
       // Screen out the source link
       // auto pos = (*sourcelink_it).globalPosition(state.options.geoContext);
       // printf("sl position = (%f, %f, %f)\n", pos.x(), pos.y(), pos.z());
-
-      // create track state on the vector from sourcelink
-      result.fittedStates[result.measurementStates] =
-          TrackStateType(*sourcelink_it);
       TrackStateType &trackState =
           result.fittedStates[result.measurementStates];
-
       // Transport & bind the state to the current surface
-      // @todo: to be changed to boundStateOnDevice
-      stepper.template boundState<NavigationSurface>(
+      stepper.template boundStateOnDevice<NavigationSurface>(
           state.stepping, *surface, trackState.parameter.predicted,
           trackState.parameter.jacobian, trackState.parameter.pathLength);
 
@@ -555,27 +566,35 @@ private:
       // printf("Predicted parameter position = (%f, %f, %f)\n", prePos.x(),
       // prePos.y(), prePos.z());
 
-      // If the update is successful, set covariance and
-      auto updateRes = m_updater(state.options.geoContext, trackState);
-      if (!updateRes) {
+      if (IS_MAIN_THREAD) {
+        // If the update is successful, set covariance and
+        updateRes = m_updater(state.options.geoContext, trackState);
+      }
+      __syncthreads();
+
+      if (not updateRes) {
         // printf("Update step failed:\n");
         return false;
       }
 
-      // Get the filtered parameters and update the stepping state
-      const auto &filtered = trackState.parameter.filtered;
-      // printf("Filtered parameter position = (%f, %f, %f)\n",
-      // filtered.position().x(), filtered.position().y(),
-      // filtered.position().z());
-      stepper.update(state.stepping, filtered.position(),
-                     filtered.momentum().normalized(),
-                     filtered.momentum().norm(), filtered.time());
+      if (IS_MAIN_THREAD) {
+        // Get the filtered parameters and update the stepping state
+        const auto &filtered = trackState.parameter.filtered;
+        // printf("Filtered parameter position = (%f, %f, %f)\n",
+        // filtered.position().x(), filtered.position().y(),
+        // filtered.position().z());
+        stepper.update(state.stepping, filtered.position(),
+                       filtered.momentum().normalized(),
+                       filtered.momentum().norm(), filtered.time());
 
-      // The material effects after the filtering
-      materialInteractor(surface, state, stepper, fullUpdate);
+        // The material effects after the filtering
+        materialInteractor(surface, state, stepper, fullUpdate);
 
-      // We count the state with measurement
-      ++result.measurementStates;
+        // We count the state with measurement
+        ++result.measurementStates;
+      }
+      __syncthreads();
+
       return true;
     }
 

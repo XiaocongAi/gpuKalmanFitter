@@ -114,6 +114,7 @@ __device__ void Acts::Propagator<S, N>::propagate(
   __shared__ bool terminatedNormally;
   __shared__ bool terminatedEarly;
 
+  // Initialize with main thread
   if (IS_MAIN_THREAD) {
     state = StateType(start, options);
     pathAborter = path_aborter_t();
@@ -168,9 +169,14 @@ __device__ void Acts::Propagator<S, N>::propagate(
       // navigator status call - action list - aborter list - target call
       if (IS_MAIN_THREAD) {
         m_navigator.status(state, m_stepper);
+      }
+      __syncthreads();
 
-        state.options.action(state, m_stepper, actorResult);
+      // The state and actorResult is at shared memory. The m_stepper is at
+      // global memory
+      state.options.action.actionOnDevice(state, m_stepper, actorResult);
 
+      if (IS_MAIN_THREAD) {
         if (state.options.aborter(state, m_stepper, actorResult) or
             pathAborter(state, m_stepper)) {
           terminatedNormally = true;
