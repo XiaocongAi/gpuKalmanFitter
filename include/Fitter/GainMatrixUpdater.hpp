@@ -70,8 +70,15 @@ public:
     filtered_parameters = predicted.parameters() + gain;
 
     // @todo use multiple threads for this
+    // printf("K = (%f\n, %f\n, %f\n, %f\n, %f\n, %f)\n", K(0,0), K(0,1),
+    // K(1,0), K(1,1), K(2,0), K(2,1), K(3,0), K(3,1), K(4,0),
+    // K(4,1),K(5,0),K(5,1));
     const CovMatrix_t KH = K * H;
     const CovMatrix_t C = CovMatrix_t::Identity() - KH;
+    // printf("C = (%f\n, %f\n, %f\n, %f\n, %f\n, %f)\n", C(0,0), C(0,1),
+    // C(1,0), C(1,1), C(2,0), C(2,1), C(3,0), C(3,1), C(4,0),
+    // C(4,1),C(5,0),C(5,1));
+
     // updated covariance after filtering
     filtered_covariance = C * predicted_covariance;
 
@@ -141,23 +148,20 @@ public:
     // Use multiple threads for the calculation of cov = H *
     // predicted_covariance * H.transpose() + sl.covariance();
     if (threadIdx.x < 2 and threadIdx.y < eBoundParametersSize) {
-      float acc = 0;
+      double acc = 0;
       for (unsigned int i = 0; i < eBoundParametersSize; i++) {
         acc += H(threadIdx.x, i) * predicted_covariance(i, threadIdx.y);
       }
-      // printf("HP(%d, %d)= %f\n", threadIdx.x, threadIdx.y, acc);
       HP(threadIdx.x, threadIdx.y) = acc;
     }
     __syncthreads();
     if (threadIdx.x < 2 and threadIdx.y < 2) {
-      float acc = 0;
+      double acc = 0;
       for (unsigned int i = 0; i < eBoundParametersSize; i++) {
         acc += HP(threadIdx.x, i) * H(threadIdx.y, i);
       }
       cov(threadIdx.x, threadIdx.y) =
           acc + sl.covariance()(threadIdx.x, threadIdx.y);
-      // printf("cov(%d, %d)= %f\n", threadIdx.x, threadIdx.y, cov(threadIdx.x,
-      // threadIdx.y));
     }
     __syncthreads();
 
@@ -173,30 +177,42 @@ public:
     // const ActsMatrixD<eBoundParametersSize, measdim> K =
     //   predicted_covariance * H.transpose() * covInv;
     if (threadIdx.x < eBoundParametersSize and threadIdx.y < 2) {
-      float acc = 0;
+      double acc = 0;
       for (unsigned int i = 0; i < eBoundParametersSize; i++) {
         for (unsigned int j = 0; j < 2; j++) {
           acc += predicted_covariance(threadIdx.x, i) * H(j, i) *
                  covInv(j, threadIdx.y);
         }
       }
-      // printf("K(%d, %d)= %f\n", threadIdx.x, threadIdx.y, acc);
       K(threadIdx.x, threadIdx.y) = acc;
     }
     __syncthreads();
 
+    // if (IS_MAIN_THREAD) {
+    // printf("K = (%f\n, %f\n, %f\n, %f\n, %f\n, %f)\n", K(0,0), K(0,1),
+    // K(1,0), K(1,1), K(2,0), K(2,1), K(3,0), K(3,1), K(4,0),
+    // K(4,1),K(5,0),K(5,1));
+    //}
+    //__syncthreads();
+
     // @todo use multiple threads for this
     if (threadIdx.x < eBoundParametersSize and
         threadIdx.y < eBoundParametersSize) {
-      float acc = 0;
+      double acc = 0;
       for (unsigned int i = 0; i < 2; i++) {
         acc += K(threadIdx.x, i) * H(i, threadIdx.y);
       }
-      // printf("C(%d, %d)= %f\n", threadIdx.x, threadIdx.y, acc);
-      C(threadIdx.x, threadIdx.y) =
-          ((threadIdx.x == threadIdx.y) ? 1. : 0 - acc);
+      double iden = (threadIdx.x == threadIdx.y) ? 1.0 : 0;
+      C(threadIdx.x, threadIdx.y) = iden - acc;
     }
     __syncthreads();
+
+    // if (IS_MAIN_THREAD) {
+    // printf("C = (%f\n, %f\n, %f\n, %f\n, %f\n, %f)\n", C(0,0), C(0,1),
+    // C(1,0), C(1,1), C(2,0), C(2,1), C(3,0), C(3,1), C(4,0),
+    // C(4,1),C(5,0),C(5,1));
+    //}
+    //__syncthreads();
 
     if (IS_MAIN_THREAD) {
       ParVector_t filtered_parameters;

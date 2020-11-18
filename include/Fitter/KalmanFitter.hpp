@@ -329,9 +329,13 @@ private:
 
       // Get the filtered parameters and update the stepping state
       const auto &filtered = trackState.parameter.filtered;
+      // auto covariance = *trackState.parameter.filtered.covariance();
       // printf("Filtered parameter position = (%f, %f, %f)\n",
       // filtered.position().x(), filtered.position().y(),
       // filtered.position().z());
+      // printf("Filtered parameter covariance = (%f, %f, %f, %f, %f, %f)\n",
+      // covariance(0,0), covariance(0,1), covariance(0, 2), covariance(0,3),
+      // covariance(0,4), covariance(0,5));
       const auto freeParams =
           detail::coordinate_transformation::boundParameters2freeParameters<
               NavigationSurface>(state.options.geoContext,
@@ -575,10 +579,10 @@ private:
           state.stepping, *surface, trackState.parameter.predicted,
           trackState.parameter.jacobian, trackState.parameter.pathLength);
 
-      //  if (IS_MAIN_THREAD) {
-      //    updateRes = m_updater(state.options.geoContext, trackState);
-      //  }
-      //  __syncthreads();
+      // if (IS_MAIN_THREAD) {
+      //   updateRes = m_updater(state.options.geoContext, trackState);
+      // }
+      // __syncthreads();
 
       updateRes =
           m_updater.updateOnDevice(state.options.geoContext, trackState);
@@ -591,9 +595,15 @@ private:
       if (IS_MAIN_THREAD) {
         // Get the filtered parameters and update the stepping state
         const auto &filtered = trackState.parameter.filtered;
+        // const auto & covariance =
+        // *(trackState.parameter.filtered.covariance());
         // printf("Filtered parameter position = (%f, %f, %f)\n",
         // filtered.position().x(), filtered.position().y(),
         // filtered.position().z());
+        // printf("Filtered parameter covariance = (%f, %f, %f, %f, %f, %f)\n",
+        // covariance(0,0), covariance(0,1), covariance(0,2), covariance(0,3),
+        // covariance(0,4), covariance(0,5));
+
         const auto freeParams =
             detail::coordinate_transformation::boundParameters2freeParameters<
                 NavigationSurface>(state.options.geoContext,

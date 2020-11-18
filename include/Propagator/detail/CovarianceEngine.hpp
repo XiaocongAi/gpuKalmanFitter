@@ -387,7 +387,7 @@ __device__ void covarianceTransportOnDevice(
   //__syncthreads();
 
   if (threadIdx.y < eBoundParametersSize) {
-    float acc = 0;
+    double acc = 0;
     for (int i = 0; i < eFreeParametersSize; i++) {
       acc += transportJacobian(threadIdx.x, i) *
              jacobianLocalToGlobal(i, threadIdx.y);
@@ -414,7 +414,7 @@ __device__ void covarianceTransportOnDevice(
   // The bound to bound jacobian
   if (threadIdx.x < eBoundParametersSize &&
       threadIdx.y < eBoundParametersSize) {
-    float acc = 0;
+    double acc = 0;
     for (int i = 0; i < eFreeParametersSize; i++) {
       acc += jacToLocal(threadIdx.x, i) * jacobianLocalToGlobal(i, threadIdx.y);
     }
@@ -427,7 +427,7 @@ __device__ void covarianceTransportOnDevice(
   // Apply the actual covariance transport
   if (threadIdx.x < eBoundParametersSize &&
       threadIdx.y < eBoundParametersSize) {
-    float acc = 0;
+    double acc = 0;
     for (int i = 0; i < eBoundParametersSize; i++) {
       for (int j = 0; j < eBoundParametersSize; j++) {
         acc += jacobian(threadIdx.x, i) * covarianceMatrix(i, j) *
