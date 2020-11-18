@@ -166,11 +166,11 @@ __device__ void Acts::Propagator<S, N>::propagate(
 
       // Post-stepping:
       // navigator status call - action list - aborter list - target call
-
       if (IS_MAIN_THREAD) {
         m_navigator.status(state, m_stepper);
 
         state.options.action(state, m_stepper, actorResult);
+
         if (state.options.aborter(state, m_stepper, actorResult) or
             pathAborter(state, m_stepper)) {
           terminatedNormally = true;

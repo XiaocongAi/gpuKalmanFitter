@@ -100,7 +100,7 @@ struct SurfaceReached {
       return true;
     }
     // Calculate the distance to the surface
-    const double tolerance = state.options.targetTolerance;
+    // const double tolerance = state.options.targetTolerance;
     const auto sIntersection = targetSurface.intersect<target_surface_t>(
         state.geoContext, stepper.position(state.stepping),
         state.stepping.navDir * stepper.direction(state.stepping), true);

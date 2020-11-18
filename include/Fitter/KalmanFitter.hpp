@@ -130,23 +130,19 @@ struct KalmanFitterResult {
 /// @tparam updater_t Type of the kalman updater class
 /// @tparam smoother_t Type of the kalman smoother class
 /// @tparam outlier_finder_t Type of the outlier finder class
-/// @tparam calibrator_t Type of the calibrator class
 ///
 /// The Kalman filter contains an Actor and a Sequencer sub-class.
 /// The Sequencer has to be part of the Navigator of the Propagator
 /// in order to initialize and provide the measurement surfaces.
 ///
 /// The Actor is part of the Propagation call and does the Kalman update
-/// and eventually the smoothing.  Updater, Smoother and Calibrator are
+/// and eventually the smoothing.  Updater, Smoother are
 /// given to the Actor for further use:
 /// - The Updater is the implemented kalman updater formalism, it
 ///   runs via a visitor pattern through the measurements.
 /// - The Smoother is called at the end of the forward fit by the Actor.
 /// - The outlier finder is called during the filtering by the Actor.
 ///   It determines if the measurement is an outlier
-/// - The Calibrator is a dedicated calibration algorithm that allows
-///   to calibrate measurements using track information, this could be
-///    e.g. sagging for wires, module deformations, etc.
 ///
 /// Measurements are not required to be ordered for the KalmanFilter,
 /// measurement ordering needs to be figured out by the navigation of
@@ -210,12 +206,8 @@ private:
 
     /// Add constructor with updater and smoother
     ACTS_DEVICE_FUNC Actor(updater_t pUpdater = updater_t(),
-                           smoother_t pSmoother = smoother_t()
-                           //, calibrator_t pCalibrator = calibrator_t()
-                           )
-        : m_updater(std::move(pUpdater)), m_smoother(std::move(pSmoother))
-    //, m_calibrator(std::move(pCalibrator))
-    {}
+                           smoother_t pSmoother = smoother_t())
+        : m_updater(std::move(pUpdater)), m_smoother(std::move(pSmoother)) {}
 
     /// @brief Kalman actor operation
     ///
@@ -241,11 +233,6 @@ private:
           result.result = false;
         }
       }
-
-      //      bool IS_MAIN_THREAD = true;
-      //      #ifdef __CUDA_ARCH__
-      //      	IS_MAIN_THREAD = threadIdx.x == 0 && threadIdx.y == 0;
-      //      #endif
 
       // Finalization:
       // when all track states have been handled or the navigation is breaked,
@@ -353,64 +340,6 @@ private:
       return true;
     }
 
-#ifdef __CUDACC__
-    template <typename propagator_state_t, typename stepper_t>
-    __device__ bool
-    filterOnDevice(const Surface *surface, propagator_state_t &state,
-                   const stepper_t &stepper, result_type &result) const {
-      // Try to find the surface in the measurement surfaces
-      SurfaceFinder sFinder{surface};
-      auto sourcelink_it = inputMeasurements.find_if(sFinder);
-      // No source link, still return true
-      if (sourcelink_it == inputMeasurements.end()) {
-        return true;
-      }
-      // Screen out the source link
-      // auto pos = (*sourcelink_it).globalPosition(state.options.geoContext);
-      // printf("sl position = (%f, %f, %f)\n", pos.x(), pos.y(), pos.z());
-
-      // create track state on the vector from sourcelink
-      result.fittedStates[result.measurementStates] =
-          TrackStateType(*sourcelink_it);
-      TrackStateType &trackState =
-          result.fittedStates[result.measurementStates];
-
-      // Transport & bind the state to the current surface
-      // @todo: to be changed to boundStateOnDevice
-      stepper.template boundState<NavigationSurface>(
-          state.stepping, *surface, trackState.parameter.predicted,
-          trackState.parameter.jacobian, trackState.parameter.pathLength);
-
-      // Screen out the predicted parameters
-      // auto prePos = trackState.parameter.predicted.position();
-      // printf("Predicted parameter position = (%f, %f, %f)\n", prePos.x(),
-      // prePos.y(), prePos.z());
-
-      // If the update is successful, set covariance and
-      auto updateRes = m_updater(state.options.geoContext, trackState);
-      if (!updateRes) {
-        // printf("Update step failed:\n");
-        return false;
-      }
-
-      // Get the filtered parameters and update the stepping state
-      const auto &filtered = trackState.parameter.filtered;
-      // printf("Filtered parameter position = (%f, %f, %f)\n",
-      // filtered.position().x(), filtered.position().y(),
-      // filtered.position().z());
-      stepper.update(state.stepping, filtered.position(),
-                     filtered.momentum().normalized(),
-                     filtered.momentum().norm(), filtered.time());
-
-      // The material effects after the filtering
-      materialInteractor(surface, state, stepper, fullUpdate);
-
-      // We count the state with measurement
-      ++result.measurementStates;
-      return true;
-    }
-#endif
-
     /// @brief Kalman actor operation : finalize
     ///
     /// @tparam propagator_state_t is the type of Propagagor state
@@ -484,7 +413,6 @@ private:
           // Evaluate the material effects
           interaction.evaluatePointwiseMaterialInteraction(multipleScattering,
                                                            energyLoss);
-
           // Screen out material effects info
           // ACTS_VERBOSE("Material effects on surface: "
           //             << surface->geometryId()
@@ -501,15 +429,199 @@ private:
         }
       }
 
-      if (not hasMaterial) {
-        // Screen out message
-        // ACTS_VERBOSE("No material effects on surface: " <<
-        // surface->geometryId()
-        //                                                << " at update stage:
-        //                                                "
-        //                                                << updateStage);
+      // if (not hasMaterial) {
+      // Screen out message
+      // ACTS_VERBOSE("No material effects on surface: " <<
+      // surface->geometryId()
+      //                                                << " at update stage:
+      //                                                "
+      //                                                << updateStage);
+      //}
+    }
+
+#ifdef __CUDACC__
+
+    /// @brief Kalman actor operation with multiple threads on Device
+    ///
+    /// @tparam propagator_state_t is the type of Propagagor state
+    /// @tparam stepper_t Type of the stepper
+    ///
+    /// @param state is the mutable propagator state object
+    /// @param stepper The stepper in use
+    /// @param result is the mutable result state object
+    template <typename propagator_state_t, typename stepper_t>
+    __device__ void actionOnDevice(propagator_state_t &state,
+                                   const stepper_t &stepper,
+                                   result_type &result) const {
+      // printf("KalmanFitter step\n");
+
+      // Update:
+      // - Waiting for a current surface
+      auto surface = state.navigation.currentSurface;
+      if (surface != nullptr and !result.smoothed and !result.finished) {
+        auto res = filter(surface, state, stepper, result);
+        if (!res) {
+          printf("Error in filter:\n");
+          result.result = false;
+        }
+      }
+
+      //      bool IS_MAIN_THREAD = true;
+      //      #ifdef __CUDA_ARCH__
+      //      	IS_MAIN_THREAD = threadIdx.x == 0 && threadIdx.y == 0;
+      //      #endif
+
+      // Finalization:
+      // when all track states have been handled or the navigation is breaked,
+      // reset navigation&stepping before run backward filtering or
+      // proceed to run smoothing
+      if ((result.measurementStates == inputMeasurements.size() or
+           (result.measurementStates > 0 and
+            state.navigation.navigationBreak)) and
+          !result.smoothed and !result.finished) {
+        if (not smoothing) {
+          //printf("Finish without smoothing\n");
+          result.finished = true;
+        } else {
+          // printf("Finalize/run smoothing\n");
+          auto res = finalize(state, stepper, result);
+          if (!res) {
+            printf("Error in finalize:\n");
+            result.result = false;
+          }
+        }
+      }
+
+      // Post-finalization:
+      // - Progress to target/reference surface and built the final track
+      // parameters
+      if (result.smoothed and !result.finished and
+          targetReached.
+          operator()<propagator_state_t, stepper_t, target_surface_t>(
+              state, stepper, *targetSurface)) {
+        // printf("Completing\n");
+        // Construct a tempory jacobian and path, which is necessary for calling
+        // the boundState
+        typename TrackStateType::Jacobian jac;
+        double path;
+        // Transport & bind the parameter to the final surface
+        stepper.template boundState<target_surface_t>(
+            state.stepping, *targetSurface, result.fittedParameters, jac, path);
+
+        // Remember the track fitting is done
+        result.finished = true;
       }
     }
+
+    /// @brief Kalman actor operation : update on device with multiple threads
+    /// on device
+    ///
+    /// @tparam propagator_state_t is the type of Propagagor state
+    /// @tparam stepper_t Type of the stepper
+    ///
+    /// @param surface The surface where the update happens
+    /// @param state The mutable propagator state object
+    /// @param stepper The stepper in use
+    /// @param result The mutable result state object
+    template <typename propagator_state_t, typename stepper_t>
+    __device__ bool
+    filterOnDevice(const Surface *surface, propagator_state_t &state,
+                   const stepper_t &stepper, result_type &result) const {
+      // Try to find the surface in the measurement surfaces
+      SurfaceFinder sFinder{surface};
+      auto sourcelink_it = inputMeasurements.find_if(sFinder);
+      // No source link, still return true
+      if (sourcelink_it == inputMeasurements.end()) {
+        return true;
+      }
+      // Screen out the source link
+      // auto pos = (*sourcelink_it).globalPosition(state.options.geoContext);
+      // printf("sl position = (%f, %f, %f)\n", pos.x(), pos.y(), pos.z());
+
+      // create track state on the vector from sourcelink
+      result.fittedStates[result.measurementStates] =
+          TrackStateType(*sourcelink_it);
+      TrackStateType &trackState =
+          result.fittedStates[result.measurementStates];
+
+      // Transport & bind the state to the current surface
+      // @todo: to be changed to boundStateOnDevice
+      stepper.template boundState<NavigationSurface>(
+          state.stepping, *surface, trackState.parameter.predicted,
+          trackState.parameter.jacobian, trackState.parameter.pathLength);
+
+      // Screen out the predicted parameters
+      // auto prePos = trackState.parameter.predicted.position();
+      // printf("Predicted parameter position = (%f, %f, %f)\n", prePos.x(),
+      // prePos.y(), prePos.z());
+
+      // If the update is successful, set covariance and
+      auto updateRes = m_updater(state.options.geoContext, trackState);
+      if (!updateRes) {
+        // printf("Update step failed:\n");
+        return false;
+      }
+
+      // Get the filtered parameters and update the stepping state
+      const auto &filtered = trackState.parameter.filtered;
+      // printf("Filtered parameter position = (%f, %f, %f)\n",
+      // filtered.position().x(), filtered.position().y(),
+      // filtered.position().z());
+      stepper.update(state.stepping, filtered.position(),
+                     filtered.momentum().normalized(),
+                     filtered.momentum().norm(), filtered.time());
+
+      // The material effects after the filtering
+      materialInteractor(surface, state, stepper, fullUpdate);
+
+      // We count the state with measurement
+      ++result.measurementStates;
+      return true;
+    }
+
+    /// @brief Kalman actor operation : finalize with multiple threads on device
+    ///
+    /// @tparam propagator_state_t is the type of Propagagor state
+    /// @tparam stepper_t Type of the stepper
+    ///
+    /// @param state is the mutable propagator state object
+    /// @param stepper The stepper in use
+    /// @param result is the mutable result state object
+    template <typename propagator_state_t, typename stepper_t>
+    __device__ bool finalizeOnDevice(propagator_state_t &state,
+                                     const stepper_t &stepper,
+                                     result_type &result) const {
+      // Remember you smoothed the track states
+      result.smoothed = true;
+
+      // Smooth the track states
+      const auto &smoothedPars =
+          m_smoother(state.options.geoContext, result.fittedStates);
+
+      if (smoothedPars) {
+        // printf("pos=%d,%d\n",(*smoothedPars).position().x(),
+        // (*smoothedPars).position().y());
+        const auto freeParams =
+            detail::coordinate_transformation::boundParameters2freeParameters<
+                NavigationSurface>(state.options.geoContext,
+                                   smoothedPars->parameters(),
+                                   smoothedPars->referenceSurface());
+        stepper.update(state.stepping, freeParams,
+                       *(smoothedPars->covariance()));
+
+        // Reverse the propagation direction
+        state.stepping.navDir = backward;
+        state.stepping.stepSize = ConstrainedStep(
+            state.stepping.navDir * std::abs(state.options.maxStepSize));
+        // Set accumulatd path to zero before targeting surface
+        state.stepping.pathAccumulated = 0.;
+
+        return true;
+      }
+      return false;
+    }
+
+#endif
 
     /// The Kalman updater
     updater_t m_updater;
@@ -556,8 +668,6 @@ public:
   /// @param surfaceSequenceSize The surface sequence size
   /// @note The input measurements are given in the form of @c SourceLinks.
   /// It's
-  /// @c calibrator_t's job to turn them into calibrated measurements used in
-  /// the fit.
   ///
   /// @return the output as an output track
   template <typename source_link_t, typename start_parameters_t,
@@ -632,8 +742,6 @@ public:
   /// @param surfaceSequenceSize The surface sequence size
   /// @note The input measurements are given in the form of @c SourceLinks.
   /// It's
-  /// @c calibrator_t's job to turn them into calibrated measurements used in
-  /// the fit.
   ///
   /// @return the output as an output track
   template <typename source_link_t, typename start_parameters_t,
