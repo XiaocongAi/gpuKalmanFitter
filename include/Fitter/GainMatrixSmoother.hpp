@@ -59,7 +59,7 @@ public:
       G = (*ts.parameter.filtered.covariance()) *
           prev_ts->parameter.jacobian.transpose() *
           (BoundSymMatrix)(
-              calculateInverse(*prev_ts->parameter.predicted.covariance()));
+              calculateInverse<TDD_real_t>(*prev_ts->parameter.predicted.covariance()));
       // if (G.hasNaN()) {
       //  printf("WARNING: G has NaN!\n");
       //}
