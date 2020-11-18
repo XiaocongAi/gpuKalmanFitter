@@ -54,6 +54,7 @@ public:
       assert(prev_ts->parameter.smoothed);
       assert(prev_ts->parameter.predicted);
 
+      // @todo use multiple threads for this
       // Gain smoothing matrix
       G = (*ts.parameter.filtered.covariance()) *
           prev_ts->parameter.jacobian.transpose() *
@@ -69,6 +70,7 @@ public:
       ParVector_t gainPars = G * prevDiffPars;
       smoothedPars = ts.parameter.filtered.parameters() + gainPars;
 
+      // @todo use multiple threads for this
       // And the smoothed covariance
       smoothedCov =
           (BoundSymMatrix)(*(ts.parameter.filtered.covariance())) -

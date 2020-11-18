@@ -123,15 +123,14 @@ __device__ void Acts::Propagator<S, N>::propagate(
     state.options.initializer(state, m_stepper, result.initializerResult);
     // Navigator initialize state call
     m_navigator.status(state, m_stepper);
-    // Pre-Stepping call to the action list
-    state.options.action(state, m_stepper, actorResult);
     // assume negative outcome, only set to true later if we actually have
     // a positive outcome.
     terminatedNormally = false;
     terminatedEarly = false;
   }
   __syncthreads();
-
+  // Pre-Stepping call to the action list
+  state.options.action.actionOnDevice(state, m_stepper, actorResult);
   // Pre-Stepping: abort condition check
   if (IS_MAIN_THREAD) {
     if (state.options.aborter(state, m_stepper, actorResult) or
@@ -175,6 +174,7 @@ __device__ void Acts::Propagator<S, N>::propagate(
       // The state and actorResult is at shared memory. The m_stepper is at
       // global memory
       state.options.action.actionOnDevice(state, m_stepper, actorResult);
+      // state.options.action(state, m_stepper, actorResult);
 
       if (IS_MAIN_THREAD) {
         if (state.options.aborter(state, m_stepper, actorResult) or

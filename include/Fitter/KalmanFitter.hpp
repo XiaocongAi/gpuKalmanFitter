@@ -313,8 +313,12 @@ private:
 
       // Screen out the predicted parameters
       // auto prePos = trackState.parameter.predicted.position();
+      // auto covariance = *trackState.parameter.predicted.covariance();
       // printf("Predicted parameter position = (%f, %f, %f)\n", prePos.x(),
       // prePos.y(), prePos.z());
+      // printf("Predicted parameter covariance = (%f, %f, %f, %f, %f, %f)\n",
+      // covariance(0,0), covariance(0,1), covariance(0, 2), covariance(0,3),
+      // covariance(0,4), covariance(0,5));
 
       // If the update is successful, set covariance and
       auto updateRes = m_updater(state.options.geoContext, trackState);
@@ -454,7 +458,6 @@ private:
                                    const stepper_t &stepper,
                                    result_type &result) const {
       const bool IS_MAIN_THREAD = (threadIdx.x == 0 && threadIdx.y == 0);
-      // printf("KalmanFitter step\n");
 
       // Update:
       // - Waiting for a current surface
@@ -551,29 +554,26 @@ private:
         return true;
       }
 
-      // Screen out the source link
-      // auto pos = (*sourcelink_it).globalPosition(state.options.geoContext);
-      // printf("sl position = (%f, %f, %f)\n", pos.x(), pos.y(), pos.z());
       TrackStateType &trackState =
           result.fittedStates[result.measurementStates];
+
       // Transport & bind the state to the current surface
       stepper.template boundStateOnDevice<NavigationSurface>(
           state.stepping, *surface, trackState.parameter.predicted,
           trackState.parameter.jacobian, trackState.parameter.pathLength);
 
-      // Screen out the predicted parameters
-      // auto prePos = trackState.parameter.predicted.position();
-      // printf("Predicted parameter position = (%f, %f, %f)\n", prePos.x(),
-      // prePos.y(), prePos.z());
-
+      //@todo to be changed to
+      //m_updater.updateOnDevice(state.options.geoContext, trackState);
       if (IS_MAIN_THREAD) {
         // If the update is successful, set covariance and
+        // updateRes = m_updater.updateOnDevice(state.options.geoContext,
+        // trackState);
         updateRes = m_updater(state.options.geoContext, trackState);
       }
       __syncthreads();
 
       if (not updateRes) {
-        // printf("Update step failed:\n");
+        printf("Update step failed:\n");
         return false;
       }
 

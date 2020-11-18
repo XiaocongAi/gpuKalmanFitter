@@ -378,12 +378,21 @@ __device__ void covarianceTransportOnDevice(
     FreeVector &derivatives, BoundToFreeMatrix &jacobianLocalToGlobal,
     const FreeVector &parameters, const Surface &surface) {
   __shared__ BoundToFreeMatrix jacToGlobal;
+
+  // if(threadIdx.x < eBoundParametersSize and threadIdx.y <
+  // eBoundParametersSize) {
+  //  printf("Input Cov(%d, %d) = %f\n", threadIdx.x, threadIdx.y,
+  //  covarianceMatrix(threadIdx.x,threadIdx.y));
+  //}
+  //__syncthreads();
+
   if (threadIdx.y < eBoundParametersSize) {
-    double acc = 0;
+    float acc = 0;
     for (int i = 0; i < eFreeParametersSize; i++) {
-      acc = transportJacobian(threadIdx.x, i) *
-            jacobianLocalToGlobal(i, threadIdx.y);
+      acc += transportJacobian(threadIdx.x, i) *
+             jacobianLocalToGlobal(i, threadIdx.y);
     }
+    // printf("jacToGlobal(%d, %d) = %f\n", threadIdx.x, threadIdx.y, acc);
     jacToGlobal(threadIdx.x, threadIdx.y) = acc;
   }
   __syncthreads();
@@ -405,10 +414,11 @@ __device__ void covarianceTransportOnDevice(
   // The bound to bound jacobian
   if (threadIdx.x < eBoundParametersSize &&
       threadIdx.y < eBoundParametersSize) {
-    double acc = 0;
+    float acc = 0;
     for (int i = 0; i < eFreeParametersSize; i++) {
-      acc = jacToLocal(threadIdx.x, i) * jacobianLocalToGlobal(i, threadIdx.y);
+      acc += jacToLocal(threadIdx.x, i) * jacobianLocalToGlobal(i, threadIdx.y);
     }
+    // printf("jacobian(%d, %d) = %f\n", threadIdx.x, threadIdx.y, acc);
     jacobian(threadIdx.x, threadIdx.y) = acc;
   }
   __syncthreads();
@@ -417,13 +427,14 @@ __device__ void covarianceTransportOnDevice(
   // Apply the actual covariance transport
   if (threadIdx.x < eBoundParametersSize &&
       threadIdx.y < eBoundParametersSize) {
-    double acc = 0;
-    for (int i = 0; i < eFreeParametersSize; i++) {
-      for (int j = 0; j < eFreeParametersSize; j++) {
-        acc = jacobian(threadIdx.x, i) * covarianceMatrix(i, j) *
-              jacobian.transpose()(j, threadIdx.y);
+    float acc = 0;
+    for (int i = 0; i < eBoundParametersSize; i++) {
+      for (int j = 0; j < eBoundParametersSize; j++) {
+        acc += jacobian(threadIdx.x, i) * covarianceMatrix(i, j) *
+               jacobian(threadIdx.y, j);
       }
     }
+    // printf("cov(%d, %d) = %f\n", threadIdx.x, threadIdx.y, acc);
     updatedCovariance(threadIdx.x, threadIdx.y) = acc;
   }
   __syncthreads();

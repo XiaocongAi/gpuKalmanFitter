@@ -527,6 +527,7 @@ ACTS_DEVICE_FUNC void Acts::EigenStepper<B>::boundState(
   parameters[6] = state.dir[2];
   parameters[7] = state.q / state.p;
 
+  // printf("stats.cov(5.5) = %f\n", state.cov(5,5));
   detail::boundState<surface_derived_t>(
       state.geoContext, state.cov, state.jacobian, state.jacTransport,
       state.derivative, state.jacToGlobal, parameters, state.covTransport,
