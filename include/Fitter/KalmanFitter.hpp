@@ -332,9 +332,12 @@ private:
       // printf("Filtered parameter position = (%f, %f, %f)\n",
       // filtered.position().x(), filtered.position().y(),
       // filtered.position().z());
-      stepper.update(state.stepping, filtered.position(),
-                     filtered.momentum().normalized(),
-                     filtered.momentum().norm(), filtered.time());
+      const auto freeParams =
+          detail::coordinate_transformation::boundParameters2freeParameters<
+              NavigationSurface>(state.options.geoContext,
+                                 filtered.parameters(),
+                                 filtered.referenceSurface());
+      stepper.update(state.stepping, freeParams, *(filtered.covariance()));
 
       // The material effects after the filtering
       materialInteractor(surface, state, stepper, fullUpdate);
@@ -557,20 +560,28 @@ private:
       TrackStateType &trackState =
           result.fittedStates[result.measurementStates];
 
+      //   // If the update is successful, set covariance and
+      //   if (IS_MAIN_THREAD) {
+      //     // Transport & bind the state to the current surface
+      //     stepper.template boundState<NavigationSurface>(
+      //         state.stepping, *surface, trackState.parameter.predicted,
+      //         trackState.parameter.jacobian,
+      //         trackState.parameter.pathLength);
+      //   }
+      //   __syncthreads();
+
       // Transport & bind the state to the current surface
       stepper.template boundStateOnDevice<NavigationSurface>(
           state.stepping, *surface, trackState.parameter.predicted,
           trackState.parameter.jacobian, trackState.parameter.pathLength);
 
-      //@todo to be changed to
-      //m_updater.updateOnDevice(state.options.geoContext, trackState);
-      if (IS_MAIN_THREAD) {
-        // If the update is successful, set covariance and
-        // updateRes = m_updater.updateOnDevice(state.options.geoContext,
-        // trackState);
-        updateRes = m_updater(state.options.geoContext, trackState);
-      }
-      __syncthreads();
+      //  if (IS_MAIN_THREAD) {
+      //    updateRes = m_updater(state.options.geoContext, trackState);
+      //  }
+      //  __syncthreads();
+
+      updateRes =
+          m_updater.updateOnDevice(state.options.geoContext, trackState);
 
       if (not updateRes) {
         printf("Update step failed:\n");
@@ -583,9 +594,12 @@ private:
         // printf("Filtered parameter position = (%f, %f, %f)\n",
         // filtered.position().x(), filtered.position().y(),
         // filtered.position().z());
-        stepper.update(state.stepping, filtered.position(),
-                       filtered.momentum().normalized(),
-                       filtered.momentum().norm(), filtered.time());
+        const auto freeParams =
+            detail::coordinate_transformation::boundParameters2freeParameters<
+                NavigationSurface>(state.options.geoContext,
+                                   filtered.parameters(),
+                                   filtered.referenceSurface());
+        stepper.update(state.stepping, freeParams, *(filtered.covariance()));
 
         // The material effects after the filtering
         materialInteractor(surface, state, stepper, fullUpdate);
