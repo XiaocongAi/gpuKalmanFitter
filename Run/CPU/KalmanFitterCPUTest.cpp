@@ -29,6 +29,7 @@ static void show_usage(std::string name) {
             //<< "\t-b,--bf-map \tSpecify the path of *.txt for interpolated "
             //   "BField map\n"
             << "\t-r,--threads \tSpecify the number of threads\n"
+            << "\t-m,--smoothing \tIndicator for running smoothing\n"
             << std::endl;
 }
 
@@ -36,6 +37,7 @@ int main(int argc, char *argv[]) {
   unsigned int nTracks = 10000;
   unsigned int nThreads = 250;
   bool output = false;
+  bool smoothing = false;
   std::string device;
   std::string bFieldFileName;
   float p;
@@ -53,6 +55,8 @@ int main(int argc, char *argv[]) {
         output = (atoi(argv[++i]) == 1);
       } else if ((arg == "-r") or (arg == "--threads")) {
         nThreads = atoi(argv[++i]);
+      } else if ((arg == "-m") or (arg == "--smoothing")) {
+        smoothing = (atoi(argv[++i]) == 1);
       } else {
         std::cerr << "Unknown argument." << std::endl;
         return 1;
@@ -167,7 +171,7 @@ int main(int argc, char *argv[]) {
         sourcelinks + it * nSurfaces, nSurfaces);
     // @todo Use perigee surface as the target surface. Needs a perigee surface
     // object
-    FitOptionsType kfOptions(gctx, mctx);
+    FitOptionsType kfOptions(gctx, mctx, smoothing);
     kfOptions.referenceSurface = &startPars[it].referenceSurface();
     // @note when it >=35, we got different startPars[i] between CPU and GPU
     // Run the fit. The fittedStates will be changed here
@@ -195,7 +199,7 @@ int main(int argc, char *argv[]) {
 
   if (output) {
     std::cout << "writing fitting results" << std::endl;
-    std::string param = "smoothed";
+    std::string param = smoothing ? "smoothed" : "filtered";
     // write fitted states to obj file
     std::string stateFileName =
         "fitted_" + param + "_cpu_nTracks_" + std::to_string(nTracks) + ".obj";
@@ -205,11 +209,13 @@ int main(int argc, char *argv[]) {
     std::string paramFileName =
         "fitted_param_cpu_nTracks_" + std::to_string(nTracks) + ".csv";
     writeParamsCsv(fittedParams.data(), fitStatus, nTracks, paramFileName);
-    // write fitted params and residual/pull to root file
-    std::string rootFileName =
-        "fitted_param_cpu_nTracks_" + std::to_string(nTracks) + ".root";
-    writeParamsRoot(gctx, fittedParams.data(), fitStatus, validParticles,
-                    nTracks, rootFileName, "params");
+    if (smoothing) {
+      // write fitted params and residual/pull to root file
+      std::string rootFileName =
+          "fitted_param_cpu_nTracks_" + std::to_string(nTracks) + ".root";
+      writeParamsRoot(gctx, fittedParams.data(), fitStatus, validParticles,
+                      nTracks, rootFileName, "params");
+    }
   }
 
   // @todo Write the residual and pull of track parameters to ntuple

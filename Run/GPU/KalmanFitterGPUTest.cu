@@ -44,6 +44,7 @@ static void show_usage(std::string name) {
             << "\t-b,--block-size \tSpecify GPU block size: 'x*y*z'\n"
             << "\t-s,--shared-memory \tIndicator for using shared memory for "
                "one track or not\n"
+            << "\t-m,--smoothing \tIndicator for running smoothing\n"
             << std::endl;
 }
 
@@ -54,6 +55,7 @@ int main(int argc, char *argv[]) {
   const Size nSurfaces = 10;
   bool output = false;
   bool useSharedMemory = false;
+  bool smoothing = false;
   std::string device = "cpu";
   std::string bFieldFileName;
   // double p = 1 * Acts::units::_GeV;
@@ -81,6 +83,8 @@ int main(int argc, char *argv[]) {
         block = stringToDim3(argv[++i]);
       } else if ((arg == "-s") or (arg == "--shared-memory")) {
         useSharedMemory = (atoi(argv[++i]) == 1);
+      } else if ((arg == "-m") or (arg == "--smoothing")) {
+        smoothing = (atoi(argv[++i]) == 1);
       } else {
         std::cerr << "Unknown argument." << std::endl;
         return 1;
@@ -267,7 +271,7 @@ int main(int argc, char *argv[]) {
   KalmanFitterType kFitter(propagator);
   // Initialize the fitOptions and fit status
   for (Size it = 0; it < nTracks; it++) {
-    fitOptions[it] = FitOptionsType(gctx, mctx);
+    fitOptions[it] = FitOptionsType(gctx, mctx, smoothing);
     fitStatus[it] = false;
   }
 
@@ -369,10 +373,12 @@ int main(int argc, char *argv[]) {
                                 &d_fitStates[offset * nSurfaces],
                                 streamDataBytes[FitData::FitStates],
                                 cudaMemcpyDeviceToHost, stream[i]));
-      // copy the fitted params to host
-      GPUERRCHK(cudaMemcpyAsync(&fitPars[offset], &d_fitPars[offset],
-                                streamDataBytes[FitData::FitParams],
-                                cudaMemcpyDeviceToHost, stream[i]));
+      if (smoothing) {
+        // copy the fitted params to host
+        GPUERRCHK(cudaMemcpyAsync(&fitPars[offset], &d_fitPars[offset],
+                                  streamDataBytes[FitData::FitParams],
+                                  cudaMemcpyDeviceToHost, stream[i]));
+      }
       // copy the fit status to host
       GPUERRCHK(cudaMemcpyAsync(&fitStatus[offset], &d_fitStatus[offset],
                                 streamDataBytes[FitData::FitStatus],
@@ -444,7 +450,7 @@ int main(int argc, char *argv[]) {
     std::string paramFileName;
     std::string rootFileName;
 
-    std::string param = "smoothed";
+    std::string param = smoothing ? "smoothed" : "filtered";
     stateFileName.append("fitted_");
     stateFileName.append(param);
 
@@ -467,9 +473,12 @@ int main(int argc, char *argv[]) {
     rootFileName.append(std::to_string(nTracks)).append(".root");
     writeStatesObj(fitStates, fitStatus, nTracks, nSurfaces, stateFileName,
                    param);
-    writeParamsCsv(fitPars, fitStatus, nTracks, paramFileName);
-    writeParamsRoot(gctx, fitPars, fitStatus, validParticles, nTracks,
-                    rootFileName, "params");
+    // The fitted parameters will be meaningful only after smoothing
+    if (smoothing) {
+      writeParamsCsv(fitPars, fitStatus, nTracks, paramFileName);
+      writeParamsRoot(gctx, fitPars, fitStatus, validParticles, nTracks,
+                      rootFileName, "params");
+    }
   }
 
   std::cout << "------------------------  ending  -----------------------"
