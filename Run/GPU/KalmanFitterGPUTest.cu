@@ -199,19 +199,15 @@ int main(int argc, char *argv[]) {
       std::cerr << "No surface material" << std::endl;
     }
   }
-
-  // check the geometry ID
+  // Assign the geometry ID
   for (Size isur = 0; isur < nSurfaces; isur++) {
-    auto geoID = Acts::GeometryID()
-                     .setVolume(0u)
-                     .setLayer(isur)
-                     .setSensitive(isur);
+    auto geoID =
+        Acts::GeometryID().setVolume(0u).setLayer(isur).setSensitive(isur);
     surfaces[isur].assignGeoID(geoID);
     printf("surface value = %d, geoID = (%d, %d, %d)\n",
            surfaces[isur].geoID().value(), surfaces[isur].geoID().volume(),
            surfaces[isur].geoID().layer(), surfaces[isur].geoID().sensitive());
   }
-
   const Acts::Surface *surfacePtrs = surfaces;
   std::cout << "Creating " << nSurfaces << " boundless plane surfaces"
             << std::endl;
@@ -349,7 +345,7 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaMalloc(&d_fitStatus, dataBytes[FitData::FitStatus]));
 
     // Copy the KalmanFitter from host to device (shared between all tracks)
-    GPUERRCHK(cudaMemcpy(d_surfaces, &surfaces, navigationSurfaceBytes,
+    GPUERRCHK(cudaMemcpy(d_surfaces, surfaces, navigationSurfaceBytes,
                          cudaMemcpyHostToDevice));
     GPUERRCHK(cudaMemcpy(d_kFitter, &kFitter, sizeof(KalmanFitterType),
                          cudaMemcpyHostToDevice));

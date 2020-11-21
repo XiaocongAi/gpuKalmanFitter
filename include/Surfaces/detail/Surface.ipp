@@ -50,8 +50,8 @@ inline const typename Derived::SurfaceBoundsType *Surface::bounds() const {
 inline Surface &Surface::operator=(const Surface &other) {
   if (&other != this) {
     //@Todo: active this
-    // GeometryObject::operator=(other);
     // detector element, identifier & layer association are unique
+    GeometryObject::operator=(other);
     m_surfaceMaterial = other.m_surfaceMaterial;
     m_transform = other.m_transform;
   }

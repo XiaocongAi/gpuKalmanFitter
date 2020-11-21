@@ -17,19 +17,6 @@ __global__ void __launch_bounds__(256, 2) fitKernelThreadPerTrack(
       blockDim.x * blockDim.y * (gridDim.x * blockIdx.y + blockIdx.x) +
       blockDim.x * threadIdx.y + threadIdx.x + offset;
 
-  // check the surfaces
-  if (threadId == 0) {
-    //uint64_t test = 12;
-    //printf("test = %d\n", test);
-    printf("inside kenerl\n");
-    for (int i = 0; i < nSurfaces; i++) {
-      auto id = surfaces[i].geoID();
-      printf("value = %d\n", (uint64_t)(id.value()));
-      printf("surface geoID = (%d, %d, %d)\n", (uint64_t)(id.volume()),
-             (uint64_t)(id.layer()), (uint64_t)(id.sensitive()));
-    }
-  }
-
   // Different threads handles different track
   if (threadId < (nTracks + offset)) {
     // Use the CudaKernelContainer for the source links and fitted states
@@ -42,12 +29,12 @@ __global__ void __launch_bounds__(256, 2) fitKernelThreadPerTrack(
         &targetSurfaces[threadId]);
     // Reset the target surface
     fitOptions[threadId].referenceSurface = &targetSurfaces[threadId];
-    const Acts::Surface *surfacePtrs = surfaces;
+    // const Acts::Surface *surfacePtrs = surfaces;
     // Perform the fit
     fitStatus[threadId] = kFitter->fit(
         Acts::CudaKernelContainer<Acts::PixelSourceLink>(
             sourcelinks + threadId * nSurfaces, nSurfaces),
-        startPars, fitOptions[threadId], fitResult, surfacePtrs, nSurfaces);
+        startPars, fitOptions[threadId], fitResult, surfaces, nSurfaces);
     // Set the fitted parameters
     // @WARNING The reference surface in fPars doesn't make sense actually
     fitPars[threadId] = fitResult.fittedParameters;

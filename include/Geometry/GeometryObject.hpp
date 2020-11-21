@@ -36,12 +36,12 @@ public:
   /// constructor from a ready-made value
   ///
   /// @param geoID the geometry identifier of the object
-  GeometryObject(const GeometryID &geoID) : m_geoID(geoID) {}
+  ACTS_DEVICE_FUNC GeometryObject(const GeometryID &geoID) : m_geoID(geoID) {}
 
   /// assignment operator
   ///
   /// @param geoID the source geoID
-  GeometryObject &operator=(const GeometryObject &geoID) {
+  ACTS_DEVICE_FUNC GeometryObject &operator=(const GeometryObject &geoID) {
     if (&geoID != this) {
       m_geoID = geoID.m_geoID;
     }

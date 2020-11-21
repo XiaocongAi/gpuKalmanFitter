@@ -217,7 +217,7 @@ private:
     ACTS_DEVICE_FUNC void operator()(propagator_state_t &state,
                                      const stepper_t &stepper,
                                      result_type &result) const {
-      printf("KalmanFitter step\n");
+      // printf("KalmanFitter step\n");
 
       // Update:
       // - Waiting for a current surface
@@ -285,11 +285,10 @@ private:
     ACTS_DEVICE_FUNC bool
     filter(const Surface *surface, propagator_state_t &state,
            const stepper_t &stepper, result_type &result) const {
-      printf("inside filter\n");
       // Try to find the surface in the measurement surfaces
       SurfaceFinder sFinder{surface->geoID()};
-      printf("surface geoID = (%d, %d, %d)\n", surface->geoID().volume(),
-             surface->geoID().layer(), surface->geoID().sensitive());
+      // printf("surface geoID = (%d, %d, %d)\n", surface->geoID().volume(),
+      //       surface->geoID().layer(), surface->geoID().sensitive());
       auto sourcelink_it = inputMeasurements.find_if(sFinder);
       // No source link, still return true
       if (sourcelink_it == inputMeasurements.end()) {
@@ -728,7 +727,7 @@ public:
 
     PUSH_RANGE("fit", 0);
 
-    printf("Preparing %lu input measurements\n", sourcelinks.size());
+    // printf("Preparing %lu input measurements\n", sourcelinks.size());
     // Create the ActionList and AbortList
     using KalmanAborter = Aborter<source_link_t, parameters_t>;
     using KalmanActor = Actor<source_link_t, parameters_t, target_surface_t>;
