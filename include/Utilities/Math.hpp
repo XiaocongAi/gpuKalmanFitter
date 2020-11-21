@@ -1,6 +1,6 @@
+#include <Eigen/Core>
+#include <Eigen/Dense>
 #include <chrono>
-#include <eigen3/Eigen/Core>
-#include <eigen3/Eigen/Dense>
 #include <iostream>
 #include <thread>
 

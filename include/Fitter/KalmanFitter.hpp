@@ -540,8 +540,8 @@ private:
       __shared__ bool updateRes;
 
       if (IS_MAIN_THREAD) {
-        printf("surface geoID = (%d, %d, %d)\n", surface->geoID().volume(),
-               surface->geoID().layer(), surface->geoID().sensitive());
+        // printf("surface geoID = (%d, %d, %d)\n", surface->geoID().volume(),
+        //      surface->geoID().layer(), surface->geoID().sensitive());
         // Initialize the status
         sourcelinkFound = false;
         // Try to find the surface in the measurement surfaces
