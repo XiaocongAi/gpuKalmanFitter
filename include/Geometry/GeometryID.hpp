@@ -27,7 +27,7 @@ namespace Acts {
 ///
 class GeometryID {
 public:
-  using Value = uint64_t;
+  using Value = uint32_t;
 
   /// Construct from an already encoded value.
   constexpr GeometryID(Value encoded) : m_value(encoded) {}
@@ -89,18 +89,19 @@ private:
   ACTS_DEVICE_FUNC static constexpr int extractShift(Value mask) {
     // use compiler builtin to extract the number of trailing bits from the
     // mask. the builtin should be available on all supported compilers.
-    // need unsigned long long version (...ll) to ensure uint64_t compatibility.
+    // need unsigned long long version (...ll) to ensure uint32_t compatibility.
     // WARNING undefined behaviour for mask == 0 which we should not have.
-    //	  return __builtin_ctzll(mask);
+    // return __builtin_ctzl(mask);
+
     switch (mask) {
     case volume_mask:
-      return 56;
-    case boundary_mask:
-      return 48;
-    case layer_mask:
-      return 36;
-    case approach_mask:
       return 28;
+    case boundary_mask:
+      return 24;
+    case layer_mask:
+      return 16;
+    case approach_mask:
+      return 12;
     case sensitive_mask:
       return 0;
     default:
@@ -110,8 +111,7 @@ private:
 
   /// Extract the masked bits from the encoded value.
   ACTS_DEVICE_FUNC constexpr Value getBits(Value mask) const {
-     printf("getBits\n"); 
-	  return (m_value & mask) >> extractShift(mask);
+    return (m_value & mask) >> extractShift(mask);
   }
   /// Set the masked bits to id in the encoded value.
   ACTS_DEVICE_FUNC constexpr GeometryID &setBits(Value mask, Value id) {

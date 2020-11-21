@@ -42,13 +42,11 @@ static const double _helper[9] = {0., 1., 0., 1., 0., 0., 0., 0., -1.};
 
 static const RotationMatrix3D s_idRotationZinverse(detail::_helper);
 
-static const uint64_t volume_mask = 0xff00000000000000; // 255 volumes (16^2-1)
-static const uint64_t boundary_mask =
-    0x00ff000000000000; // 255 boundaries (16^2-1)
-static const uint64_t layer_mask = 0x0000fff000000000; // 4095 layers (16^3-1)
-static const uint64_t approach_mask =
-    0x0000000ff0000000; // 255 approach surfaces (16^2-1)
-static const uint64_t sensitive_mask =
-    0x000000000fffffff; // (2^28)-1 sensitive surfaces (16^7-1)
+static const uint32_t volume_mask = 0xf0000000;   // 15 volumes (16-1)
+static const uint32_t boundary_mask = 0x0f000000; // 15 boundaries (16-1)
+static const uint32_t layer_mask = 0x00ff0000;    // 255 layers (16^2-1)
+static const uint32_t approach_mask = 0x0000f000; // 15 approach surfaces (16-1)
+static const uint32_t sensitive_mask =
+    0x00000fff; // (2^12)-1 sensitive surfaces (16^3-1)
 
 } // namespace Acts
