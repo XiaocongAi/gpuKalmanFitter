@@ -8,7 +8,7 @@ __global__ void __launch_bounds__(256, 2) fitKernelThreadPerTrack(
     BoundState *startStates, Acts::LineSurface *targetSurfaces,
     FitOptionsType *fitOptions, TSType *fittedStates,
     Acts::BoundParameters<Acts::LineSurface> *fitPars, bool *fitStatus,
-    const Acts::Surface *surfacePtrs, int nSurfaces, int nTracks, int offset) {
+    const PlaneSurfaceType *surfaces, int nSurfaces, int nTracks, int offset) {
   // In case of 1D grid and 1D block, the threadId = blockDim.x*blockIdx.x +
   // threadIdx.x + offset
   // @note This might have problem if the number of threads is smaller than the
@@ -16,6 +16,19 @@ __global__ void __launch_bounds__(256, 2) fitKernelThreadPerTrack(
   int threadId =
       blockDim.x * blockDim.y * (gridDim.x * blockIdx.y + blockIdx.x) +
       blockDim.x * threadIdx.y + threadIdx.x + offset;
+
+  // check the surfaces
+  if (threadId == 0) {
+    //uint64_t test = 12;
+    //printf("test = %d\n", test);
+    printf("inside kenerl\n");
+    for (int i = 0; i < nSurfaces; i++) {
+      auto id = surfaces[i].geoID();
+      printf("value = %d\n", (uint64_t)(id.value()));
+      printf("surface geoID = (%d, %d, %d)\n", (uint64_t)(id.volume()),
+             (uint64_t)(id.layer()), (uint64_t)(id.sensitive()));
+    }
+  }
 
   // Different threads handles different track
   if (threadId < (nTracks + offset)) {
@@ -29,6 +42,7 @@ __global__ void __launch_bounds__(256, 2) fitKernelThreadPerTrack(
         &targetSurfaces[threadId]);
     // Reset the target surface
     fitOptions[threadId].referenceSurface = &targetSurfaces[threadId];
+    const Acts::Surface *surfacePtrs = surfaces;
     // Perform the fit
     fitStatus[threadId] = kFitter->fit(
         Acts::CudaKernelContainer<Acts::PixelSourceLink>(
@@ -45,7 +59,7 @@ __global__ void __launch_bounds__(256, 2) fitKernelBlockPerTrack(
     BoundState *startStates, Acts::LineSurface *targetSurfaces,
     FitOptionsType *fitOptions, TSType *fittedStates,
     Acts::BoundParameters<Acts::LineSurface> *fitPars, bool *fitStatus,
-    const Acts::Surface *surfacePtrs, int nSurfaces, int nTracks, int offset) {
+    const Acts::Surface *surfaces, int nSurfaces, int nTracks, int offset) {
   // @note This will have problem if the number of blocks is smaller than the
   // number of tracks!!!
   int blockId = gridDim.x * blockIdx.y + blockIdx.x + offset;
@@ -72,7 +86,7 @@ __global__ void __launch_bounds__(256, 2) fitKernelBlockPerTrack(
     kFitter->fitOnDevice(Acts::CudaKernelContainer<Acts::PixelSourceLink>(
                              sourcelinks + blockId * nSurfaces, nSurfaces),
                          startPars, fitOptions[blockId], fitResult,
-                         fitStatus[blockId], surfacePtrs, nSurfaces);
+                         fitStatus[blockId], surfaces, nSurfaces);
     // Set the fitted parameters with the main thread
     // @WARNING The reference surface in fPars doesn't make sense actually
     if (threadIdx.x == 0 and threadIdx.y == 0) {

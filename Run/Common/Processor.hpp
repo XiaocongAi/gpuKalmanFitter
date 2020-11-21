@@ -169,7 +169,7 @@ void runHitSmearing(const Acts::GeometryContext &gctx, random_engine_t &rng,
 
       // Push back to the container
       sourcelinks[ip * nSurfaces + ih] =
-          Acts::PixelSourceLink(values, cov, &surfaces[ih]);
+          Acts::PixelSourceLink(values, cov, surfaces[ih].geoID());
     }
   }
 }

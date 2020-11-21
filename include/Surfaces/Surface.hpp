@@ -51,7 +51,7 @@ using SurfaceIntersection = ObjectIntersection<Surface>;
 /// Surfaces are either owned by Detector elements or the Tracking Geometry,
 /// in which case they are not copied within the data model objects.
 ///
-class Surface : public virtual GeometryObject {
+class Surface : public GeometryObject {
 public:
 protected:
   /// @enum SurfaceType

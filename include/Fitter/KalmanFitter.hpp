@@ -29,14 +29,11 @@ namespace Acts {
 
 /// @brief A light-weight surface finder
 struct SurfaceFinder {
-  const Surface *surface = nullptr;
+  const Acts::GeometryID geometryId;
 
   template <typename source_link_t>
   ACTS_DEVICE_FUNC bool operator()(const source_link_t &sl) {
-    if (surface) {
-      return sl.referenceSurface() == *surface;
-    }
-    return false;
+    return sl.geometryId() == geometryId;
   }
 };
 
@@ -187,7 +184,6 @@ private:
 
     /// Broadcast the input measurement container type
     using InputMeasurementsType = CudaKernelContainer<source_link_t>;
-    // using InputMeasurementsType = std::vector<source_link_t>;
 
     /// The target surface
     const Surface *targetSurface = nullptr;
@@ -221,7 +217,7 @@ private:
     ACTS_DEVICE_FUNC void operator()(propagator_state_t &state,
                                      const stepper_t &stepper,
                                      result_type &result) const {
-      // printf("KalmanFitter step\n");
+      printf("KalmanFitter step\n");
 
       // Update:
       // - Waiting for a current surface
@@ -289,8 +285,11 @@ private:
     ACTS_DEVICE_FUNC bool
     filter(const Surface *surface, propagator_state_t &state,
            const stepper_t &stepper, result_type &result) const {
+      printf("inside filter\n");
       // Try to find the surface in the measurement surfaces
-      SurfaceFinder sFinder{surface};
+      SurfaceFinder sFinder{surface->geoID()};
+      printf("surface geoID = (%d, %d, %d)\n", surface->geoID().volume(),
+             surface->geoID().layer(), surface->geoID().sensitive());
       auto sourcelink_it = inputMeasurements.find_if(sFinder);
       // No source link, still return true
       if (sourcelink_it == inputMeasurements.end()) {
@@ -321,7 +320,7 @@ private:
       // covariance(0,4), covariance(0,5));
 
       // If the update is successful, set covariance and
-      auto updateRes = m_updater(state.options.geoContext, trackState);
+      auto updateRes = m_updater(state.options.geoContext, trackState, surface);
       if (!updateRes) {
         // printf("Update step failed:\n");
         return false;
@@ -542,10 +541,12 @@ private:
       __shared__ bool updateRes;
 
       if (IS_MAIN_THREAD) {
+        printf("surface geoID = (%d, %d, %d)\n", surface->geoID().volume(),
+               surface->geoID().layer(), surface->geoID().sensitive());
         // Initialize the status
         sourcelinkFound = false;
         // Try to find the surface in the measurement surfaces
-        SurfaceFinder sFinder{surface};
+        SurfaceFinder sFinder{surface->geoID()};
         auto sourcelink_it = inputMeasurements.find_if(sFinder);
         // No source link, still return true
         if (sourcelink_it != inputMeasurements.end()) {
@@ -580,12 +581,12 @@ private:
           trackState.parameter.jacobian, trackState.parameter.pathLength);
 
       // if (IS_MAIN_THREAD) {
-      //   updateRes = m_updater(state.options.geoContext, trackState);
+      //   updateRes = m_updater(state.options.geoContext, trackState, surface);
       // }
       // __syncthreads();
 
-      updateRes =
-          m_updater.updateOnDevice(state.options.geoContext, trackState);
+      updateRes = m_updater.updateOnDevice(state.options.geoContext, trackState,
+                                           surface);
 
       if (not updateRes) {
         printf("Update step failed:\n");
@@ -597,9 +598,9 @@ private:
         const auto &filtered = trackState.parameter.filtered;
         // const auto & covariance =
         // *(trackState.parameter.filtered.covariance());
-        // printf("Filtered parameter position = (%f, %f, %f)\n",
-        // filtered.position().x(), filtered.position().y(),
-        // filtered.position().z());
+        printf("Filtered parameter position = (%f, %f, %f)\n",
+               filtered.position().x(), filtered.position().y(),
+               filtered.position().z());
         // printf("Filtered parameter covariance = (%f, %f, %f, %f, %f, %f)\n",
         // covariance(0,0), covariance(0,1), covariance(0,2), covariance(0,3),
         // covariance(0,4), covariance(0,5));
@@ -727,7 +728,7 @@ public:
 
     PUSH_RANGE("fit", 0);
 
-    // printf("Preparing %lu input measurements\n", sourcelinks.size());
+    printf("Preparing %lu input measurements\n", sourcelinks.size());
     // Create the ActionList and AbortList
     using KalmanAborter = Aborter<source_link_t, parameters_t>;
     using KalmanActor = Actor<source_link_t, parameters_t, target_surface_t>;

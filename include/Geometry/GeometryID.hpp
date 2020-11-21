@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "Geometry/GeometryStatics.hpp"
+
 #include <cstdint>
 #include <iosfwd>
 
@@ -38,74 +40,92 @@ public:
   GeometryID &operator=(const GeometryID &) = default;
 
   /// Return the encoded value.
-  constexpr Value value() const { return m_value; }
+  ACTS_DEVICE_FUNC constexpr Value value() const { return m_value; }
 
   /// Return the volume identifier.
-  constexpr Value volume() const { return getBits(volume_mask); }
+  ACTS_DEVICE_FUNC constexpr Value volume() const {
+    return getBits(volume_mask);
+  }
   /// Return the boundary identifier.
-  constexpr Value boundary() const { return getBits(boundary_mask); }
+  ACTS_DEVICE_FUNC constexpr Value boundary() const {
+    return getBits(boundary_mask);
+  }
   /// Return the layer identifier.
-  constexpr Value layer() const { return getBits(layer_mask); }
+  ACTS_DEVICE_FUNC constexpr Value layer() const { return getBits(layer_mask); }
   /// Return the approach identifier.
-  constexpr Value approach() const { return getBits(approach_mask); }
+  ACTS_DEVICE_FUNC constexpr Value approach() const {
+    return getBits(approach_mask);
+  }
   /// Return the sensitive identifier.
-  constexpr Value sensitive() const { return getBits(sensitive_mask); }
+  ACTS_DEVICE_FUNC constexpr Value sensitive() const {
+    return getBits(sensitive_mask);
+  }
 
   /// Set the volume identifier.
-  constexpr GeometryID &setVolume(Value volume) {
+  ACTS_DEVICE_FUNC constexpr GeometryID &setVolume(Value volume) {
     return setBits(volume_mask, volume);
   }
   /// Set the boundary identifier.
-  constexpr GeometryID &setBoundary(Value boundary) {
+  ACTS_DEVICE_FUNC constexpr GeometryID &setBoundary(Value boundary) {
     return setBits(boundary_mask, boundary);
   }
   /// Set the layer identifier.
-  constexpr GeometryID &setLayer(Value layer) {
+  ACTS_DEVICE_FUNC constexpr GeometryID &setLayer(Value layer) {
     return setBits(layer_mask, layer);
   }
   /// Set the approach identifier.
-  constexpr GeometryID &setApproach(Value approach) {
+  ACTS_DEVICE_FUNC constexpr GeometryID &setApproach(Value approach) {
     return setBits(approach_mask, approach);
   }
   /// Set the sensitive identifier.
-  constexpr GeometryID &setSensitive(Value sensitive) {
+  ACTS_DEVICE_FUNC constexpr GeometryID &setSensitive(Value sensitive) {
     return setBits(sensitive_mask, sensitive);
   }
 
 private:
-  // clang-format off
-  static constexpr Value volume_mask    = 0xff00000000000000; // 255 volumes
-  static constexpr Value boundary_mask  = 0x00ff000000000000; // 255 boundaries
-  static constexpr Value layer_mask     = 0x0000fff000000000; // 4095 layers
-  static constexpr Value approach_mask  = 0x0000000ff0000000; // 255 approach surfaces
-  static constexpr Value sensitive_mask = 0x000000000fffffff; // (2^28)-1 sensitive surfaces
-  // clang-format on
-
   Value m_value = 0;
 
   /// Extract the bit shift necessary to access the masked values.
-  static constexpr int extractShift(Value mask) {
+  ACTS_DEVICE_FUNC static constexpr int extractShift(Value mask) {
     // use compiler builtin to extract the number of trailing bits from the
     // mask. the builtin should be available on all supported compilers.
     // need unsigned long long version (...ll) to ensure uint64_t compatibility.
     // WARNING undefined behaviour for mask == 0 which we should not have.
-    return __builtin_ctzll(mask);
+    //	  return __builtin_ctzll(mask);
+    switch (mask) {
+    case volume_mask:
+      return 56;
+    case boundary_mask:
+      return 48;
+    case layer_mask:
+      return 36;
+    case approach_mask:
+      return 28;
+    case sensitive_mask:
+      return 0;
+    default:
+      return 0;
+    }
   }
+
   /// Extract the masked bits from the encoded value.
-  constexpr Value getBits(Value mask) const {
-    return (m_value & mask) >> extractShift(mask);
+  ACTS_DEVICE_FUNC constexpr Value getBits(Value mask) const {
+     printf("getBits\n"); 
+	  return (m_value & mask) >> extractShift(mask);
   }
   /// Set the masked bits to id in the encoded value.
-  constexpr GeometryID &setBits(Value mask, Value id) {
+  ACTS_DEVICE_FUNC constexpr GeometryID &setBits(Value mask, Value id) {
     m_value = (m_value & ~mask) | ((id << extractShift(mask)) & mask);
     // return *this here so we need to write less lines in the set... methods
     return *this;
   }
 
-  friend constexpr bool operator==(GeometryID lhs, GeometryID rhs) {
+  ACTS_DEVICE_FUNC friend constexpr bool operator==(GeometryID lhs,
+                                                    GeometryID rhs) {
     return lhs.m_value == rhs.m_value;
   }
-  friend constexpr bool operator<(GeometryID lhs, GeometryID rhs) {
+  ACTS_DEVICE_FUNC friend constexpr bool operator<(GeometryID lhs,
+                                                   GeometryID rhs) {
     return lhs.m_value < rhs.m_value;
   }
 };

@@ -80,8 +80,9 @@ public:
                            G.transpose());
 
       // Create smoothed track parameters
-      ts.parameter.smoothed = parameters_t(gctx, smoothedCov, smoothedPars,
-                                           &(ts.referenceSurface()));
+      ts.parameter.smoothed =
+          parameters_t(gctx, smoothedCov, smoothedPars,
+                       &(ts.parameter.filtered.referenceSurface()));
 
       // Point prev state to current state
       prev_ts = &ts;

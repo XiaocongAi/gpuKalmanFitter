@@ -28,8 +28,6 @@ enum TrackStateFlag {
 
 using TrackStateType = std::bitset<TrackStateFlag::NumTrackStateFlags>;
 
-class Surface;
-
 /// @class TrackState
 ///
 /// @brief Templated class to hold the track information
@@ -37,9 +35,6 @@ class Surface;
 ///
 /// @tparam source_link_t Type of the source link
 /// @tparam parameters_t Type of the parameters on the surface
-///
-/// @note the Surface is only stored as a pointer, i.e. it is
-/// assumed the surface lives longer than the TrackState
 template <typename source_link_t, typename parameters_t> class TrackState {
 
 public:
@@ -53,7 +48,7 @@ public:
   /// Constructor from (uncalibrated) measurement
   ///
   /// @param m The measurement object
-  ACTS_DEVICE_FUNC TrackState(SourceLink m) : m_surface(&m.referenceSurface()) {
+  ACTS_DEVICE_FUNC TrackState(SourceLink m) : m_geometryId(m.geometryId()) {
     measurement.uncalibrated = std::move(m);
     // m_typeFlags.set(MeasurementFlag);
   }
@@ -63,7 +58,7 @@ public:
   /// @tparam parameters_t Type of the predicted parameters
   /// @param p The parameters object
   TrackState(parameters_t p) {
-    m_surface = &p.referenceSurface();
+    m_geometryId = p.referenceSurface().geoID();
     parameter.predicted = std::move(p);
     m_typeFlags.set(ParameterFlag);
   }
@@ -76,7 +71,7 @@ public:
   /// @param rhs is the source TrackState
   ACTS_DEVICE_FUNC TrackState(const TrackState &rhs)
       : parameter(rhs.parameter), measurement(rhs.measurement),
-        m_surface(rhs.m_surface), m_typeFlags(rhs.m_typeFlags) {}
+        m_geometryId(rhs.m_geometryId), m_typeFlags(rhs.m_typeFlags) {}
 
   /// Copy move constructor
   ///
@@ -84,7 +79,7 @@ public:
   ACTS_DEVICE_FUNC TrackState(TrackState &&rhs)
       : parameter(std::move(rhs.parameter)),
         measurement(std::move(rhs.measurement)),
-        m_surface(std::move(rhs.m_surface)),
+        m_geometryId(std::move(rhs.m_geometryId)),
         m_typeFlags(std::move(rhs.m_typeFlags)) {}
 
   /// Assignment operator
@@ -93,7 +88,7 @@ public:
   ACTS_DEVICE_FUNC TrackState &operator=(const TrackState &rhs) {
     parameter = rhs.parameter;
     measurement = rhs.measurement;
-    m_surface = rhs.m_surface;
+    m_geometryId = rhs.m_geometryId;
     m_typeFlags = rhs.m_typeFlags;
     return (*this);
   }
@@ -104,15 +99,13 @@ public:
   ACTS_DEVICE_FUNC TrackState &operator=(TrackState &&rhs) {
     parameter = std::move(rhs.parameter);
     measurement = std::move(rhs.measurement);
-    m_surface = std::move(rhs.m_surface);
+    m_geometryId = std::move(rhs.m_geometryId);
     m_typeFlags = std::move(rhs.m_typeFlags);
     return (*this);
   }
 
-  /// @brief return method for the surface
-  ACTS_DEVICE_FUNC const Surface &referenceSurface() const {
-    return (*m_surface);
-  }
+  /// @brief return method for the surface geometry identifier
+  ACTS_DEVICE_FUNC const GeometryID &geometryId() const { return m_geometryId; }
 
   /// @brief set the type flag
   ACTS_DEVICE_FUNC void setType(const TrackStateFlag &flag,
@@ -169,8 +162,8 @@ public:
   } measurement;
 
 private:
-  /// The surface of this TrackState
-  const Surface *m_surface = nullptr;
+  /// The surface geometry identifier of this TrackState
+  Acts::GeometryID m_geometryId;
   /// The type flag of this TrackState
   TrackStateType m_typeFlags;
 };

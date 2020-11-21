@@ -33,7 +33,8 @@ public:
   ///       which need to be treated differently in calling code.
   template <typename track_state_t>
   ACTS_DEVICE_FUNC bool operator()(const GeometryContext &gctx,
-                                   track_state_t &trackState) const {
+                                   track_state_t &trackState,
+                                   const Surface *surface) const {
     // printf("Invoked GainMatrixUpdater\n");
     using parameters_t = typename track_state_t::Parameters;
     using source_link_t = typename track_state_t::SourceLink;
@@ -84,7 +85,7 @@ public:
 
     // Create new filtered parameters and covariance
     parameters_t filtered(gctx, std::move(filtered_covariance),
-                          filtered_parameters, &sl.referenceSurface());
+                          filtered_parameters, surface);
 
     //    // calculate the chi2
     //    // chi2 = r^T * R^-1 * r
@@ -108,7 +109,8 @@ public:
   // The updater with multiple threads on GPU
   template <typename track_state_t>
   __device__ bool updateOnDevice(const GeometryContext &gctx,
-                                 track_state_t &trackState) const {
+                                 track_state_t &trackState,
+                                 const Surface *surface) const {
     const bool IS_MAIN_THREAD = threadIdx.x == 0 && threadIdx.y == 0;
 
     // printf("Invoked GainMatrixUpdater\n");
@@ -227,8 +229,7 @@ public:
 
       // Create new filtered parameters and covariance
       parameters_t filtered(gctx, std::move(filtered_covariance),
-                            std::move(filtered_parameters),
-                            &sl.referenceSurface());
+                            std::move(filtered_parameters), surface);
       trackState.parameter.filtered = filtered;
     }
     __syncthreads();

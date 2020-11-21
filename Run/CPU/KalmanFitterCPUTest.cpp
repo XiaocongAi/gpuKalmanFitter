@@ -93,6 +93,18 @@ int main(int argc, char *argv[]) {
   std::cout << "Creating " << surfaces.size() << " boundless plane surfaces"
             << std::endl;
 
+  // check the geometry ID
+  for (Size isur = 0; isur < nSurfaces; isur++) {
+    auto geoID = Acts::GeometryID()
+                     .setVolume(0u)
+                     .setLayer((uint64_t)(isur))
+                     .setSensitive((uint64_t)(isur));
+    std::cout << isur << " has volume " << geoID.volume() << ", layer "
+              << geoID.layer() << ", sensitive " << geoID.sensitive()
+              << std::endl;
+    surfaces[isur].assignGeoID(geoID);
+  }
+
   // Prepare to run the particles generation
   ActsExamples::GaussianVertexGenerator vertexGen;
   vertexGen.stddev[Acts::eFreePos0] = 1.0 * Acts::units::_mm;

@@ -13,14 +13,13 @@
 template <typename surface_bounds_t>
 inline PlaneSurface<surface_bounds_t>::PlaneSurface(
     const PlaneSurface<surface_bounds_t> &other)
-    : GeometryObject(), Surface(other), m_bounds(other.m_bounds) {}
+    : Surface(other), m_bounds(other.m_bounds) {}
 
 template <typename surface_bounds_t>
 inline PlaneSurface<surface_bounds_t>::PlaneSurface(
     const GeometryContext &gctx, const PlaneSurface<surface_bounds_t> &other,
     const Transform3D &transf)
-    : GeometryObject(), Surface(gctx, other, transf), m_bounds(other.m_bounds) {
-}
+    : Surface(gctx, other, transf), m_bounds(other.m_bounds) {}
 
 template <typename surface_bounds_t>
 inline PlaneSurface<surface_bounds_t>::PlaneSurface(const Vector3D &center,

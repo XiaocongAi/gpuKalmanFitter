@@ -2,6 +2,7 @@
 #include "Processor.hpp"
 #include "Writer.hpp"
 
+#include "Geometry/GeometryID.hpp"
 #include "Material/HomogeneousSurfaceMaterial.hpp"
 #include "Utilities/CudaHelper.hpp"
 #include "Utilities/Profiling.hpp"
@@ -169,6 +170,14 @@ int main(int argc, char *argv[]) {
   auto randomNumbers = std::make_shared<ActsExamples::RandomNumbers>(config);
   auto rng = randomNumbers->spawnGenerator(0);
 
+  int a = 5;
+  std::cout << "volume:" << __builtin_ctzll(Acts::volume_mask) << std::endl;
+  std::cout << "layer:" << __builtin_ctzll(Acts::layer_mask) << std::endl;
+  std::cout << "sensitive:" << __builtin_ctzll(Acts::sensitive_mask)
+            << std::endl;
+  std::cout << "approach:" << __builtin_ctzll(Acts::approach_mask) << std::endl;
+  std::cout << "boundary:" << __builtin_ctzll(Acts::boundary_mask) << std::endl;
+
   // Create the geometry
   // Set translation vectors
   std::vector<Acts::Vector3D> translations;
@@ -181,7 +190,7 @@ int main(int argc, char *argv[]) {
   // Create plane surfaces without boundaries
   PlaneSurfaceType *surfaces;
   // Unified memory allocation for geometry
-  GPUERRCHK(cudaMallocManaged(&surfaces, sizeof(PlaneSurfaceType) * nSurfaces));
+  GPUERRCHK(cudaMallocHost(&surfaces, navigationSurfaceBytes));
   std::cout << "Allocating the memory for the surfaces" << std::endl;
   for (Size isur = 0; isur < nSurfaces; isur++) {
     surfaces[isur] = PlaneSurfaceType(translations[isur],
@@ -190,6 +199,19 @@ int main(int argc, char *argv[]) {
       std::cerr << "No surface material" << std::endl;
     }
   }
+
+  // check the geometry ID
+  for (Size isur = 0; isur < nSurfaces; isur++) {
+    auto geoID = Acts::GeometryID()
+                     .setVolume(0u)
+                     .setLayer(isur)
+                     .setSensitive(isur);
+    surfaces[isur].assignGeoID(geoID);
+    printf("surface value = %d, geoID = (%d, %d, %d)\n",
+           surfaces[isur].geoID().value(), surfaces[isur].geoID().volume(),
+           surfaces[isur].geoID().layer(), surfaces[isur].geoID().sensitive());
+  }
+
   const Acts::Surface *surfacePtrs = surfaces;
   std::cout << "Creating " << nSurfaces << " boundless plane surfaces"
             << std::endl;
@@ -295,7 +317,7 @@ int main(int argc, char *argv[]) {
   }
 
   // @note: prefetch the surface or not
-  cudaMemPrefetchAsync(surfaces, navigationSurfaceBytes, devId, stream[0]);
+  // cudaMemPrefetchAsync(surfaces, navigationSurfaceBytes, devId, stream[0]);
 
   // Running directly on host or offloading to GPU
   bool useGPU = (device == "gpu");
@@ -303,6 +325,8 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaEventRecord(startEvent, 0));
 
     // Allocate memory on device
+
+    PlaneSurfaceType *d_surfaces;
     KalmanFitterType *d_kFitter;
     Acts::PixelSourceLink *d_sourcelinks;
     // The start pars will be constructed on GPU with bound vector and
@@ -314,6 +338,7 @@ int main(int argc, char *argv[]) {
     Acts::BoundParameters<Acts::LineSurface> *d_fitPars;
     bool *d_fitStatus;
 
+    GPUERRCHK(cudaMalloc(&d_surfaces, navigationSurfaceBytes));
     GPUERRCHK(cudaMalloc(&d_kFitter, sizeof(KalmanFitterType)));
     GPUERRCHK(cudaMalloc(&d_sourcelinks, dataBytes[FitData::SourceLinks]));
     GPUERRCHK(cudaMalloc(&d_boundStates, dataBytes[FitData::StartState]));
@@ -324,6 +349,8 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaMalloc(&d_fitStatus, dataBytes[FitData::FitStatus]));
 
     // Copy the KalmanFitter from host to device (shared between all tracks)
+    GPUERRCHK(cudaMemcpy(d_surfaces, &surfaces, navigationSurfaceBytes,
+                         cudaMemcpyHostToDevice));
     GPUERRCHK(cudaMemcpy(d_kFitter, &kFitter, sizeof(KalmanFitterType),
                          cudaMemcpyHostToDevice));
 
@@ -362,16 +389,17 @@ int main(int argc, char *argv[]) {
                                 streamDataBytes[FitData::FitStatus],
                                 cudaMemcpyHostToDevice, stream[i]));
 
+      std::cout << "prepared to launch kernel\n" << std::endl;
       // Use shared memory for one track if requested
       if (useSharedMemory) {
         fitKernelBlockPerTrack<<<grid, block, 0, stream[i]>>>(
             d_kFitter, d_sourcelinks, d_boundStates, d_targetSurfaces,
-            d_fitOptions, d_fitStates, d_fitPars, d_fitStatus, surfacePtrs,
+            d_fitOptions, d_fitStates, d_fitPars, d_fitStatus, d_surfaces,
             nSurfaces, streamTracks, offset);
       } else {
         fitKernelThreadPerTrack<<<grid, block, 0, stream[i]>>>(
             d_kFitter, d_sourcelinks, d_boundStates, d_targetSurfaces,
-            d_fitOptions, d_fitStates, d_fitPars, d_fitStatus, surfacePtrs,
+            d_fitOptions, d_fitStates, d_fitPars, d_fitStatus, d_surfaces,
             nSurfaces, streamTracks, offset);
       }
       GPUERRCHK(cudaEventRecord(stopEvent, stream[i]));
@@ -405,6 +433,7 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaFree(d_fitPars));
     GPUERRCHK(cudaFree(d_fitStatus));
     GPUERRCHK(cudaFree(d_kFitter));
+    GPUERRCHK(cudaFree(d_surfaces));
 
     GPUERRCHK(cudaEventRecord(stopEvent, 0));
     GPUERRCHK(cudaEventSynchronize(stopEvent));
@@ -436,9 +465,8 @@ int main(int argc, char *argv[]) {
           sourcelinks + it * nSurfaces, nSurfaces);
       fitOptions[it].referenceSurface = &targetSurfaces[it];
       // Run the fit. The fitStates will be changed here
-      auto status =
-          kFitter.fit(sourcelinkTrack, startParsCollection[it], fitOptions[it],
-                      kfResult, surfacePtrs, nSurfaces);
+      auto status = kFitter.fit(sourcelinkTrack, startParsCollection[it],
+                                fitOptions[it], kfResult, surfaces, nSurfaces);
       if (not status) {
         std::cout << "fit failure for track " << it << std::endl;
       }
@@ -493,7 +521,7 @@ int main(int argc, char *argv[]) {
             << std::endl;
 
   // Free the managed/pinned memory
-  GPUERRCHK(cudaFree(surfaces));
+  GPUERRCHK(cudaFreeHost(surfaces));
   GPUERRCHK(cudaFreeHost(sourcelinks));
   GPUERRCHK(cudaFreeHost(boundStates));
   GPUERRCHK(cudaFreeHost(targetSurfaces));

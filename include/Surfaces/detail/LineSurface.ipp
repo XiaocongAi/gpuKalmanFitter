@@ -6,16 +6,15 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-inline LineSurface::LineSurface(const LineSurface &other)
-    : GeometryObject(), Surface(other) {}
+inline LineSurface::LineSurface(const LineSurface &other) : Surface(other) {}
 
 inline LineSurface::LineSurface(const GeometryContext &gctx,
                                 const LineSurface &other,
                                 const Transform3D &shift)
-    : GeometryObject(), Surface(gctx, other, shift) {}
+    : Surface(gctx, other, shift) {}
 
 inline LineSurface::LineSurface(const Transform3D &transform)
-    : GeometryObject(), Surface(transform) {}
+    : Surface(transform) {}
 
 inline LineSurface::LineSurface(const Vector3D &gp) {
   Surface::m_transform = Transform3D(Translation3D(gp.x(), gp.y(), gp.z()));
