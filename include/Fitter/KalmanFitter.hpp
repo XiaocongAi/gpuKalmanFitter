@@ -597,9 +597,9 @@ private:
         const auto &filtered = trackState.parameter.filtered;
         // const auto & covariance =
         // *(trackState.parameter.filtered.covariance());
-        printf("Filtered parameter position = (%f, %f, %f)\n",
-               filtered.position().x(), filtered.position().y(),
-               filtered.position().z());
+        // printf("Filtered parameter position = (%f, %f, %f)\n",
+        //       filtered.position().x(), filtered.position().y(),
+        //       filtered.position().z());
         // printf("Filtered parameter covariance = (%f, %f, %f, %f, %f, %f)\n",
         // covariance(0,0), covariance(0,1), covariance(0,2), covariance(0,3),
         // covariance(0,4), covariance(0,5));

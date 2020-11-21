@@ -29,7 +29,6 @@ __global__ void __launch_bounds__(256, 2) fitKernelThreadPerTrack(
         &targetSurfaces[threadId]);
     // Reset the target surface
     fitOptions[threadId].referenceSurface = &targetSurfaces[threadId];
-    // const Acts::Surface *surfacePtrs = surfaces;
     // Perform the fit
     fitStatus[threadId] = kFitter->fit(
         Acts::CudaKernelContainer<Acts::PixelSourceLink>(
@@ -46,7 +45,7 @@ __global__ void __launch_bounds__(256, 2) fitKernelBlockPerTrack(
     BoundState *startStates, Acts::LineSurface *targetSurfaces,
     FitOptionsType *fitOptions, TSType *fittedStates,
     Acts::BoundParameters<Acts::LineSurface> *fitPars, bool *fitStatus,
-    const Acts::Surface *surfaces, int nSurfaces, int nTracks, int offset) {
+    const PlaneSurfaceType *surfaces, int nSurfaces, int nTracks, int offset) {
   // @note This will have problem if the number of blocks is smaller than the
   // number of tracks!!!
   int blockId = gridDim.x * blockIdx.y + blockIdx.x + offset;
