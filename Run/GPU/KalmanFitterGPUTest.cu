@@ -133,8 +133,14 @@ int main(int argc, char *argv[]) {
       nSurfaces, nTracks, nStreams, nStreams - 1);
   const Size tracksPerStream = dataBytesPerStream[7];
   const Size tracksLastStream = dataBytesLastStream[7];
-  std::cout << "tracksPerStream : tracksLastStream = " << tracksPerStream
-            << " : " << tracksLastStream << std::endl;
+  std::cout << "navigation surfaces Bytes = " << navigationSurfaceBytes
+            << std::endl;
+  for (const auto bytes : dataBytes) {
+    std::cout << "dataBytes = " << bytes << std::endl;
+  }
+
+  std::cout << "tracksPerStream:tracksLastStream = " << tracksPerStream << " : "
+            << tracksLastStream << std::endl;
 
   // @note shall we use this for the grid size?
   const Size blocksPerGrid =
@@ -146,11 +152,13 @@ int main(int argc, char *argv[]) {
   }
 
   // The shared memory size
-  // using PropState = PropagatorType::State<PropOptionsType>;
-  // int sharedMemoryPerTrack = sizeof(Acts::PathLimitReached) +
-  //                           sizeof(PropState) + sizeof(bool) * 2 +
-  //                           sizeof(Acts::PropagatorResult);
-  // std::cout << "shared memory is " << sharedMemoryPerTrack << std::endl;
+  using PropState = PropagatorType::State<PropOptionsType>;
+  int sharedMemoryPerTrack =
+      sizeof(Acts::PathLimitReached) + sizeof(PropState) + sizeof(bool) * 2 +
+      sizeof(Acts::PropagatorResult) +
+      sizeof(Acts::ActsMatrixD<2, Acts::eBoundParametersSize>) * 2 +
+      sizeof(Acts::ActsMatrixD<2, 2>) * 2 + sizeof(Acts::BoundMatrix);
+  std::cout << "shared memory is " << sharedMemoryPerTrack << std::endl;
 
   // Create a test context
   Acts::GeometryContext gctx(0);
