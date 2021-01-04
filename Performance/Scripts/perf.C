@@ -22,9 +22,9 @@ void  perf() {
   TGraph* gr4 = new TGraph(fileName.c_str(), "%lg %*lg %*lg %*lg %*lg %*lg %*lg %*lg %lg",",;"); 
   
   setGraphStyle(gr1, 20, 14);
-  setGraphStyle(gr2, 20, 92);
-  setGraphStyle(gr3, 24, 9);
-  setGraphStyle(gr4, 24, 87);
+  setGraphStyle(gr2, 20, 6);
+  setGraphStyle(gr3, 24, 4);
+  setGraphStyle(gr4, 24, 3);
 
    auto c1 = new TCanvas("c1","c1",
                    200,10,700,500);
