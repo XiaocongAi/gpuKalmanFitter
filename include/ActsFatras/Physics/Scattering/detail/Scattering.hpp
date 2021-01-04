@@ -50,7 +50,7 @@ template <typename scattering_model_t> struct Scattering {
 
     // draw the random orientation angle
     const auto psi =
-        std::uniform_real_distribution<double>(-M_PI, M_PI)(generator);
+        std::uniform_real_distribution<ActsScalar>(-M_PI, M_PI)(generator);
     // draw the scattering angle
     const auto theta = angle(generator, slab, particle);
 

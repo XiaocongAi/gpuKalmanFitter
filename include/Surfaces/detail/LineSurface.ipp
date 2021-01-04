@@ -71,16 +71,16 @@ inline void LineSurface::initJacobianToGlobal(const GeometryContext &gctx,
   //
   // Here, we can avoid it because the direction is by definition a unit
   // vector, with the following coordinate conversions...
-  const double x = direction(0); // == cos(phi) * sin(theta)
-  const double y = direction(1); // == sin(phi) * sin(theta)
-  const double z = direction(2); // == cos(theta)
+  const ActsScalar x = direction(0); // == cos(phi) * sin(theta)
+  const ActsScalar y = direction(1); // == sin(phi) * sin(theta)
+  const ActsScalar z = direction(2); // == cos(theta)
 
   // ...which we can invert to directly get the sines and cosines:
-  const double cos_theta = z;
-  const double sin_theta = sqrt(x * x + y * y);
-  const double inv_sin_theta = 1. / sin_theta;
-  const double cos_phi = x * inv_sin_theta;
-  const double sin_phi = y * inv_sin_theta;
+  const ActsScalar cos_theta = z;
+  const ActsScalar sin_theta = sqrt(x * x + y * y);
+  const ActsScalar inv_sin_theta = 1. / sin_theta;
+  const ActsScalar cos_phi = x * inv_sin_theta;
+  const ActsScalar sin_phi = y * inv_sin_theta;
   // retrieve the reference frame
   const auto rframe = referenceFrame(gctx, position, direction);
   // the local error components - given by the reference frame
@@ -96,7 +96,7 @@ inline void LineSurface::initJacobianToGlobal(const GeometryContext &gctx,
   jacobian(7, eQOP) = 1;
 
   // the projection of direction onto ref frame normal
-  double ipdn = 1. / direction.dot(rframe.col(2));
+  ActsScalar ipdn = 1. / direction.dot(rframe.col(2));
   // build the cross product of d(D)/d(ePHI) components with y axis
   auto dDPhiY = rframe.block<3, 1>(0, 1).cross(jacobian.block<3, 1>(4, ePHI));
   // and the same for the d(D)/d(eTheta) components
@@ -115,15 +115,15 @@ inline const RotationMatrix3D LineSurface::initJacobianToLocal(
     const GeometryContext &gctx, FreeToBoundMatrix &jacobian,
     const Vector3D &position, const Vector3D &direction) const {
   // Optimized trigonometry on the propagation direction
-  const double x = direction(0); // == cos(phi) * sin(theta)
-  const double y = direction(1); // == sin(phi) * sin(theta)
-  const double z = direction(2); // == cos(theta)
+  const ActsScalar x = direction(0); // == cos(phi) * sin(theta)
+  const ActsScalar y = direction(1); // == sin(phi) * sin(theta)
+  const ActsScalar z = direction(2); // == cos(theta)
   // can be turned into cosine/sine
-  const double cosTheta = z;
-  const double sinTheta = sqrt(x * x + y * y);
-  const double invSinTheta = 1. / sinTheta;
-  const double cosPhi = x * invSinTheta;
-  const double sinPhi = y * invSinTheta;
+  const ActsScalar cosTheta = z;
+  const ActsScalar sinTheta = sqrt(x * x + y * y);
+  const ActsScalar invSinTheta = 1. / sinTheta;
+  const ActsScalar cosPhi = x * invSinTheta;
+  const ActsScalar sinPhi = y * invSinTheta;
   // The measurement frame of the surface
   RotationMatrix3D rframeT =
       referenceFrame(gctx, position, direction).transpose();
@@ -152,7 +152,7 @@ inline const BoundRowVector LineSurface::derivativeFactors(
   // ActsRowVectorD<3> locz = rft.block<1, 3>(1, 0);
   ActsRowVectorD<3> locz = rft.row(1);
   // build the norm vector comonent by subtracting the longitudinal one
-  double long_c = locz.transpose().dot(direction);
+  ActsScalar long_c = locz.transpose().dot(direction);
   ActsRowVectorD<3> norm_vec = direction.transpose() - long_c * locz;
   // calculate the s factors for the dependency on X
   const BoundRowVector s_vec =
@@ -161,7 +161,7 @@ inline const BoundRowVector LineSurface::derivativeFactors(
   const BoundRowVector d_vec =
       locz * jacobian.block<3, eBoundParametersSize>(4, 0);
   // normalisation of normal & longitudinal components
-  double norm = 1. / (1. - long_c * long_c);
+  ActsScalar norm = 1. / (1. - long_c * long_c);
   // create a matrix representation
   ActsMatrixD<3, eBoundParametersSize> long_mat =
       ActsMatrixD<3, eBoundParametersSize>::Zero();
@@ -213,14 +213,16 @@ inline bool LineSurface::globalToLocal(const GeometryContext &gctx,
   Vector3D sCenter(tMatrix(0, 3), tMatrix(1, 3), tMatrix(2, 3));
   Vector3D decVec(position - sCenter);
   // assign the right sign
-  double sign = ((lineDirection.cross(momentum)).dot(decVec) < 0.) ? -1. : 1.;
+  ActsScalar sign =
+      ((lineDirection.cross(momentum)).dot(decVec) < 0.) ? -1. : 1.;
   lposition[eLOC_R] *= sign;
   return true;
 }
 
-inline double LineSurface::pathCorrection(const GeometryContext & /*unused*/,
-                                          const Vector3D & /*pos*/,
-                                          const Vector3D & /*mom*/) const {
+inline ActsScalar
+LineSurface::pathCorrection(const GeometryContext & /*unused*/,
+                            const Vector3D & /*pos*/,
+                            const Vector3D & /*mom*/) const {
   return 1.;
 }
 
@@ -238,12 +240,12 @@ LineSurface::intersect(const GeometryContext &gctx, const Vector3D &position,
   Vector3D eb = tMatrix.block<3, 1>(0, 2).transpose();
   // now go ahead and solve for the closest approach
   Vector3D mab(mb - ma);
-  double eaTeb = ea.dot(eb);
-  double denom = 1 - eaTeb * eaTeb;
+  ActsScalar eaTeb = ea.dot(eb);
+  ActsScalar denom = 1 - eaTeb * eaTeb;
   // validity parameter
   Intersection::Status status = Intersection::Status::unreachable;
   if (denom * denom > s_onSurfaceTolerance * s_onSurfaceTolerance) {
-    double u = (mab.dot(ea) - mab.dot(eb) * eaTeb) / denom;
+    ActsScalar u = (mab.dot(ea) - mab.dot(eb) * eaTeb) / denom;
     // Check if we are on the surface already
     status = (u * u < s_onSurfaceTolerance * s_onSurfaceTolerance)
                  ? Intersection::Status::onSurface
@@ -254,8 +256,9 @@ LineSurface::intersect(const GeometryContext &gctx, const Vector3D &position,
     return {Intersection(result, u, status), this};
   }
   // return a false intersection
-  return {Intersection(position, std::numeric_limits<double>::max(), status),
-          this};
+  return {
+      Intersection(position, std::numeric_limits<ActsScalar>::max(), status),
+      this};
 }
 
 // inline std::string LineSurface::name() const { return "Acts::LineSurface"; }

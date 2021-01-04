@@ -22,17 +22,17 @@ struct PointwiseMaterialInteraction {
   /// The particle position at the interaction.
   const Vector3D pos = Vector3D(0., 0., 0);
   /// The particle time at the interaction.
-  const double time = 0.0;
+  const ActsScalar time = 0.0;
   /// The particle direction at the interaction.
   const Vector3D dir = Vector3D(0., 0., 0);
   /// The particle momentum at the interaction
-  const double momentum;
+  const ActsScalar momentum;
   /// The particle charge
-  const double q;
+  const ActsScalar q;
   /// The particle q/p at the interaction
-  const double qOverP;
+  const ActsScalar qOverP;
   /// The particle mass
-  const double mass;
+  const ActsScalar mass;
   /// The particle pdg
   const int pdg;
   /// The covariance transport decision at the interaction
@@ -43,17 +43,17 @@ struct PointwiseMaterialInteraction {
   /// The effective, passed material properties including the path correction.
   MaterialSlab slab;
   /// The path correction factor due to non-zero incidence on the surface.
-  double pathCorrection;
+  ActsScalar pathCorrection;
   /// Expected phi variance due to the interactions.
-  double variancePhi = 0.;
+  ActsScalar variancePhi = 0.;
   /// Expected theta variance due to the interactions.
-  double varianceTheta = 0.;
+  ActsScalar varianceTheta = 0.;
   /// Expected q/p variance due to the interactions.
-  double varianceQoverP = 0.;
+  ActsScalar varianceQoverP = 0.;
   /// The energy change due to the interaction.
-  double Eloss = 0.;
+  ActsScalar Eloss = 0.;
   /// The momentum after the interaction
-  double nextP;
+  ActsScalar nextP;
 
   /// @brief Contructor
   ///
@@ -163,8 +163,8 @@ private:
   /// @param [in] updateMode The noise update mode (in default: add noise)
   ///
   /// @return The updated variance
-  ACTS_DEVICE_FUNC double
-  updateVariance(double variance, double change,
+  ACTS_DEVICE_FUNC ActsScalar
+  updateVariance(ActsScalar variance, ActsScalar change,
                  NoiseUpdateMode updateMode = addNoise) const;
 };
 } // namespace detail

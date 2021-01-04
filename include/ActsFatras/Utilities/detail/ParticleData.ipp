@@ -38,18 +38,18 @@ static inline auto findByPdg(int32_t pdg, const ColumnContainer &column)
   return std::make_optional(column[std::distance(beg, pos)]);
 }
 
-float ActsFatras::findCharge(Acts::PdgParticle pdg) {
+ActsScalar ActsFatras::findCharge(Acts::PdgParticle pdg) {
   const auto q3 = findByPdg(static_cast<int32_t>(pdg), kParticlesThreeCharge);
   if (q3.has_value()) {
     // convert three charge to regular charge in native units
     return (q3.value() / 3.0f) * Acts::UnitConstants::e;
   } else {
     // there is no good default charge. clearly mark the missing value.
-    return std::numeric_limits<float>::quiet_NaN();
+    return std::numeric_limits<ActsScalar>::quiet_NaN();
   }
 }
 
-float ActsFatras::findMass(Acts::PdgParticle pdg) {
+ActsScalar ActsFatras::findMass(Acts::PdgParticle pdg) {
   const auto mass = findByPdg(static_cast<int32_t>(pdg), kParticlesMassMeV);
   // for medium- to high-pt, zero mass is a reasonable fall-back.
   return mass.value_or(0.0f) * Acts::UnitConstants::MeV;

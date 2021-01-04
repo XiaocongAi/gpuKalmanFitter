@@ -115,21 +115,21 @@ void writeParamsRoot(const Acts::GeometryContext &gctx,
                      std::string treeName) {
   // Define the variables to write out
   int t_charge{0};
-  float t_time{0};
-  float t_vx{-99.};
-  float t_vy{-99.};
-  float t_vz{-99.};
-  float t_px{-99.};
-  float t_py{-99.};
-  float t_pz{-99.};
-  float t_theta{-99.};
-  float t_phi{-99.};
-  float t_pT{-99.};
-  float t_eta{-99.};
-  std::array<float, 6> params_fit = {-99, -99, -99, -99, -99, -99};
-  std::array<float, 6> err_params_fit = {-99, -99, -99, -99, -99, -99};
-  std::array<float, 6> res_params = {-99, -99, -99, -99, -99, -99};
-  std::array<float, 6> pull_params = {-99, -99, -99, -99, -99, -99};
+  ActsScalar t_time{0};
+  ActsScalar t_vx{-99.};
+  ActsScalar t_vy{-99.};
+  ActsScalar t_vz{-99.};
+  ActsScalar t_px{-99.};
+  ActsScalar t_py{-99.};
+  ActsScalar t_pz{-99.};
+  ActsScalar t_theta{-99.};
+  ActsScalar t_phi{-99.};
+  ActsScalar t_pT{-99.};
+  ActsScalar t_eta{-99.};
+  std::array<ActsScalar, 6> params_fit = {-99, -99, -99, -99, -99, -99};
+  std::array<ActsScalar, 6> err_params_fit = {-99, -99, -99, -99, -99, -99};
+  std::array<ActsScalar, 6> res_params = {-99, -99, -99, -99, -99, -99};
+  std::array<ActsScalar, 6> pull_params = {-99, -99, -99, -99, -99, -99};
 
   // Create the root file
   TFile *file = TFile::Open(fileName.c_str(), "RECREATE");

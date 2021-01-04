@@ -118,7 +118,7 @@ public:
   ///
   /// Divide the range \f$[\text{xmin},\text{xmax})\f$ into \f$\text{nBins}\f$
   /// equidistant bins.
-  ACTS_DEVICE_FUNC Axis(double xmin, double xmax, size_t nBins)
+  ACTS_DEVICE_FUNC Axis(ActsScalar xmin, ActsScalar xmax, size_t nBins)
       : m_min(xmin), m_max(xmax), m_width((xmax - xmin) / nBins),
         m_bins(nBins) {}
 
@@ -214,7 +214,8 @@ public:
     }
 
     // Handle corner case where user requests more neighbours than the number
-    // of bins on the axis. We do not want to double-count bins in that case.
+    // of bins on the axis. We do not want to ActsScalar-count bins in that
+    // case.
     sizes.first %= getNBins();
     sizes.second %= getNBins();
     if (sizes.first + sizes.second + 1 > getNBins()) {
@@ -287,14 +288,14 @@ public:
   ///       bin with lower bound @c l and upper bound @c u.
   /// @note Bin indices start at @c 1. The underflow bin has the index @c 0
   ///       while the index <tt>nBins + 1</tt> indicates the overflow bin .
-  ACTS_DEVICE_FUNC size_t getBin(double x) const {
+  ACTS_DEVICE_FUNC size_t getBin(ActsScalar x) const {
     return wrapBin(std::floor((x - getMin()) / getBinWidth()) + 1);
   }
 
   /// @brief get bin width
   ///
   /// @return constant width for all bins
-  ACTS_DEVICE_FUNC double getBinWidth(size_t /*bin*/ = 0) const {
+  ACTS_DEVICE_FUNC ActsScalar getBinWidth(size_t /*bin*/ = 0) const {
     return m_width;
   }
 
@@ -308,7 +309,7 @@ public:
   ///
   /// @note Bin intervals have a closed lower bound, i.e. the lower boundary
   ///       belongs to the bin with the given bin index.
-  ACTS_DEVICE_FUNC double getBinLowerBound(size_t bin) const {
+  ACTS_DEVICE_FUNC ActsScalar getBinLowerBound(size_t bin) const {
     return getMin() + (bin - 1) * getBinWidth();
   }
 
@@ -322,7 +323,7 @@ public:
   ///
   /// @note Bin intervals have an open upper bound, i.e. the upper boundary
   ///       does @b not belong to the bin with the given bin index.
-  ACTS_DEVICE_FUNC double getBinUpperBound(size_t bin) const {
+  ACTS_DEVICE_FUNC ActsScalar getBinUpperBound(size_t bin) const {
     return getMin() + bin * getBinWidth();
   }
 
@@ -333,19 +334,19 @@ public:
   ///
   /// @pre @c bin must be a valid bin index (excluding under-/overflow bins),
   ///      i.e. \f$1 \le \text{bin} \le \text{nBins}\f$
-  ACTS_DEVICE_FUNC double getBinCenter(size_t bin) const {
+  ACTS_DEVICE_FUNC ActsScalar getBinCenter(size_t bin) const {
     return getMin() + (bin - 0.5) * getBinWidth();
   }
 
   /// @brief get maximum of binning range
   ///
   /// @return maximum of binning range
-  ACTS_DEVICE_FUNC double getMax() const override { return m_max; }
+  ACTS_DEVICE_FUNC ActsScalar getMax() const override { return m_max; }
 
   /// @brief get minimum of binning range
   ///
   /// @return minimum of binning range
-  ACTS_DEVICE_FUNC double getMin() const override { return m_min; }
+  ACTS_DEVICE_FUNC ActsScalar getMin() const override { return m_min; }
 
   /// @brief get total number of bins
   ///
@@ -359,7 +360,7 @@ public:
   ///
   /// @post If @c true is returned, the bin containing the given value is a
   ///       valid bin, i.e. it is neither the underflow nor the overflow bin.
-  ACTS_DEVICE_FUNC bool isInside(double x) const {
+  ACTS_DEVICE_FUNC bool isInside(ActsScalar x) const {
     return (m_min <= x) && (x < m_max);
   }
 
@@ -377,11 +378,11 @@ public:
 
 private:
   /// minimum of binning range
-  double m_min;
+  ActsScalar m_min;
   /// maximum of binning range
-  double m_max;
+  ActsScalar m_max;
   /// constant bin width
-  double m_width;
+  ActsScalar m_width;
   /// number of bins (excluding under-/overflow bins)
   size_t m_bins;
 };
@@ -497,7 +498,8 @@ public:
     }
 
     // Handle corner case where user requests more neighbours than the number
-    // of bins on the axis. We do not want to double-count bins in that case.
+    // of bins on the axis. We do not want to ActsScalar-count bins in that
+    // case.
     sizes.first %= getNBins();
     sizes.second %= getNBins();
     if (sizes.first + sizes.second + 1 > getNBins()) {
@@ -570,7 +572,7 @@ public:
   ///       bin with lower bound @c l and upper bound @c u.
   /// @note Bin indices start at @c 1. The underflow bin has the index @c 0
   ///       while the index <tt>nBins + 1</tt> indicates the overflow bin .
-  ACTS_DEVICE_FUNC size_t getBin(double x) const {
+  ACTS_DEVICE_FUNC size_t getBin(ActsScalar x) const {
 
     size_t idx = 0;
     bool foundRow = false;
@@ -592,7 +594,7 @@ public:
   ///
   /// @pre @c bin must be a valid bin index (excluding under-/overflow bins),
   ///      i.e. \f$1 \le \text{bin} \le \text{nBins}\f$
-  ACTS_DEVICE_FUNC double getBinWidth(size_t bin) const {
+  ACTS_DEVICE_FUNC ActsScalar getBinWidth(size_t bin) const {
     return m_binEdges(bin) - m_binEdges(bin - 1);
   }
 
@@ -606,7 +608,7 @@ public:
   ///
   /// @note Bin intervals have a closed lower bound, i.e. the lower boundary
   ///       belongs to the bin with the given bin index.
-  ACTS_DEVICE_FUNC double getBinLowerBound(size_t bin) const {
+  ACTS_DEVICE_FUNC ActsScalar getBinLowerBound(size_t bin) const {
     return m_binEdges(bin - 1);
   }
 
@@ -620,7 +622,7 @@ public:
   ///
   /// @note Bin intervals have an open upper bound, i.e. the upper boundary
   ///       does @b not belong to the bin with the given bin index.
-  ACTS_DEVICE_FUNC double getBinUpperBound(size_t bin) const {
+  ACTS_DEVICE_FUNC ActsScalar getBinUpperBound(size_t bin) const {
     return m_binEdges(bin);
   }
 
@@ -631,21 +633,21 @@ public:
   ///
   /// @pre @c bin must be a valid bin index (excluding under-/overflow bins),
   ///      i.e. \f$1 \le \text{bin} \le \text{nBins}\f$
-  ACTS_DEVICE_FUNC double getBinCenter(size_t bin) const {
+  ACTS_DEVICE_FUNC ActsScalar getBinCenter(size_t bin) const {
     return 0.5 * (getBinLowerBound(bin) + getBinUpperBound(bin));
   }
 
   /// @brief get maximum of binning range
   ///
   /// @return maximum of binning range
-  ACTS_DEVICE_FUNC double getMax() const override {
+  ACTS_DEVICE_FUNC ActsScalar getMax() const override {
     return m_binEdges(m_binEdges.size() - 1);
   }
 
   /// @brief get minimum of binning range
   ///
   /// @return minimum of binning range
-  ACTS_DEVICE_FUNC double getMin() const override { return m_binEdges(0u); }
+  ACTS_DEVICE_FUNC ActsScalar getMin() const override { return m_binEdges(0u); }
 
   /// @brief get total number of bins
   ///
@@ -661,9 +663,9 @@ public:
   ///
   /// @post If @c true is returned, the bin containing the given value is a
   ///       valid bin, i.e. it is neither the underflow nor the overflow bin.
-  ACTS_DEVICE_FUNC bool isInside(double x) const {
-    double lowerEdge = m_binEdges(0u);
-    double upperEdge = m_binEdges(m_binEdges.size() - 1);
+  ACTS_DEVICE_FUNC bool isInside(ActsScalar x) const {
+    ActsScalar lowerEdge = m_binEdges(0u);
+    ActsScalar upperEdge = m_binEdges(m_binEdges.size() - 1);
     return (lowerEdge <= x) && (x < upperEdge);
   }
 

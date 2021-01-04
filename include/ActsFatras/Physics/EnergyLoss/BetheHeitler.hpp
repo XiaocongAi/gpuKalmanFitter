@@ -23,7 +23,7 @@ namespace ActsFatras {
 /// energy loss by bremsstrahlung" R. Frühwirth
 struct BetheHeitler {
   /// A scaling factor to
-  double scaleFactor = 1.;
+  ActsScalar scaleFactor = 1.;
 
   /// Simulate energy loss and update the particle parameters.
   ///
@@ -38,8 +38,8 @@ struct BetheHeitler {
                                      const Acts::MaterialSlab &slab,
                                      Particle &particle) const {
     // Take a random gamma-distributed value - depending on t/X0
-    std::gamma_distribution<double> gDist(slab.thicknessInX0() / std::log(2.0),
-                                          1.0);
+    std::gamma_distribution<ActsScalar> gDist(
+        slab.thicknessInX0() / std::log(2.0), 1.0);
     const auto u = gDist(generator);
     const auto z = std::exp(-u);
     const auto sampledEnergyLoss =

@@ -150,7 +150,7 @@ public:
     // Use multiple threads for the calculation of cov = H *
     // predicted_covariance * H.transpose() + sl.covariance();
     if (threadIdx.x < 2 and threadIdx.y < eBoundParametersSize) {
-      double acc = 0;
+      ActsScalar acc = 0;
       for (unsigned int i = 0; i < eBoundParametersSize; i++) {
         acc += H(threadIdx.x, i) * predicted_covariance(i, threadIdx.y);
       }
@@ -158,7 +158,7 @@ public:
     }
     __syncthreads();
     if (threadIdx.x < 2 and threadIdx.y < 2) {
-      double acc = 0;
+      ActsScalar acc = 0;
       for (unsigned int i = 0; i < eBoundParametersSize; i++) {
         acc += HP(threadIdx.x, i) * H(threadIdx.y, i);
       }
@@ -179,7 +179,7 @@ public:
     // const ActsMatrixD<eBoundParametersSize, measdim> K =
     //   predicted_covariance * H.transpose() * covInv;
     if (threadIdx.x < eBoundParametersSize and threadIdx.y < 2) {
-      double acc = 0;
+      ActsScalar acc = 0;
       for (unsigned int i = 0; i < eBoundParametersSize; i++) {
         for (unsigned int j = 0; j < 2; j++) {
           acc += predicted_covariance(threadIdx.x, i) * H(j, i) *
@@ -200,11 +200,11 @@ public:
     // @todo use multiple threads for this
     if (threadIdx.x < eBoundParametersSize and
         threadIdx.y < eBoundParametersSize) {
-      double acc = 0;
+      ActsScalar acc = 0;
       for (unsigned int i = 0; i < 2; i++) {
         acc += K(threadIdx.x, i) * H(i, threadIdx.y);
       }
-      double iden = (threadIdx.x == threadIdx.y) ? 1.0 : 0;
+      ActsScalar iden = (threadIdx.x == threadIdx.y) ? 1.0 : 0;
       C(threadIdx.x, threadIdx.y) = iden - acc;
     }
     __syncthreads();

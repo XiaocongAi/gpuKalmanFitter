@@ -39,12 +39,12 @@ public:
   /// @brief get minimum of binning range
   ///
   /// @return minimum of binning range
-  ACTS_DEVICE_FUNC virtual double getMin() const = 0;
+  ACTS_DEVICE_FUNC virtual ActsScalar getMin() const = 0;
 
   /// @brief get maximum of binning range
   ///
   /// @return maximum of binning range
-  ACTS_DEVICE_FUNC virtual double getMax() const = 0;
+  ACTS_DEVICE_FUNC virtual ActsScalar getMax() const = 0;
 
   /// @brief get total number of bins
   ///

@@ -172,9 +172,9 @@ inline const Vector3D Surface::normal(const GeometryContext &gctx,
 }
 
 template <typename Derived>
-inline double Surface::pathCorrection(const GeometryContext &gctx,
-                                      const Vector3D &position,
-                                      const Vector3D &direction) const {
+inline ActsScalar Surface::pathCorrection(const GeometryContext &gctx,
+                                          const Vector3D &position,
+                                          const Vector3D &direction) const {
   return static_cast<const Derived *>(this)->pathCorrection(gctx, position,
                                                             direction);
 }

@@ -44,10 +44,10 @@ updateSingleSurfaceStatus(const stepper_t &stepper,
     return Intersection::Status::onSurface;
   } else if (sIntersection.intersection or sIntersection.alternative) {
     // Path and overstep limit checking
-    double pLimit = state.stepSize.value(ConstrainedStep::aborter);
-    double oLimit = stepper.overstepLimit(state);
+    ActsScalar pLimit = state.stepSize.value(ConstrainedStep::aborter);
+    ActsScalar oLimit = stepper.overstepLimit(state);
     auto checkIntersection = [&](const Intersection &intersection) -> bool {
-      double cLimit = intersection.pathLength;
+      ActsScalar cLimit = intersection.pathLength;
       bool accept = (cLimit > oLimit and cLimit * cLimit < pLimit * pLimit);
       if (accept) {
         stepper.setStepSize(state, state.navDir * cLimit);
@@ -77,7 +77,7 @@ ACTS_DEVICE_FUNC void
 updateSingleStepSize(typename stepper_t::State &state,
                      const object_intersection_t &oIntersection,
                      bool release = true) {
-  double stepSize = oIntersection.intersection.pathLength;
+  ActsScalar stepSize = oIntersection.intersection.pathLength;
   state.stepSize.update(stepSize, ConstrainedStep::actor, release);
 }
 

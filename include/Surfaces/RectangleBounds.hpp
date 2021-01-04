@@ -34,7 +34,7 @@ public:
   ///
   /// @param halex halflength in X
   /// @param haley halflength in Y
-  ACTS_DEVICE_FUNC RectangleBounds(double halex, double haley);
+  ACTS_DEVICE_FUNC RectangleBounds(ActsScalar halex, ActsScalar haley);
 
   /// Constructor with explicit min and max vertex
   ///
@@ -46,7 +46,7 @@ public:
 
   ACTS_DEVICE_FUNC BoundsType type() const;
 
-  ActsVector<double, 4> values() const;
+  ActsVector<ActsScalar, 4> values() const;
 
   /// Inside check for the bounds object driven by the boundary check directive
   /// Each Bounds has a method inside, which checks if a LocalPosition is inside
@@ -59,16 +59,16 @@ public:
                                const BoundaryCheck &bcheck) const;
 
   /// Return the vertices - or, the points of the extremas
-  ActsMatrix<double, 4, 2> vertices() const;
+  ActsMatrix<ActsScalar, 4, 2> vertices() const;
 
   // Bounding box representation
   //  ACTS_DEVICE_FUNC const RectangleBounds &boundingBox() const;
 
   /// Return method for the half length in X
-  ACTS_DEVICE_FUNC double halflengthX() const;
+  ACTS_DEVICE_FUNC ActsScalar halflengthX() const;
 
   /// Return method for the half length in Y
-  ACTS_DEVICE_FUNC double halflengthY() const;
+  ACTS_DEVICE_FUNC ActsScalar halflengthY() const;
 
   /// Get the min vertex defining the bounds
   /// @return The min vertex
@@ -83,11 +83,11 @@ private:
   Vector2D m_max;
 };
 
-inline double RectangleBounds::halflengthX() const {
+inline ActsScalar RectangleBounds::halflengthX() const {
   return std::abs(m_max.x() - m_min.x()) * 0.5;
 }
 
-inline double RectangleBounds::halflengthY() const {
+inline ActsScalar RectangleBounds::halflengthY() const {
   return std::abs(m_max.y() - m_min.y()) * 0.5;
 }
 
@@ -100,15 +100,15 @@ inline const Vector2D &RectangleBounds::min() const { return m_min; }
 inline const Vector2D &RectangleBounds::max() const { return m_max; }
 
 // The following definitions are initially in the cpp file
-inline RectangleBounds::RectangleBounds(double halex, double haley)
+inline RectangleBounds::RectangleBounds(ActsScalar halex, ActsScalar haley)
     : m_min(-halex, -haley), m_max(halex, haley) {}
 
 inline RectangleBounds::RectangleBounds(const Vector2D &vmin,
                                         const Vector2D &vmax)
     : m_min(vmin), m_max(vmax) {}
 
-inline ActsVector<double, 4> RectangleBounds::values() const {
-  ActsVector<double, 4> values;
+inline ActsVector<ActsScalar, 4> RectangleBounds::values() const {
+  ActsVector<ActsScalar, 4> values;
   values << m_min.x(), m_min.y(), m_max.x(), m_max.y();
   return values;
 }
@@ -118,9 +118,9 @@ inline bool RectangleBounds::inside(const Vector2D &lposition,
   return bcheck.isInside(lposition, m_min, m_max);
 }
 
-inline ActsMatrix<double, 4, 2> RectangleBounds::vertices() const {
+inline ActsMatrix<ActsScalar, 4, 2> RectangleBounds::vertices() const {
   // counter-clockwise starting from bottom-right corner
-  ActsMatrix<double, 4, 2> vertices = ActsMatrix<double, 4, 2>::Zero();
+  ActsMatrix<ActsScalar, 4, 2> vertices = ActsMatrix<ActsScalar, 4, 2>::Zero();
   vertices << m_min.x(), m_min.y(), m_max.x(), m_min.y(), m_max.x(), m_max.y(),
       m_min.x(), m_max.y();
   return vertices;

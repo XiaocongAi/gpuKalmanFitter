@@ -262,7 +262,7 @@ private:
         // Construct a tempory jacobian and path, which is necessary for calling
         // the boundState
         typename TrackStateType::Jacobian jac;
-        double path;
+        ActsScalar path;
         // Transport & bind the parameter to the final surface
         stepper.template boundState<target_surface_t>(
             state.stepping, *targetSurface, result.fittedParameters, jac, path);
@@ -508,7 +508,7 @@ private:
           // Construct a tempory jacobian and path, which is necessary for
           // calling the boundState
           typename TrackStateType::Jacobian jac;
-          double path;
+          ActsScalar path;
           // Transport & bind the parameter to the final surface
           stepper.template boundState<target_surface_t>(
               state.stepping, *targetSurface, result.fittedParameters, jac,

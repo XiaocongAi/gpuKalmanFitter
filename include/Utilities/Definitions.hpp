@@ -18,10 +18,13 @@
 #define ACTS_DEVICE_FUNC
 #endif
 
-#ifdef TRKDETDESCR_USEFLOATPRECISON
-using TDD_real_t = float;
+/// Common scalar (floating point type used for the default algebra types.
+///
+/// Defaults to `ActsScalar` but can be customized by the user.
+#ifdef ACTS_CUSTOM_SCALARTYPE
+using ActsScalar = ACTS_CUSTOM_SCALARTYPE;
 #else
-using TDD_real_t = double;
+using ActsScalar = float;
 #endif
 
 #include <Eigen/Dense>
@@ -35,12 +38,12 @@ namespace Acts {
 /// @note This is intentionally given w/o an explicit unit to avoid having
 ///       to include the units header unneccessarily. With the native length
 ///       unit of mm this corresponds to 0.1um.
-static constexpr double s_onSurfaceTolerance = 1e-4;
+static constexpr ActsScalar s_onSurfaceTolerance = 1e-4;
 
 /// Tolerance for not being within curvilinear projection
 /// this allows using the same curvilinear frame to eta = 6,
 /// validity tested with IntegrationTests/PropagationTest
-static constexpr double s_curvilinearProjTolerance = 0.999995;
+static constexpr ActsScalar s_curvilinearProjTolerance = 0.999995;
 
 /// @enum NavigationDirection
 /// The navigation direciton is always with
@@ -68,7 +71,7 @@ template <typename T, unsigned int rows, unsigned int cols>
 using ActsMatrix = Eigen::Matrix<T, rows, cols>;
 
 template <unsigned int rows, unsigned int cols>
-using ActsMatrixD = ActsMatrix<double, rows, cols>;
+using ActsMatrixD = ActsMatrix<ActsScalar, rows, cols>;
 
 template <unsigned int rows, unsigned int cols>
 using ActsMatrixF = ActsMatrix<float, rows, cols>;
@@ -76,14 +79,15 @@ using ActsMatrixF = ActsMatrix<float, rows, cols>;
 template <typename T, unsigned int rows>
 using ActsSymMatrix = Eigen::Matrix<T, rows, rows>;
 
-template <unsigned int rows> using ActsSymMatrixD = ActsSymMatrix<double, rows>;
+template <unsigned int rows>
+using ActsSymMatrixD = ActsSymMatrix<ActsScalar, rows>;
 
 template <unsigned int rows> using ActsSymMatrixF = ActsSymMatrix<float, rows>;
 
 template <typename T, unsigned int rows>
 using ActsVector = Eigen::Matrix<T, rows, 1>;
 
-template <unsigned int rows> using ActsVectorD = ActsVector<double, rows>;
+template <unsigned int rows> using ActsVectorD = ActsVector<ActsScalar, rows>;
 
 template <unsigned int rows> using ActsVectorF = ActsVector<float, rows>;
 
@@ -93,25 +97,26 @@ using ActsRowVector = Eigen::Matrix<T, 1, cols>;
 template <typename T, unsigned int cols>
 using ActsMatrix3 = Eigen::Matrix<T, 3, cols>;
 
-template <unsigned int cols> using ActsRowVectorD = ActsRowVector<double, cols>;
+template <unsigned int cols>
+using ActsRowVectorD = ActsRowVector<ActsScalar, cols>;
 
 template <unsigned int cols> using ActsRowVectorF = ActsRowVector<float, cols>;
 
 template <typename T>
 using ActsMatrixX = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
 
-using ActsMatrixXd = ActsMatrixX<double>;
+using ActsMatrixXd = ActsMatrixX<ActsScalar>;
 using ActsMatrixXf = ActsMatrixX<float>;
 
 template <typename T> using ActsVectorX = Eigen::Matrix<T, Eigen::Dynamic, 1>;
 
-using ActsVectorXd = ActsVectorX<double>;
+using ActsVectorXd = ActsVectorX<ActsScalar>;
 using ActsVectorXf = ActsVectorX<float>;
 
 template <typename T>
 using ActsRowVectorX = Eigen::Matrix<T, 1, Eigen::Dynamic>;
 
-using ActsRowVectorXd = ActsRowVectorX<double>;
+using ActsRowVectorXd = ActsRowVectorX<ActsScalar>;
 using ActsRowVectorXf = ActsRowVectorX<float>;
 
 template <typename T> using ActsMatrix3X = Eigen::Matrix<T, 3, Eigen::Dynamic>;
@@ -120,38 +125,38 @@ template <typename T> using ActsMatrix3X = Eigen::Matrix<T, 3, Eigen::Dynamic>;
 using Vector2F = ActsVector<float, 2>;
 using Vector3F = ActsVector<float, 3>;
 using Vector4F = ActsVector<float, 4>;
-using Vector2D = ActsVector<double, 2>;
-using Vector3D = ActsVector<double, 3>;
-using Vector4D = ActsVector<double, 4>;
+using Vector2D = ActsVector<ActsScalar, 2>;
+using Vector3D = ActsVector<ActsScalar, 3>;
+using Vector4D = ActsVector<ActsScalar, 4>;
 // symmetric matrices e.g. for coordinate covariance matrices
 using SymMatrix2F = ActsSymMatrix<float, 2>;
 using SymMatrix3F = ActsSymMatrix<float, 3>;
 using SymMatrix4F = ActsSymMatrix<float, 4>;
-using SymMatrix2D = ActsSymMatrix<double, 2>;
-using SymMatrix3D = ActsSymMatrix<double, 3>;
-using SymMatrix4D = ActsSymMatrix<double, 4>;
+using SymMatrix2D = ActsSymMatrix<ActsScalar, 2>;
+using SymMatrix3D = ActsSymMatrix<ActsScalar, 3>;
+using SymMatrix4D = ActsSymMatrix<ActsScalar, 4>;
 
 // pure translation transformations
 using Translation2F = Eigen::Translation<float, 2>;
 using Translation3F = Eigen::Translation<float, 3>;
 using Translation4F = Eigen::Translation<float, 4>;
-using Translation2D = Eigen::Translation<double, 2>;
-using Translation3D = Eigen::Translation<double, 3>;
-using Translation4D = Eigen::Translation<double, 4>;
+using Translation2D = Eigen::Translation<ActsScalar, 2>;
+using Translation3D = Eigen::Translation<ActsScalar, 3>;
+using Translation4D = Eigen::Translation<ActsScalar, 4>;
 // linear (rotation) matrices
 using RotationMatrix2F = Eigen::Matrix<float, 2, 2>;
 using RotationMatrix3F = Eigen::Matrix<float, 3, 3>;
 using RotationMatrix4F = Eigen::Matrix<float, 4, 4>;
-using RotationMatrix2D = Eigen::Matrix<double, 2, 2>;
-using RotationMatrix3D = Eigen::Matrix<double, 3, 3>;
-using RotationMatrix4D = Eigen::Matrix<double, 4, 4>;
+using RotationMatrix2D = Eigen::Matrix<ActsScalar, 2, 2>;
+using RotationMatrix3D = Eigen::Matrix<ActsScalar, 3, 3>;
+using RotationMatrix4D = Eigen::Matrix<ActsScalar, 4, 4>;
 // pure rotation transformations. only available in 2d and 3d
 using Rotation2F = Eigen::Rotation2D<float>;
 using Rotation3F = Eigen::Quaternion<float>;
 using AngleAxis3F = Eigen::AngleAxis<float>;
-using Rotation2D = Eigen::Rotation2D<double>;
-using Rotation3D = Eigen::Quaternion<double>;
-using AngleAxis3D = Eigen::AngleAxis<double>;
+using Rotation2D = Eigen::Rotation2D<ActsScalar>;
+using Rotation3D = Eigen::Quaternion<ActsScalar>;
+using AngleAxis3D = Eigen::AngleAxis<ActsScalar>;
 // combined affine transformations. types are chosen for better data alignment:
 // - 2d affine compact stored as 2x3 matrix
 // - 3d affine stored as 4x4 matrix
@@ -159,9 +164,9 @@ using AngleAxis3D = Eigen::AngleAxis<double>;
 using Transform2F = Eigen::Transform<float, 2, Eigen::AffineCompact>;
 using Transform3F = Eigen::Transform<float, 3, Eigen::Affine>;
 using Transform4F = Eigen::Transform<float, 4, Eigen::AffineCompact>;
-using Transform2D = Eigen::Transform<double, 2, Eigen::AffineCompact>;
-using Transform3D = Eigen::Transform<double, 3, Eigen::Affine>;
-using Transform4D = Eigen::Transform<double, 4, Eigen::AffineCompact>;
+using Transform2D = Eigen::Transform<ActsScalar, 2, Eigen::AffineCompact>;
+using Transform3D = Eigen::Transform<ActsScalar, 3, Eigen::Affine>;
+using Transform4D = Eigen::Transform<ActsScalar, 4, Eigen::AffineCompact>;
 
 // Components of coordinate vectors.
 ///

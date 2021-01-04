@@ -225,10 +225,10 @@ public:
   /// @param direction global 3D momentum direction (ignored for PlaneSurface)
   /// @note this is the final implementation of the pathCorrection function
   ///
-  /// @return a double representing the scaling factor
-  ACTS_DEVICE_FUNC double pathCorrection(const GeometryContext &gctx,
-                                         const Vector3D &position,
-                                         const Vector3D &direction) const;
+  /// @return a ActsScalar representing the scaling factor
+  ACTS_DEVICE_FUNC ActsScalar pathCorrection(const GeometryContext &gctx,
+                                             const Vector3D &position,
+                                             const Vector3D &direction) const;
 
   /// Straight line intersection schema from position/direction
   ///

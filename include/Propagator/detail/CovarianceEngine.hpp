@@ -21,14 +21,14 @@ namespace Acts {
 // struct BoundState {
 //  BoundParameters boundParams;
 //  BoundMatrix jacobian;
-//  double path;
+//  ActsScalar path;
 //};
 //
 
 struct CurvilinearState {
   CurvilinearParameters curvParams;
   BoundMatrix jacobian;
-  double path;
+  ActsScalar path;
 };
 
 namespace {
@@ -44,15 +44,15 @@ using Covariance = BoundSymMatrix;
 ACTS_DEVICE_FUNC FreeToBoundMatrix
 freeToCurvilinearJacobian(const Vector3D &direction) {
   // Optimized trigonometry on the propagation direction
-  const double x = direction(0); // == cos(phi) * sin(theta)
-  const double y = direction(1); // == sin(phi) * sin(theta)
-  const double z = direction(2); // == cos(theta)
+  const ActsScalar x = direction(0); // == cos(phi) * sin(theta)
+  const ActsScalar y = direction(1); // == sin(phi) * sin(theta)
+  const ActsScalar z = direction(2); // == cos(theta)
   // can be turned into cosine/sine
-  const double cosTheta = z;
-  const double sinTheta = sqrt(x * x + y * y);
-  const double invSinTheta = 1. / sinTheta;
-  const double cosPhi = x * invSinTheta;
-  const double sinPhi = y * invSinTheta;
+  const ActsScalar cosTheta = z;
+  const ActsScalar sinTheta = sqrt(x * x + y * y);
+  const ActsScalar invSinTheta = 1. / sinTheta;
+  const ActsScalar cosPhi = x * invSinTheta;
+  const ActsScalar sinPhi = y * invSinTheta;
   // prepare the jacobian to curvilinear
   FreeToBoundMatrix jacToCurv = FreeToBoundMatrix::Zero();
   if (std::abs(cosTheta) < s_curvilinearProjTolerance) {
@@ -65,8 +65,8 @@ freeToCurvilinearJacobian(const Vector3D &direction) {
   } else {
     // Under grazing incidence to z, the above coordinate system definition
     // becomes numerically unstable, and we need to switch to another one
-    const double c = sqrt(y * y + z * z);
-    const double invC = 1. / c;
+    const ActsScalar c = sqrt(y * y + z * z);
+    const ActsScalar invC = 1. / c;
     jacToCurv(0, 1) = -z * invC;
     jacToCurv(0, 2) = y * invC;
     jacToCurv(1, 0) = c;
@@ -219,15 +219,15 @@ reinitializeJacobians(FreeMatrix &transportJacobian, FreeVector &derivatives,
   jacobianLocalToGlobal = BoundToFreeMatrix::Zero();
 
   // Optimized trigonometry on the propagation direction
-  const double x = direction(0); // == cos(phi) * sin(theta)
-  const double y = direction(1); // == sin(phi) * sin(theta)
-  const double z = direction(2); // == cos(theta)
+  const ActsScalar x = direction(0); // == cos(phi) * sin(theta)
+  const ActsScalar y = direction(1); // == sin(phi) * sin(theta)
+  const ActsScalar z = direction(2); // == cos(theta)
   // can be turned into cosine/sine
-  const double cosTheta = z;
-  const double sinTheta = sqrt(x * x + y * y);
-  const double invSinTheta = 1. / sinTheta;
-  const double cosPhi = x * invSinTheta;
-  const double sinPhi = y * invSinTheta;
+  const ActsScalar cosTheta = z;
+  const ActsScalar sinTheta = sqrt(x * x + y * y);
+  const ActsScalar invSinTheta = 1. / sinTheta;
+  const ActsScalar cosPhi = x * invSinTheta;
+  const ActsScalar sinPhi = y * invSinTheta;
 
   jacobianLocalToGlobal(0, eLOC_0) = -sinPhi;
   jacobianLocalToGlobal(0, eLOC_1) = -cosPhi * cosTheta;
@@ -364,8 +364,8 @@ boundState(const GeometryContext &geoContext, BoundSymMatrix &covarianceMatrix,
   const Vector3D &position = parameters.segment<3>(eFreePos0);
   const Vector3D momentum =
       std::abs(1. / parameters[eFreeQOverP]) * parameters.segment<3>(eFreeDir0);
-  const double charge = std::copysign(1., parameters[eFreeQOverP]);
-  const double time = parameters[eFreeTime];
+  const ActsScalar charge = std::copysign(1., parameters[eFreeQOverP]);
+  const ActsScalar time = parameters[eFreeTime];
   boundParams = BoundParameters<surface_derived_t>(
       geoContext, cov, position, momentum, charge, time, &surface);
 }
@@ -387,7 +387,7 @@ __device__ void covarianceTransportOnDevice(
   //__syncthreads();
 
   if (threadIdx.y < eBoundParametersSize) {
-    double acc = 0;
+    ActsScalar acc = 0;
     for (int i = 0; i < eFreeParametersSize; i++) {
       acc += transportJacobian(threadIdx.x, i) *
              jacobianLocalToGlobal(i, threadIdx.y);
@@ -414,7 +414,7 @@ __device__ void covarianceTransportOnDevice(
   // The bound to bound jacobian
   if (threadIdx.x < eBoundParametersSize &&
       threadIdx.y < eBoundParametersSize) {
-    double acc = 0;
+    ActsScalar acc = 0;
     for (int i = 0; i < eFreeParametersSize; i++) {
       acc += jacToLocal(threadIdx.x, i) * jacobianLocalToGlobal(i, threadIdx.y);
     }
@@ -427,7 +427,7 @@ __device__ void covarianceTransportOnDevice(
   // Apply the actual covariance transport
   if (threadIdx.x < eBoundParametersSize &&
       threadIdx.y < eBoundParametersSize) {
-    double acc = 0;
+    ActsScalar acc = 0;
     for (int i = 0; i < eBoundParametersSize; i++) {
       for (int j = 0; j < eBoundParametersSize; j++) {
         acc += jacobian(threadIdx.x, i) * covarianceMatrix(i, j) *
@@ -489,8 +489,8 @@ __device__ void boundStateOnDevice(
     const Vector3D &position = parameters.segment<3>(eFreePos0);
     const Vector3D momentum = std::abs(1. / parameters[eFreeQOverP]) *
                               parameters.segment<3>(eFreeDir0);
-    const double charge = std::copysign(1., parameters[eFreeQOverP]);
-    const double time = parameters[eFreeTime];
+    const ActsScalar charge = std::copysign(1., parameters[eFreeQOverP]);
+    const ActsScalar time = parameters[eFreeTime];
 
     boundParams = BoundParameters<surface_derived_t>(
         geoContext, cov, position, momentum, charge, time, &surface);
@@ -522,7 +522,7 @@ CurvilinearState ACTS_DEVICE_FUNC curvilinearState(
     BoundSymMatrix &covarianceMatrix, BoundMatrix &jacobian,
     FreeMatrix &transportJacobian, FreeVector &derivatives,
     BoundToFreeMatrix &jacobianLocalToGlobal, const FreeVector &parameters,
-    bool covTransport, double accumulatedPath) {
+    bool covTransport, ActsScalar accumulatedPath) {
   const Vector3D &direction = parameters.segment<3>(eFreeDir0);
 
   // Covariance transport
@@ -535,8 +535,8 @@ CurvilinearState ACTS_DEVICE_FUNC curvilinearState(
   // Create the curvilinear parameters
   const Vector3D &position = parameters.segment<3>(eFreePos0);
   const Vector3D momentum = std::abs(1. / parameters[eFreeQOverP]) * direction;
-  const double charge = std::copysign(1., parameters[eFreeQOverP]);
-  const double time = parameters[eFreeTime];
+  const ActsScalar charge = std::copysign(1., parameters[eFreeQOverP]);
+  const ActsScalar time = parameters[eFreeTime];
   CurvilinearParameters curvilinearParameters(cov, position, momentum, charge,
                                               time);
   // Create the curvilinear state

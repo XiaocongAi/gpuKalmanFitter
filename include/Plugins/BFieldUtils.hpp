@@ -63,8 +63,8 @@ fieldMapperRZ(std::function<size_t(std::array<size_t, 2> binsRZ,
                                    std::array<size_t, 2> nBinsRZ)>
                   localToGlobalBin,
               std::string fieldMapFile = "",
-              double lengthUnit = Acts::units::_mm,
-              double BFieldUnit = Acts::units::_T, size_t nPoints = 1000,
+              ActsScalar lengthUnit = Acts::units::_mm,
+              ActsScalar BFieldUnit = Acts::units::_T, size_t nPoints = 1000,
               bool firstOctant = false);
 
 /// Method to setup the FieldMapper
@@ -117,8 +117,8 @@ fieldMapperXYZ(std::function<size_t(std::array<size_t, 3> binsXYZ,
                                     std::array<size_t, 3> nBinsXYZ)>
                    localToGlobalBin,
                std::string fieldMapFile = "",
-               double lengthUnit = Acts::units::_mm,
-               double BFieldUnit = Acts::units::_T, size_t nPoints = 1000,
+               ActsScalar lengthUnit = Acts::units::_mm,
+               ActsScalar BFieldUnit = Acts::units::_T, size_t nPoints = 1000,
                bool firstOctant = false);
 } // namespace txt
 

@@ -44,12 +44,12 @@ PointwiseMaterialInteraction::covarianceContributions(bool multipleScattering,
   }
 }
 
-inline double
-PointwiseMaterialInteraction::updateVariance(double variance, double change,
-                                             NoiseUpdateMode updateMode) const {
+inline ActsScalar PointwiseMaterialInteraction::updateVariance(
+    ActsScalar variance, ActsScalar change, NoiseUpdateMode updateMode) const {
   // Add/Subtract the change
   // Protect the variance against becoming negative
-  return std::max(0., variance + std::copysign(change, updateMode));
+  return std::max(static_cast<ActsScalar>(0.),
+                  variance + std::copysign(change, updateMode));
 }
 } // namespace detail
 } // end of namespace Acts

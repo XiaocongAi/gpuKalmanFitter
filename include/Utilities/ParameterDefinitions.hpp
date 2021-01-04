@@ -89,7 +89,7 @@ enum BoundParametersIndices : unsigned int {
 };
 
 /// Underlying fundamental scalar type for bound track parameters.
-using BoundParametersScalar = double;
+using BoundParametersScalar = ActsScalar;
 
 /// Components of a free track parameters vector.
 ///
@@ -118,7 +118,7 @@ enum FreeParametersIndices : unsigned int {
 };
 
 /// Underlying fundamental scalar type for free track parameters.
-using FreeParametersScalar = double;
+using FreeParametersScalar = ActsScalar;
 
 } // namespace Acts
 #endif
@@ -166,14 +166,14 @@ template <> struct BoundParameterTraits<BoundParametersIndices::eBoundLoc1> {
   using type = local_parameter;
 };
 template <> struct BoundParameterTraits<BoundParametersIndices::eBoundPhi> {
-  static constexpr double pMin() { return -M_PI; }
-  static constexpr double pMax() { return M_PI; }
-  using type = cyclic_parameter<double, pMin, pMax>;
+  static constexpr ActsScalar pMin() { return -M_PI; }
+  static constexpr ActsScalar pMax() { return M_PI; }
+  using type = cyclic_parameter<ActsScalar, pMin, pMax>;
 };
 template <> struct BoundParameterTraits<BoundParametersIndices::eBoundTheta> {
-  static constexpr double pMin() { return 0; }
-  static constexpr double pMax() { return M_PI; }
-  using type = bound_parameter<double, pMin, pMax>;
+  static constexpr ActsScalar pMin() { return 0; }
+  static constexpr ActsScalar pMax() { return M_PI; }
+  using type = bound_parameter<ActsScalar, pMin, pMax>;
 };
 template <> struct BoundParameterTraits<BoundParametersIndices::eBoundQOverP> {
   using type = unbound_parameter;

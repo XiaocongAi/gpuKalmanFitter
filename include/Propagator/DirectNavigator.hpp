@@ -87,7 +87,7 @@ public:
   DirectNavigator() = default;
 
   /// The tolerance used to define "surface reached"
-  double tolerance = s_onSurfaceTolerance;
+  ActsScalar tolerance = s_onSurfaceTolerance;
 
   /// Nested State struct
   ///

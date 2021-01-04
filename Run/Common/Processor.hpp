@@ -18,23 +18,23 @@ using TargetSurfaceContainer = std::vector<Acts::LineSurface>;
 
 struct ParticleSmearingParameters {
   /// Constant term of the d0 resolution.
-  float sigmaD0 = 30 * Acts::units::_um;
+  ActsScalar sigmaD0 = 30 * Acts::units::_um;
   /// Pt-dependent d0 resolution of the form sigma_d0 = A*exp(-1.*abs(B)*pt).
-  float sigmaD0PtA = 0 * Acts::units::_um;
-  float sigmaD0PtB = 1 / Acts::units::_GeV;
+  ActsScalar sigmaD0PtA = 0 * Acts::units::_um;
+  ActsScalar sigmaD0PtB = 1 / Acts::units::_GeV;
   /// Constant term of the z0 resolution.
-  float sigmaZ0 = 30 * Acts::units::_um;
+  ActsScalar sigmaZ0 = 30 * Acts::units::_um;
   /// Pt-dependent z0 resolution of the form sigma_z0 = A*exp(-1.*abs(B)*pt).
-  float sigmaZ0PtA = 0 * Acts::units::_um;
-  float sigmaZ0PtB = 1 / Acts::units::_GeV;
+  ActsScalar sigmaZ0PtA = 0 * Acts::units::_um;
+  ActsScalar sigmaZ0PtB = 1 / Acts::units::_GeV;
   /// Time resolution.
-  float sigmaT0 = 5 * Acts::units::_ns;
+  ActsScalar sigmaT0 = 5 * Acts::units::_ns;
   /// Phi angular resolution.
-  float sigmaPhi = 1 * Acts::UnitConstants::degree;
+  ActsScalar sigmaPhi = 1 * Acts::UnitConstants::degree;
   /// Theta angular resolution.
-  float sigmaTheta = 1 * Acts::UnitConstants::degree;
+  ActsScalar sigmaTheta = 1 * Acts::UnitConstants::degree;
   /// Relative momentum resolution.
-  float sigmaPRel = 0.001;
+  ActsScalar sigmaPRel = 0.001;
 };
 
 template <typename random_engine_t>
@@ -133,11 +133,11 @@ void buildTargetSurfaces(const SimParticleContainer &validParticles,
 template <typename random_engine_t>
 void runHitSmearing(const Acts::GeometryContext &gctx, random_engine_t &rng,
                     const SimResultContainer &simResults,
-                    const std::array<float, 2> &resolution,
+                    const std::array<ActsScalar, 2> &resolution,
                     Acts::PixelSourceLink *sourcelinks,
                     const PlaneSurfaceType *surfaces, size_t nSurfaces) {
   // The normal dist
-  std::normal_distribution<float> stdNormal(0.0, 1.0);
+  std::normal_distribution<ActsScalar> stdNormal(0.0, 1.0);
   // Perform smearing to the simulated hits
   for (int ip = 0; ip < simResults.size(); ip++) {
     auto hits = simResults[ip].hits;
@@ -155,8 +155,8 @@ void runHitSmearing(const Acts::GeometryContext &gctx, random_engine_t &rng,
       surfaces[ih].globalToLocal(gctx, hits[ih].position(),
                                  hits[ih].unitDirection(), lPos);
       // Perform the smearing to truth
-      float dx = resolution[0] * stdNormal(rng);
-      float dy = resolution[1] * stdNormal(rng);
+      ActsScalar dx = resolution[0] * stdNormal(rng);
+      ActsScalar dy = resolution[1] * stdNormal(rng);
 
       // The measurement values
       Acts::Vector2D values;
@@ -185,7 +185,7 @@ runParticleSmearing(random_engine_t &rng, const Acts::GeometryContext &gctx,
   }
 
   // The normal dist
-  std::normal_distribution<float> stdNormal(0.0, 1.0);
+  std::normal_distribution<ActsScalar> stdNormal(0.0, 1.0);
 
   // Reserve the container
   ParametersContainer parameters;
@@ -202,21 +202,21 @@ runParticleSmearing(random_engine_t &rng, const Acts::GeometryContext &gctx,
     const auto q = particle.charge();
 
     // compute momentum-dependent resolutions
-    const float sigmaD0 =
+    const ActsScalar sigmaD0 =
         resolution.sigmaD0 +
         resolution.sigmaD0PtA *
             std::exp(-1.0 * std::abs(resolution.sigmaD0PtB) * pt);
-    const float sigmaZ0 =
+    const ActsScalar sigmaZ0 =
         resolution.sigmaZ0 +
         resolution.sigmaZ0PtA *
             std::exp(-1.0 * std::abs(resolution.sigmaZ0PtB) * pt);
-    const float sigmaP = resolution.sigmaPRel * p;
+    const ActsScalar sigmaP = resolution.sigmaPRel * p;
     // var(q/p) = (d(1/p)/dp)² * var(p) = (-1/p²)² * var(p)
-    const float sigmaQOverP = sigmaP / (p * p);
+    const ActsScalar sigmaQOverP = sigmaP / (p * p);
     // shortcuts for other resolutions
-    const float sigmaT0 = resolution.sigmaT0;
-    const float sigmaPhi = resolution.sigmaPhi;
-    const float sigmaTheta = resolution.sigmaTheta;
+    const ActsScalar sigmaT0 = resolution.sigmaT0;
+    const ActsScalar sigmaPhi = resolution.sigmaPhi;
+    const ActsScalar sigmaTheta = resolution.sigmaTheta;
 
     Acts::BoundVector params = Acts::BoundVector::Zero();
     // smear the position/time
@@ -226,12 +226,12 @@ runParticleSmearing(random_engine_t &rng, const Acts::GeometryContext &gctx,
     // smear direction angles phi,theta ensuring correct bounds
     const auto phiTheta = Acts::detail::normalizePhiTheta(
         phi + sigmaPhi * stdNormal(rng), theta + sigmaTheta * stdNormal(rng));
-    const float newPhi = phiTheta.first;
-    const float newTheta = phiTheta.second;
+    const ActsScalar newPhi = phiTheta.first;
+    const ActsScalar newTheta = phiTheta.second;
     params[Acts::eBoundPhi] = newPhi;
     params[Acts::eBoundTheta] = newTheta;
     // compute smeared absolute momentum vector
-    const float newP = std::max(0.0, p + sigmaP * stdNormal(rng));
+    const ActsScalar newP = std::max((float)0.0, p + sigmaP * stdNormal(rng));
     params[Acts::eBoundQOverP] = (q != 0) ? (q / newP) : (1 / newP);
 
     // build the track covariance matrix using the smearing sigmas

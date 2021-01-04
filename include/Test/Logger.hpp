@@ -16,7 +16,7 @@ public:
   template <class... T>
   static void logTime(std::string filename, const T &... times) {
 
-    std::vector<double> timesVec = {times...};
+    std::vector<ActsScalar> timesVec = {times...};
     std::ofstream myFile;
     myFile.open(filename, std::ofstream::out | std::ofstream::app);
 

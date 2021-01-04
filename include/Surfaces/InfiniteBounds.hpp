@@ -29,8 +29,8 @@ public:
 
   ACTS_DEVICE_FUNC BoundsType type() const { return BoundsType::Boundless; }
 
-  ACTS_DEVICE_FUNC ActsVector<double, 0> values() const {
-    return ActsVector<double, 0>::Zero();
+  ACTS_DEVICE_FUNC ActsVector<ActsScalar, 0> values() const {
+    return ActsVector<ActsScalar, 0>::Zero();
   }
 
   /// Method inside() returns true for any case

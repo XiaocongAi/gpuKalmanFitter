@@ -18,13 +18,13 @@ Acts::InterpolatedBFieldMapper<
 BField::txt::fieldMapperRZ(std::function<size_t(std::array<size_t, 2> binsRZ,
                                                 std::array<size_t, 2> nBinsRZ)>
                                localToGlobalBin,
-                           std::string fieldMapFile, double lengthUnit,
-                           double BFieldUnit, size_t nPoints,
+                           std::string fieldMapFile, ActsScalar lengthUnit,
+                           ActsScalar BFieldUnit, size_t nPoints,
                            bool firstQuadrant) {
   /// [1] Read in field map file
   // Grid position points in r and z
-  std::vector<double> rPos;
-  std::vector<double> zPos;
+  std::vector<ActsScalar> rPos;
+  std::vector<ActsScalar> zPos;
   // components of magnetic field on grid points
   std::vector<Acts::Vector2D> bField;
   // reserve estimated size
@@ -34,8 +34,8 @@ BField::txt::fieldMapperRZ(std::function<size_t(std::array<size_t, 2> binsRZ,
   // [1] Read in file and fill values
   std::ifstream map_file(fieldMapFile.c_str(), std::ios::in);
   std::string line;
-  double r = 0., z = 0.;
-  double br = 0., bz = 0.;
+  ActsScalar r = 0., z = 0.;
+  ActsScalar br = 0., bz = 0.;
   while (std::getline(map_file, line)) {
     if (line.empty() || line[0] == '%' || line[0] == '#' ||
         line.find_first_not_of(' ') == std::string::npos)
@@ -60,13 +60,13 @@ BField::txt::fieldMapperXYZ(
     std::function<size_t(std::array<size_t, 3> binsXYZ,
                          std::array<size_t, 3> nBinsXYZ)>
         localToGlobalBin,
-    std::string fieldMapFile, double lengthUnit, double BFieldUnit,
+    std::string fieldMapFile, ActsScalar lengthUnit, ActsScalar BFieldUnit,
     size_t nPoints, bool firstOctant) {
   /// [1] Read in field map file
   // Grid position points in x, y and z
-  std::vector<double> xPos;
-  std::vector<double> yPos;
-  std::vector<double> zPos;
+  std::vector<ActsScalar> xPos;
+  std::vector<ActsScalar> yPos;
+  std::vector<ActsScalar> zPos;
   // components of magnetic field on grid points
   std::vector<Acts::Vector3D> bField;
   // reserve estimated size
@@ -78,8 +78,8 @@ BField::txt::fieldMapperXYZ(
   // [1] Read in file and fill values
   std::ifstream map_file(fieldMapFile.c_str(), std::ios::in);
   std::string line;
-  double x = 0., y = 0., z = 0.;
-  double bx = 0., by = 0., bz = 0.;
+  ActsScalar x = 0., y = 0., z = 0.;
+  ActsScalar bx = 0., by = 0., bz = 0.;
   while (std::getline(map_file, line)) {
     if (line.empty() || line[0] == '%' || line[0] == '#' ||
         line.find_first_not_of(' ') == std::string::npos)

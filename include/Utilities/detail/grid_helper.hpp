@@ -155,7 +155,7 @@ template <size_t N> struct grid_helper_impl;
 template <size_t N> struct grid_helper_impl {
   template <class... Axes>
   ACTS_DEVICE_FUNC static void
-  getBinCenter(ActsVector<double, sizeof...(Axes)> &center,
+  getBinCenter(ActsVector<ActsScalar, sizeof...(Axes)> &center,
                const ActsVector<size_t, sizeof...(Axes)> &localIndices,
                const std::tuple<Axes...> &axes) {
     center(N) = std::get<N>(axes).getBinCenter(localIndices(N));
@@ -196,7 +196,7 @@ template <size_t N> struct grid_helper_impl {
 
   template <class... Axes>
   ACTS_DEVICE_FUNC static void
-  getLowerLeftBinEdge(ActsVector<double, sizeof...(Axes)> &llEdge,
+  getLowerLeftBinEdge(ActsVector<ActsScalar, sizeof...(Axes)> &llEdge,
                       const ActsVector<size_t, sizeof...(Axes)> &localIndices,
                       const std::tuple<Axes...> &axes) {
     llEdge(N) = std::get<N>(axes).getBinLowerBound(localIndices(N));
@@ -230,7 +230,7 @@ template <size_t N> struct grid_helper_impl {
 
   template <class... Axes>
   ACTS_DEVICE_FUNC static void
-  getUpperRightBinEdge(ActsVector<double, sizeof...(Axes)> &urEdge,
+  getUpperRightBinEdge(ActsVector<ActsScalar, sizeof...(Axes)> &urEdge,
                        const ActsVector<size_t, sizeof...(Axes)> &localIndices,
                        const std::tuple<Axes...> &axes) {
     urEdge(N) = std::get<N>(axes).getBinUpperBound(localIndices(N));
@@ -248,7 +248,7 @@ template <size_t N> struct grid_helper_impl {
   template <class... Axes>
   ACTS_DEVICE_FUNC static void
   getMin(const std::tuple<Axes...> &axes,
-         ActsVector<double, sizeof...(Axes)> &minArray) {
+         ActsVector<ActsScalar, sizeof...(Axes)> &minArray) {
     minArray(N) = std::get<N>(axes).getMin();
     grid_helper_impl<N - 1>::getMin(axes, minArray);
   }
@@ -256,7 +256,7 @@ template <size_t N> struct grid_helper_impl {
   template <class... Axes>
   ACTS_DEVICE_FUNC static void
   getMax(const std::tuple<Axes...> &axes,
-         ActsVector<double, sizeof...(Axes)> &maxArray) {
+         ActsVector<ActsScalar, sizeof...(Axes)> &maxArray) {
     maxArray(N) = std::get<N>(axes).getMax();
     grid_helper_impl<N - 1>::getMax(axes, maxArray);
   }
@@ -306,7 +306,7 @@ template <size_t N> struct grid_helper_impl {
 template <> struct grid_helper_impl<0u> {
   template <class... Axes>
   ACTS_DEVICE_FUNC static void
-  getBinCenter(ActsVector<double, sizeof...(Axes)> &center,
+  getBinCenter(ActsVector<ActsScalar, sizeof...(Axes)> &center,
                const ActsVector<size_t, sizeof...(Axes)> &localIndices,
                const std::tuple<Axes...> &axes) {
     center(0u) = std::get<0u>(axes).getBinCenter(localIndices(0u));
@@ -340,7 +340,7 @@ template <> struct grid_helper_impl<0u> {
 
   template <class... Axes>
   ACTS_DEVICE_FUNC static void
-  getLowerLeftBinEdge(ActsVector<double, sizeof...(Axes)> &llEdge,
+  getLowerLeftBinEdge(ActsVector<ActsScalar, sizeof...(Axes)> &llEdge,
                       const ActsVector<size_t, sizeof...(Axes)> &localIndices,
                       const std::tuple<Axes...> &axes) {
     llEdge(0u) = std::get<0u>(axes).getBinLowerBound(localIndices(0u));
@@ -370,7 +370,7 @@ template <> struct grid_helper_impl<0u> {
 
   template <class... Axes>
   ACTS_DEVICE_FUNC static void
-  getUpperRightBinEdge(ActsVector<double, sizeof...(Axes)> &urEdge,
+  getUpperRightBinEdge(ActsVector<ActsScalar, sizeof...(Axes)> &urEdge,
                        const ActsVector<size_t, sizeof...(Axes)> &localIndices,
                        const std::tuple<Axes...> &axes) {
     urEdge(0u) = std::get<0u>(axes).getBinUpperBound(localIndices(0u));
@@ -386,14 +386,14 @@ template <> struct grid_helper_impl<0u> {
   template <class... Axes>
   ACTS_DEVICE_FUNC static void
   getMin(const std::tuple<Axes...> &axes,
-         ActsVector<double, sizeof...(Axes)> &minArray) {
+         ActsVector<ActsScalar, sizeof...(Axes)> &minArray) {
     minArray(0u) = std::get<0u>(axes).getMin();
   }
 
   template <class... Axes>
   ACTS_DEVICE_FUNC static void
   getMax(const std::tuple<Axes...> &axes,
-         ActsVector<double, sizeof...(Axes)> &maxArray) {
+         ActsVector<ActsScalar, sizeof...(Axes)> &maxArray) {
     maxArray(0u) = std::get<0u>(axes).getMax();
   }
 
@@ -484,10 +484,10 @@ struct grid_helper {
   /// @pre @c localIndices must only contain valid bin indices (i.e. excluding
   ///      under-/overflow bins).
   template <class... Axes>
-  ACTS_DEVICE_FUNC static ActsVector<double, sizeof...(Axes)>
+  ACTS_DEVICE_FUNC static ActsVector<ActsScalar, sizeof...(Axes)>
   getBinCenter(const ActsVector<size_t, sizeof...(Axes)> &localIndices,
                const std::tuple<Axes...> &axes) {
-    ActsVector<double, sizeof...(Axes)> center;
+    ActsVector<ActsScalar, sizeof...(Axes)> center;
     constexpr size_t MAX = sizeof...(Axes) - 1;
     grid_helper_impl<MAX>::getBinCenter(center, localIndices, axes);
 
@@ -574,10 +574,10 @@ struct grid_helper {
   /// @pre @c localIndices must only contain valid bin indices (excluding
   ///      underflow bins).
   template <class... Axes>
-  ACTS_DEVICE_FUNC static ActsVector<double, sizeof...(Axes)>
+  ACTS_DEVICE_FUNC static ActsVector<ActsScalar, sizeof...(Axes)>
   getLowerLeftBinEdge(const ActsVector<size_t, sizeof...(Axes)> &localIndices,
                       const std::tuple<Axes...> &axes) {
-    ActsVector<double, sizeof...(Axes)> llEdge;
+    ActsVector<ActsScalar, sizeof...(Axes)> llEdge;
     constexpr size_t MAX = sizeof...(Axes) - 1;
     grid_helper_impl<MAX>::getLowerLeftBinEdge(llEdge, localIndices, axes);
 
@@ -649,10 +649,10 @@ struct grid_helper {
   /// @pre @c localIndices must only contain valid bin indices (excluding
   ///      overflow bins).
   template <class... Axes>
-  ACTS_DEVICE_FUNC static ActsVector<double, sizeof...(Axes)>
+  ACTS_DEVICE_FUNC static ActsVector<ActsScalar, sizeof...(Axes)>
   getUpperRightBinEdge(const ActsVector<size_t, sizeof...(Axes)> &localIndices,
                        const std::tuple<Axes...> &axes) {
-    ActsVector<double, sizeof...(Axes)> urEdge;
+    ActsVector<ActsScalar, sizeof...(Axes)> urEdge;
     constexpr size_t MAX = sizeof...(Axes) - 1;
     grid_helper_impl<MAX>::getUpperRightBinEdge(urEdge, localIndices, axes);
 
@@ -690,9 +690,9 @@ struct grid_helper {
   /// @param  [in] axes actual axis objects spanning the grid
   /// @return array returning the minima of all given axes
   template <class... Axes>
-  ACTS_DEVICE_FUNC static ActsVector<double, sizeof...(Axes)>
+  ACTS_DEVICE_FUNC static ActsVector<ActsScalar, sizeof...(Axes)>
   getMin(const std::tuple<Axes...> &axes) {
-    ActsVector<double, sizeof...(Axes)> minArray;
+    ActsVector<ActsScalar, sizeof...(Axes)> minArray;
     grid_helper_impl<sizeof...(Axes) - 1>::getMin(axes, minArray);
     return minArray;
   }
@@ -703,9 +703,9 @@ struct grid_helper {
   /// @param  [in] axes actual axis objects spanning the grid
   /// @return array returning the maxima of all given axes
   template <class... Axes>
-  ACTS_DEVICE_FUNC static ActsVector<double, sizeof...(Axes)>
+  ACTS_DEVICE_FUNC static ActsVector<ActsScalar, sizeof...(Axes)>
   getMax(const std::tuple<Axes...> &axes) {
-    ActsVector<double, sizeof...(Axes)> maxArray;
+    ActsVector<ActsScalar, sizeof...(Axes)> maxArray;
     grid_helper_impl<sizeof...(Axes) - 1>::getMax(axes, maxArray);
     return maxArray;
   }

@@ -130,7 +130,7 @@ static const int8_t kParticlesThreeCharge[kParticlesCount] = {
     3,  3,  0,  0,  3,  0,  0,  0,  0,  3,  3,  0,  0,  0,  0,  3,  0,  0,  0,
     0,  0,  0,  0,
 };
-static const float kParticlesMassMeV[kParticlesCount] = {
+static const ActsScalar kParticlesMassMeV[kParticlesCount] = {
     1655.0f,   1660.0f,       1810.0f,     824.0f,      824.0f,
     1700.0f,   1354.0f,       980.0f,      2881.63f,    2252.0f,
     2025.0f,   1690.0f,       2025.0f,     1690.0f,     2792.4f,

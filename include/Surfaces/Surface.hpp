@@ -337,9 +337,9 @@ public:
   ///
   /// @return Path correction with respect to the nominal incident.
   template <typename Derived>
-  ACTS_DEVICE_FUNC double pathCorrection(const GeometryContext &gctx,
-                                         const Vector3D &position,
-                                         const Vector3D &direction) const;
+  ACTS_DEVICE_FUNC ActsScalar pathCorrection(const GeometryContext &gctx,
+                                             const Vector3D &position,
+                                             const Vector3D &direction) const;
 
   /// Straight line intersection schema from position/direction
   ///

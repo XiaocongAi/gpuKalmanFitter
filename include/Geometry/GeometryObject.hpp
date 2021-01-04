@@ -66,9 +66,9 @@ public:
   /// @param gctx The current geometry context object, e.g. alignment
   /// @param bValue is the dobule in which you want to bin
   ///
-  /// @return float to be used for the binning schema
-  virtual double binningPositionValue(const GeometryContext &gctx,
-                                      BinningValue bValue) const;
+  /// @return ActsScalar to be used for the binning schema
+  virtual ActsScalar binningPositionValue(const GeometryContext &gctx,
+                                          BinningValue bValue) const;
 
   /// Set the value
   ///
@@ -85,8 +85,9 @@ inline void GeometryObject::assignGeoID(const GeometryID &geoID) {
   m_geoID = geoID;
 }
 
-inline double GeometryObject::binningPositionValue(const GeometryContext &gctx,
-                                                   BinningValue bValue) const {
+inline ActsScalar
+GeometryObject::binningPositionValue(const GeometryContext &gctx,
+                                     BinningValue bValue) const {
   using VectorHelpers::perp;
   // now switch
   switch (bValue) {

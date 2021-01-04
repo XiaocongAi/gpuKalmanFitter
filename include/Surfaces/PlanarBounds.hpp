@@ -29,7 +29,7 @@ class PlanarBounds
                            ValueSize> {
 public:
   /// Return the vertices - or, the points of the extremas
-  ActsMatrix<double, VerticeSize, 2> vertices() const;
+  ActsMatrix<ActsScalar, VerticeSize, 2> vertices() const;
 
   // Bounding box parameters
   //  const RectangleBounds &boundingBox() const;
@@ -42,7 +42,7 @@ public:
   /// Access method for bound variable store
   ///
   /// @return of the stored values for the boundary object
-  ACTS_DEVICE_FUNC ActsVector<double, ValueSize> values() const;
+  ACTS_DEVICE_FUNC ActsVector<ActsScalar, ValueSize> values() const;
 
   /// Inside check for the bounds object driven by the boundary check directive
   /// Each Bounds has a method inside, which checks if a LocalPosition is inside
@@ -56,7 +56,7 @@ public:
 };
 
 template <typename Derived, unsigned int VerticeSize, unsigned int ValueSize>
-inline ActsMatrix<double, VerticeSize, 2>
+inline ActsMatrix<ActsScalar, VerticeSize, 2>
 PlanarBounds<Derived, VerticeSize, ValueSize>::vertices() const {
   return static_cast<Derived &>(*this).vertices();
 }
@@ -67,7 +67,7 @@ inline BoundsType PlanarBounds<Derived, VerticeSize, ValueSize>::type() const {
 }
 
 template <typename Derived, unsigned int VerticeSize, unsigned int ValueSize>
-inline ActsVector<double, ValueSize>
+inline ActsVector<ActsScalar, ValueSize>
 PlanarBounds<Derived, VerticeSize, ValueSize>::values() const {
   return static_cast<Derived &>(*this).values();
 }

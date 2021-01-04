@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
   bool smoothing = false;
   std::string device = "cpu";
   std::string bFieldFileName;
-  // double p = 1 * Acts::units::_GeV;
+  // ActsScalar p = 1 * Acts::units::_GeV;
   dim3 grid(20000), block(8, 8);
   // This should always be included
   for (Size i = 1; i < argc; ++i) {
@@ -170,14 +170,6 @@ int main(int argc, char *argv[]) {
   auto randomNumbers = std::make_shared<ActsExamples::RandomNumbers>(config);
   auto rng = randomNumbers->spawnGenerator(0);
 
-  int a = 5;
-  std::cout << "volume:" << __builtin_ctzll(Acts::volume_mask) << std::endl;
-  std::cout << "layer:" << __builtin_ctzll(Acts::layer_mask) << std::endl;
-  std::cout << "sensitive:" << __builtin_ctzll(Acts::sensitive_mask)
-            << std::endl;
-  std::cout << "approach:" << __builtin_ctzll(Acts::approach_mask) << std::endl;
-  std::cout << "boundary:" << __builtin_ctzll(Acts::boundary_mask) << std::endl;
-
   // Create the geometry
   // Set translation vectors
   std::vector<Acts::Vector3D> translations;
@@ -261,7 +253,7 @@ int main(int argc, char *argv[]) {
   runSimulation(gctx, mctx, rng, propagator, generatedParticles, validParticles,
                 simResult, surfacePtrs, nSurfaces);
   auto end_propagate = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<float> elapsed_seconds =
+  std::chrono::duration<ActsScalar> elapsed_seconds =
       end_propagate - start_propagate;
   std::cout << "Time (ms) to run propagation tests: "
             << elapsed_seconds.count() * 1000 << std::endl;
@@ -274,8 +266,8 @@ int main(int argc, char *argv[]) {
   buildTargetSurfaces(validParticles, targetSurfaces);
 
   // The hit smearing resolution
-  std::array<float, 2> hitResolution = {30. * Acts::units::_mm,
-                                        30. * Acts::units::_mm};
+  std::array<ActsScalar, 2> hitResolution = {30. * Acts::units::_mm,
+                                             30. * Acts::units::_mm};
   // Run hit smearing to create source links
   // @note pass the concreate PlaneSurfaceType pointer here
   runHitSmearing(gctx, rng, simResult, hitResolution, sourcelinks, surfaces,
@@ -301,7 +293,7 @@ int main(int argc, char *argv[]) {
     fitStatus[it] = false;
   }
 
-  float ms; // elapsed time in milliseconds
+  ActsScalar ms; // elapsed time in milliseconds
 
   // Create events and streams
   cudaEvent_t startEvent, stopEvent;

@@ -25,7 +25,7 @@ namespace ActsFatras {
 /// thus stored as two separate four-vectors.
 class Hit {
 public:
-  using Scalar = double;
+  using Scalar = ActsScalar;
   using Vector3 = Acts::ActsVector<Scalar, 3>;
   using Vector4 = Acts::ActsVector<Scalar, 4>;
 

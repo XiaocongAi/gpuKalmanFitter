@@ -21,12 +21,12 @@ enum MaterialClassificationNumberIndices {
 };
 
 // Avogadro constant
-constexpr double kAvogadro = 6.02214076e23 / Acts::UnitConstants::mol;
+constexpr ActsScalar kAvogadro = 6.02214076e23 / Acts::UnitConstants::mol;
 } // namespace
 
-inline Acts::Material Acts::Material::fromMassDensity(float x0, float l0,
-                                                      float ar, float z,
-                                                      float massRho) {
+inline Acts::Material
+Acts::Material::fromMassDensity(ActsScalar x0, ActsScalar l0, ActsScalar ar,
+                                ActsScalar z, ActsScalar massRho) {
   using namespace Acts::UnitLiterals;
 
   Material mat;
@@ -44,15 +44,15 @@ inline Acts::Material Acts::Material::fromMassDensity(float x0, float l0,
   //
   //      atomic-mass = relative-atomic-mass * atomic-mass-unit
   //
-  // perform computations in double precision to avoid loss of precision
-  const double atomicMass = static_cast<double>(ar) * 1_u;
-  mat.m_molarRho = static_cast<double>(massRho) / (atomicMass * kAvogadro);
+  // perform computations in ActsScalar precision to avoid loss of precision
+  const ActsScalar atomicMass = static_cast<ActsScalar>(ar) * 1_u;
+  mat.m_molarRho = static_cast<ActsScalar>(massRho) / (atomicMass * kAvogadro);
   return mat;
 }
 
-inline Acts::Material Acts::Material::fromMolarDensity(float x0, float l0,
-                                                       float ar, float z,
-                                                       float molarRho) {
+inline Acts::Material
+Acts::Material::fromMolarDensity(ActsScalar x0, ActsScalar l0, ActsScalar ar,
+                                 ActsScalar z, ActsScalar molarRho) {
   Material mat;
   mat.m_x0 = x0;
   mat.m_l0 = l0;
@@ -67,16 +67,17 @@ inline Acts::Material::Material(const ParametersVector &parameters)
       m_ar(parameters[eRelativeAtomicMass]), m_z(parameters[eNuclearCharge]),
       m_molarRho(parameters[eMolarDensity]) {}
 
-inline float Acts::Material::massDensity() const {
+inline ActsScalar Acts::Material::massDensity() const {
   using namespace Acts::UnitLiterals;
 
-  // perform computations in double precision to avoid loss of precision
-  const double atomicMass = static_cast<double>(m_ar) * 1_u;
-  const double numberDensity = static_cast<double>(m_molarRho) * kAvogadro;
+  // perform computations in ActsScalar precision to avoid loss of precision
+  const ActsScalar atomicMass = static_cast<ActsScalar>(m_ar) * 1_u;
+  const ActsScalar numberDensity =
+      static_cast<ActsScalar>(m_molarRho) * kAvogadro;
   return atomicMass * numberDensity;
 }
 
-inline float Acts::Material::meanExcitationEnergy() const {
+inline ActsScalar Acts::Material::meanExcitationEnergy() const {
   using namespace Acts::UnitLiterals;
 
   // use approximative computation as defined in ATL-SOFT-PUB-2008-003

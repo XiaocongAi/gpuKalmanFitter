@@ -30,17 +30,17 @@ class ParametricParticleGenerator {
 public:
   struct Config {
     // Low, high (exclusive) for the transverse direction angle.
-    double phiMin = 0;
-    double phiMax = 0;
+    ActsScalar phiMin = 0;
+    ActsScalar phiMax = 0;
     // Low, high (inclusive) for  the longitudinal direction angle.
     //
     // This intentionally uses theta instead of eta so it can represent the
     // full direction space with finite values.
-    double thetaMin = M_PI / 2;
-    double thetaMax = M_PI / 2;
+    ActsScalar thetaMin = M_PI / 2;
+    ActsScalar thetaMax = M_PI / 2;
     // Low, high (exclusive) for absolute momentum.
-    double pMin = 1 * Acts::UnitConstants::GeV;
-    double pMax = 10 * Acts::UnitConstants::GeV;
+    ActsScalar pMin = 1 * Acts::UnitConstants::GeV;
+    ActsScalar pMax = 10 * Acts::UnitConstants::GeV;
     /// (Absolute) PDG particle number to identify the particle type.
     Acts::PdgParticle pdg = Acts::PdgParticle::eMuon;
     /// Randomize the charge and flip the PDG particle number sign accordingly.
@@ -57,10 +57,10 @@ public:
 private:
   Config m_cfg;
   // will be automatically set from PDG data tables
-  double m_charge;
-  double m_mass;
-  double m_cosThetaMin;
-  double m_cosThetaMax;
+  ActsScalar m_charge;
+  ActsScalar m_mass;
+  ActsScalar m_cosThetaMin;
+  ActsScalar m_cosThetaMax;
 };
 
 inline ParametricParticleGenerator::ParametricParticleGenerator(
@@ -75,7 +75,7 @@ inline ParametricParticleGenerator::ParametricParticleGenerator(
       // ensure upper bound is included. see e.g.
       // https://en.cppreference.com/w/cpp/numeric/random/uniform_real_distribution
       m_cosThetaMax(std::nextafter(std::cos(m_cfg.thetaMax),
-                                   std::numeric_limits<double>::max())) {
+                                   std::numeric_limits<ActsScalar>::max())) {
   if (m_cfg.pdg != Acts::PdgParticle::eMuon) {
     throw std::invalid_argument("Sorry. Only eMuon is supported.");
   }
@@ -83,10 +83,10 @@ inline ParametricParticleGenerator::ParametricParticleGenerator(
   m_mass = 105.6583755 * Acts::UnitConstants::MeV;
 }
 
-inline SimParticleContainer ParametricParticleGenerator::
-operator()(RandomEngine &rng) const {
+inline SimParticleContainer
+ParametricParticleGenerator::operator()(RandomEngine &rng) const {
   using UniformIndex = std::uniform_int_distribution<unsigned int>;
-  using UniformReal = std::uniform_real_distribution<double>;
+  using UniformReal = std::uniform_real_distribution<ActsScalar>;
 
   // choose between particle/anti-particle if requested
   // the upper limit of the distribution is inclusive
@@ -96,7 +96,7 @@ operator()(RandomEngine &rng) const {
       m_cfg.pdg,
       static_cast<Acts::PdgParticle>(-m_cfg.pdg),
   };
-  const double qChoices[] = {
+  const ActsScalar qChoices[] = {
       m_charge,
       -m_charge,
   };
@@ -115,11 +115,11 @@ operator()(RandomEngine &rng) const {
     // draw parameters
     const unsigned int type = particleTypeChoice(rng);
     const Acts::PdgParticle pdg = pdgChoices[type];
-    const double q = qChoices[type];
-    const double phi = phiDist(rng);
-    const double cosTheta = cosThetaDist(rng);
-    const double sinTheta = std::sqrt(1 - cosTheta * cosTheta);
-    const double p = pDist(rng);
+    const ActsScalar q = qChoices[type];
+    const ActsScalar phi = phiDist(rng);
+    const ActsScalar cosTheta = cosThetaDist(rng);
+    const ActsScalar sinTheta = std::sqrt(1 - cosTheta * cosTheta);
+    const ActsScalar p = pDist(rng);
 
     // we already have sin/cos theta. they can be used directly to
     Acts::Vector3D dir;

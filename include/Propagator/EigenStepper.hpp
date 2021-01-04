@@ -41,8 +41,8 @@ template <typename bfield_t> struct EigenStepper {
     ACTS_DEVICE_FUNC explicit State(
         const GeometryContext &gctx, const parameters_t &par,
         NavigationDirection ndir = forward,
-        double ssize = std::numeric_limits<double>::max(),
-        double stolerance = s_onSurfaceTolerance)
+        ActsScalar ssize = std::numeric_limits<ActsScalar>::max(),
+        ActsScalar stolerance = s_onSurfaceTolerance)
         : pos(par.position()), dir(par.momentum().normalized()),
           p(par.momentum().norm()), q(par.charge()), t(par.time()),
           navDir(ndir), stepSize(ndir * std::abs(ssize)), tolerance(stolerance),
@@ -67,13 +67,13 @@ template <typename bfield_t> struct EigenStepper {
     Vector3D dir = Vector3D(1., 0., 0.);
 
     /// Momentum
-    double p = 0.;
+    ActsScalar p = 0.;
 
     /// The charge
     int q = 1;
 
     /// Propagated time
-    double t = 0.;
+    ActsScalar t = 0.;
 
     /// Navigation direction, this is needed for searching
     NavigationDirection navDir;
@@ -96,16 +96,16 @@ template <typename bfield_t> struct EigenStepper {
     Covariance cov = Covariance::Zero();
 
     /// Accummulated path length state
-    double pathAccumulated = 0.;
+    ActsScalar pathAccumulated = 0.;
 
     /// Adaptive step size of the runge-kutta integration
-    ConstrainedStep stepSize{std::numeric_limits<double>::max()};
+    ConstrainedStep stepSize{std::numeric_limits<ActsScalar>::max()};
 
     /// Last performed step (for overstep limit calculation)
-    double previousStepSize = 0.;
+    ActsScalar previousStepSize = 0.;
 
     /// The tolerance for the stepping
-    double tolerance = s_onSurfaceTolerance;
+    ActsScalar tolerance = s_onSurfaceTolerance;
 
     /// The geometry context
     GeometryContext geoContext;
@@ -186,17 +186,21 @@ template <typename bfield_t> struct EigenStepper {
   /// Actual momentum accessor
   ///
   /// @param state [in] The stepping state (thread-local cache)
-  ACTS_DEVICE_FUNC double momentum(const State &state) const { return state.p; }
+  ACTS_DEVICE_FUNC ActsScalar momentum(const State &state) const {
+    return state.p;
+  }
 
   /// Charge access
   ///
   /// @param state [in] The stepping state (thread-local cache)
-  ACTS_DEVICE_FUNC double charge(const State &state) const { return state.q; }
+  ACTS_DEVICE_FUNC ActsScalar charge(const State &state) const {
+    return state.q;
+  }
 
   /// Time access
   ///
   /// @param state [in] The stepping state (thread-local cache)
-  ACTS_DEVICE_FUNC double time(const State &state) const { return state.t; }
+  ACTS_DEVICE_FUNC ActsScalar time(const State &state) const { return state.t; }
 
   /// Update surface status
   ///
@@ -231,13 +235,13 @@ template <typename bfield_t> struct EigenStepper {
     detail::updateSingleStepSize<EigenStepper>(state, oIntersection, release);
   }
 
-  /// Set Step size - explicitely with a double
+  /// Set Step size - explicitely with a ActsScalar
   ///
   /// @param state [in,out] The stepping state (thread-local cache)
   /// @param stepSize [in] The step size value
   /// @param stype [in] The step size type to be set
   ACTS_DEVICE_FUNC void
-  setStepSize(State &state, double stepSize,
+  setStepSize(State &state, ActsScalar stepSize,
               ConstrainedStep::Type stype = ConstrainedStep::actor) const {
     state.previousStepSize = state.stepSize;
     state.stepSize.update(stepSize, stype, true);
@@ -260,7 +264,7 @@ template <typename bfield_t> struct EigenStepper {
   /// Overstep limit
   ///
   /// @param state [in] The stepping state (thread-local cache)
-  ACTS_DEVICE_FUNC double overstepLimit(const State & /*state*/) const {
+  ACTS_DEVICE_FUNC ActsScalar overstepLimit(const State & /*state*/) const {
     // A dynamic overstep limit could sit here
     return -m_overstepLimit;
   }
@@ -283,7 +287,7 @@ template <typename bfield_t> struct EigenStepper {
   ACTS_DEVICE_FUNC void
   boundState(State &state, const Surface &surface,
              BoundParameters<surface_derived_t> &boundParams,
-             BoundMatrix &jacobian, double &path) const;
+             BoundMatrix &jacobian, ActsScalar &path) const;
 
 #ifdef __CUDACC__
   /// Create and return the bound state at the current position
@@ -304,7 +308,7 @@ template <typename bfield_t> struct EigenStepper {
   __device__ void
   boundStateOnDevice(State &state, const Surface &surface,
                      BoundParameters<surface_derived_t> &boundParams,
-                     BoundMatrix &jacobian, double &path) const;
+                     BoundMatrix &jacobian, ActsScalar &path) const;
 #endif
 
   /// Create and return a curvilinear state at the current position
@@ -334,8 +338,8 @@ template <typename bfield_t> struct EigenStepper {
   /// @param [in] udirection the updated direction
   /// @param [in] up the updated momentum value
   ACTS_DEVICE_FUNC void update(State &state, const Vector3D &uposition,
-                               const Vector3D &udirection, double up,
-                               double time) const;
+                               const Vector3D &udirection, ActsScalar up,
+                               ActsScalar time) const;
 
   /// Method for on-demand transport of the covariance
   /// to a new curvilinear frame at current  position,
@@ -363,7 +367,7 @@ private:
   BField m_bField;
 
   /// Overstep limit: could/should be dynamic
-  double m_overstepLimit = 0.01;
+  ActsScalar m_overstepLimit = 0.01;
 };
 } // namespace Acts
 

@@ -50,7 +50,7 @@ using FullFreeParameterSet =
  * convertible to an <tt>unsigned int</tt>
  *  -# It must contain a <tt>typedef #ParValue_t</tt> specifying the type of
  * the parameter values. This could for
- *     instance be @c double, or @c float.
+ *     instance be @c ActsScalar, or @c ActsScalar.
  *  -# It must contain a definition of an integral constant named @c N which is
  * assignable to an <tt>unsigned
  *     int</tt> and which is equal to the total number of parameters in the

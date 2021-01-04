@@ -31,13 +31,13 @@ public:
   static constexpr size_t num_vertices = N;
   /// Type that's used to store the vertices, in this case a fixed size array.
   ///
-  using vertex_array = ActsMatrix<double, num_vertices, 2>;
+  using vertex_array = ActsMatrix<ActsScalar, num_vertices, 2>;
   /// Expose number of parameters as a template parameter
   ///
   static constexpr size_t eSize = 2 * N;
   /// Type that's used to store the vertices, in this case a fixed size array.
   ///
-  using value_array = ActsVector<double, eSize>;
+  using value_array = ActsVector<ActsScalar, eSize>;
 
   static_assert(N >= 3, "ConvexPolygonBounds needs at least 3 sides.");
 
@@ -61,7 +61,7 @@ public:
   /// Return the bound values as dynamically sized vector
   ///
   /// @return this returns a copy of the internal values
-  ACTS_DEVICE_FUNC ActsVector<double, eSize> values() const;
+  ACTS_DEVICE_FUNC ActsVector<ActsScalar, eSize> values() const;
 
   /// Return whether a local 2D point lies inside of the bounds defined by this
   /// object.

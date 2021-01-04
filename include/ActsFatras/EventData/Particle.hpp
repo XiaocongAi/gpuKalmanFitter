@@ -22,7 +22,7 @@ namespace ActsFatras {
 /// Simulation particle information and kinematic state.
 class Particle {
 public:
-  using Scalar = double;
+  using Scalar = ActsScalar;
   using Vector3 = Acts::ActsVector<Scalar, 3>;
   using Vector4 = Acts::ActsVector<Scalar, 4>;
 

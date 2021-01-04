@@ -60,7 +60,7 @@ public:
   /// Access method for bound variable store
   ///
   /// @return of the stored values for the boundary object
-  ACTS_DEVICE_FUNC ActsVector<double, ValueSize> values() const;
+  ACTS_DEVICE_FUNC ActsVector<ActsScalar, ValueSize> values() const;
 
   /// Inside check for the bounds object driven by the boundary check directive
   /// Each Bounds has a method inside, which checks if a LocalPosition is inside
@@ -96,7 +96,7 @@ inline BoundsType SurfaceBounds<Derived, ValueSize>::type() const {
 }
 
 template <typename Derived, unsigned int ValueSize>
-inline ActsVector<double, ValueSize>
+inline ActsVector<ActsScalar, ValueSize>
 SurfaceBounds<Derived, ValueSize>::values() const {
   return static_cast<Derived &>(*this).values();
 }

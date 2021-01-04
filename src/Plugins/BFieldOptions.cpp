@@ -34,12 +34,12 @@ InterpolatedBFieldMap3D readBField(std::string bfieldmap) {
   enum BFieldMapType { constant = 0, root = 1, text = 2 };
 
   int bfieldmaptype = text;
-  double lscalor = 1.;
-  double bscalor = 1.;
+  ActsScalar lscalor = 1.;
+  ActsScalar bscalor = 1.;
 
   // Declare the mapper
-  double lengthUnit = lscalor * Acts::units::_mm;
-  double BFieldUnit = bscalor * Acts::units::_T;
+  ActsScalar lengthUnit = lscalor * Acts::units::_mm;
+  ActsScalar BFieldUnit = bscalor * Acts::units::_T;
 
   // set the mapper - foort
   if (bfieldmaptype == text) {

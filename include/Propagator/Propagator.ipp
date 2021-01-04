@@ -45,7 +45,7 @@ ACTS_DEVICE_FUNC Acts::PropagatorResult Acts::Propagator<S, N>::propagate(
       // if (not res) {
       //}
       // Accumulate the path length
-      // double s = *res;
+      // ActsScalar s = *res;
       // result.pathLength += s;
 
       POP_RANGE();
@@ -161,7 +161,7 @@ __device__ void Acts::Propagator<S, N>::propagate(
       // if (not res) {
       //}
       // Accumulate the path length
-      // double s = *res;
+      // ActsScalar s = *res;
       // result.pathLength += s;
 
       // Post-stepping:

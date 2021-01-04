@@ -34,7 +34,7 @@ struct GaussianVertexGenerator {
   Acts::Vector4D mean = {0.0, 0.0, 0.0, 0.0};
 
   Acts::Vector4D operator()(RandomEngine &rng) const {
-    auto normal = std::normal_distribution<double>(0.0, 1.0);
+    auto normal = std::normal_distribution<ActsScalar>(0.0, 1.0);
     Acts::Vector4D rndNormal = {
         normal(rng),
         normal(rng),

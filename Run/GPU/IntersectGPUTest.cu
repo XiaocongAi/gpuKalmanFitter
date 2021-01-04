@@ -120,8 +120,8 @@ int main() {
   std::string line;
   std::getline(surface_file, line);
   std::cout << "Input header: " << line << std::endl;
-  double v1_x = 0., v1_y = 0., v1_z = 0., v2_x = 0., v2_y = 0., v2_z = 0.,
-         v3_x = 0., v3_y = 0., v3_z = 0.;
+  ActsScalar v1_x = 0., v1_y = 0., v1_z = 0., v2_x = 0., v2_y = 0., v2_z = 0.,
+             v3_x = 0., v3_y = 0., v3_z = 0.;
   unsigned int isur = 0;
   while (std::getline(surface_file, line)) {
     if (line.empty() || line[0] == '%' || line[0] == '#' ||
@@ -156,7 +156,8 @@ int main() {
     Acts::Vector2D locV2((v2 - center).dot(U), (v2 - center).dot(V));
     Acts::Vector2D locV3((v3 - center).dot(U), (v3 - center).dot(V));
 
-    ActsMatrix<double, 3, 2> vertices = ActsMatrix<double, 3, 2>::Zero();
+    ActsMatrix<ActsScalar, 3, 2> vertices =
+        ActsMatrix<ActsScalar, 3, 2>::Zero();
     vertices << (v1 - center).dot(U), (v1 - center).dot(V),
         (v2 - center).dot(U), (v2 - center).dot(V), (v3 - center).dot(U),
         (v3 - center).dot(V);
@@ -172,7 +173,7 @@ int main() {
   std::cout << "Creating " << nSurfaces << " ConvexBounds plane surfaces"
             << std::endl;
 
-  float ms; // elapsed time in milliseconds
+  ActsScalar ms; // elapsed time in milliseconds
 
   // Create events and streams
   cudaEvent_t startEvent, stopEvent, dummyEvent;

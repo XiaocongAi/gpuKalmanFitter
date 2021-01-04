@@ -39,7 +39,7 @@ public:
   /// constant reference type to values stored
   using const_reference = Eigen::Map<const value_type>;
   /// type for points in d-dimensional grid space
-  using point_t = ActsVector<double, DIM>;
+  using point_t = ActsVector<ActsScalar, DIM>;
   /// index type using local bin indices along each axis
   using index_t = ActsVector<size_t, DIM>;
 
@@ -315,19 +315,19 @@ public:
   ///
   /// @note This function is available only if the following conditions are
   /// fulfilled:
-  /// - Given @c U and @c V of value type @c T as well as two @c double @c a
+  /// - Given @c U and @c V of value type @c T as well as two @c ActsScalar @c a
   /// and @c b, then the following must be a valid expression <tt>a * U + b *
   /// V</tt> yielding an object which is (implicitly) convertible to @c T.
   /// - @c Point must represent a d-dimensional position and support
-  /// coordinate access using @c operator[] which should return a @c double
+  /// coordinate access using @c operator[] which should return a @c ActsScalar
   /// (or a value which is implicitly convertible). Coordinate indices must
   /// start at 0.
   /// @note Bin values are interpreted as being the field values at the
   /// lower-left corner of the corresponding hyper-box.
-  template <
-      class Point, typename U = T,
-      typename = std::enable_if_t<can_interpolate<
-          Point, ActsVector<double, DIM>, ActsVector<double, DIM>, U>::value>>
+  template <class Point, typename U = T,
+            typename = std::enable_if_t<
+                can_interpolate<Point, ActsVector<ActsScalar, DIM>,
+                                ActsVector<ActsScalar, DIM>, U>::value>>
   ACTS_DEVICE_FUNC T interpolate(const Point &point) const {
     // there are 2^DIM corner points used during the interpolation
     constexpr size_t nCorners = 1 << DIM;

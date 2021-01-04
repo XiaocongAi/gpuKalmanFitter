@@ -25,12 +25,12 @@ public:
   /// Construct vacuum without thickness.
   MaterialSlab() = default;
   /// Construct vacuum with thickness.
-  ACTS_DEVICE_FUNC MaterialSlab(float thickness);
+  ACTS_DEVICE_FUNC MaterialSlab(ActsScalar thickness);
   /// Construct from material description.
   ///
   /// @param material  is the material description
   /// @param thickness is the thickness of the material
-  ACTS_DEVICE_FUNC MaterialSlab(const Material &material, float thickness);
+  ACTS_DEVICE_FUNC MaterialSlab(const Material &material, ActsScalar thickness);
 
   ~MaterialSlab() = default;
 
@@ -40,7 +40,7 @@ public:
   MaterialSlab &operator=(const MaterialSlab &) = default;
 
   /// Scale the material thickness by the given factor.
-  ACTS_DEVICE_FUNC void scaleThickness(float scale);
+  ACTS_DEVICE_FUNC void scaleThickness(ActsScalar scale);
 
   /// Check if the material is valid, i.e. it is finite and not vacuum.
   ACTS_DEVICE_FUNC constexpr operator bool() const {
@@ -52,21 +52,23 @@ public:
     return m_material;
   }
   /// Return the thickness.
-  ACTS_DEVICE_FUNC constexpr float thickness() const { return m_thickness; }
+  ACTS_DEVICE_FUNC constexpr ActsScalar thickness() const {
+    return m_thickness;
+  }
   /// Return the radiation length fraction.
-  ACTS_DEVICE_FUNC constexpr float thicknessInX0() const {
+  ACTS_DEVICE_FUNC constexpr ActsScalar thicknessInX0() const {
     return m_thicknessInX0;
   }
   /// Return the nuclear interaction length fraction.
-  ACTS_DEVICE_FUNC constexpr float thicknessInL0() const {
+  ACTS_DEVICE_FUNC constexpr ActsScalar thicknessInL0() const {
     return m_thicknessInL0;
   }
 
 private:
   Material m_material;
-  float m_thickness = 0.0f;
-  float m_thicknessInX0 = 0.0f;
-  float m_thicknessInL0 = 0.0f;
+  ActsScalar m_thickness = 0.0f;
+  ActsScalar m_thicknessInX0 = 0.0f;
+  ActsScalar m_thicknessInL0 = 0.0f;
 
   friend constexpr bool operator==(const MaterialSlab &lhs,
                                    const MaterialSlab &rhs) {

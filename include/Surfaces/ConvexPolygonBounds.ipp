@@ -8,7 +8,7 @@
 
 /*
 void Acts::ConvexPolygonBoundsBase<Derived, N>::convex_impl(
-    const ActsMatrix<double, N, 2>& vertices) noexcept(false) {
+    const ActsMatrix<ActsScalar, N, 2>& vertices) noexcept(false) {
   const size_t N = vertices.rows();
 
   for (size_t i = 0; i < N; i++) {
@@ -28,7 +28,7 @@ void Acts::ConvexPolygonBoundsBase<Derived, N>::convex_impl(
       }
 
       const Vector2D& c = vertices.block<1,2>([k],0).transpose();
-      double dot = normal.dot(c - a);
+      ActsScalar dot = normal.dot(c - a);
 
       if (first) {
         ref = std::signbit(dot);
@@ -82,10 +82,10 @@ template <int N> Acts::BoundsType Acts::ConvexPolygonBounds<N>::type() const {
 }
 
 template <int N>
-Acts::ActsVector<double, Acts::ConvexPolygonBounds<N>::eSize>
+Acts::ActsVector<ActsScalar, Acts::ConvexPolygonBounds<N>::eSize>
 Acts::ConvexPolygonBounds<N>::values() const {
-  Acts::ActsVector<double, Acts::ConvexPolygonBounds<N>::eSize> values =
-      Acts::ActsVector<double, Acts::ConvexPolygonBounds<N>::eSize>::Zero();
+  Acts::ActsVector<ActsScalar, Acts::ConvexPolygonBounds<N>::eSize> values =
+      Acts::ActsVector<ActsScalar, Acts::ConvexPolygonBounds<N>::eSize>::Zero();
   unsigned int iValue = 0;
   for (const auto &vtx : vertices()) {
     values[iValue] = vtx.x();

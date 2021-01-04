@@ -25,7 +25,7 @@ struct FixedMultiplicityGenerator {
 };
 
 struct PoissonMultiplicityGenerator {
-  double mean = 1;
+  ActsScalar mean = 1;
 
   size_t operator()(RandomEngine &rng) const {
     return (0 < mean) ? std::poisson_distribution<size_t>(mean)(rng) : 0;

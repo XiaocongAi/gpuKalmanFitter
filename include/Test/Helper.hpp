@@ -34,8 +34,8 @@ template <typename generator_t> struct MeasurementCreator {
   generator_t *generator = nullptr;
 
   // The smearing resolution
-  double resX = 30 * Acts::units::_um;
-  double resY = 30 * Acts::units::_um;
+  ActsScalar resX = 30 * Acts::units::_um;
+  ActsScalar resY = 30 * Acts::units::_um;
 
   struct this_result {
     std::vector<Acts::PixelSourceLink> sourcelinks;
@@ -55,8 +55,10 @@ template <typename generator_t> struct MeasurementCreator {
               state.options.geoContext, stepper.position(state.stepping),
               stepper.direction(state.stepping), lPos);
       // Perform the smearing to truth
-      double dx = std::normal_distribution<double>(0., resX)(*generator);
-      double dy = std::normal_distribution<double>(0., resY)(*generator);
+      ActsScalar dx =
+          std::normal_distribution<ActsScalar>(0., resX)(*generator);
+      ActsScalar dy =
+          std::normal_distribution<ActsScalar>(0., resY)(*generator);
 
       // The measurement values
       Acts::Vector2D values;

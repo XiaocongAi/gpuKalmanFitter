@@ -37,7 +37,7 @@ public:
   /// @brief constructor with given charge
   ///
   /// @param charge electric charge of particle/track (parameters)
-  ACTS_DEVICE_FUNC ChargedPolicy(double charge) : m_dCharge(charge) {}
+  ACTS_DEVICE_FUNC ChargedPolicy(ActsScalar charge) : m_dCharge(charge) {}
 
   /// @brief equality operator
   ///
@@ -56,18 +56,18 @@ public:
   /// @brief retrieve stored value of the electric charge
   ///
   /// @return value for charge
-  ACTS_DEVICE_FUNC double getCharge() const { return m_dCharge; }
+  ACTS_DEVICE_FUNC ActsScalar getCharge() const { return m_dCharge; }
 
   /// @brief sets charge
   ///
   /// @param charge new value for the electric charge
-  ACTS_DEVICE_FUNC void setCharge(double charge) { m_dCharge = charge; }
+  ACTS_DEVICE_FUNC void setCharge(ActsScalar charge) { m_dCharge = charge; }
 
   /// @brief flip sign of electric charge
   ACTS_DEVICE_FUNC void flipSign() { m_dCharge *= -1.; }
 
 private:
-  double m_dCharge; ///< value of electric charge
+  ActsScalar m_dCharge; ///< value of electric charge
 };
 
 /// @class NeutralPolicy
@@ -97,6 +97,6 @@ public:
   /// @brief get electric charge
   ///
   /// @return always 0
-  double getCharge() const { return 0.; }
+  ActsScalar getCharge() const { return 0.; }
 };
 } // namespace Acts

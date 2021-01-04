@@ -26,7 +26,7 @@ struct PathLimitReached {
   PathLimitReached() = default;
 
   /// Boolean switch for Loop protection
-  // double internalLimit = std::numeric_limits<double>::max();
+  // ActsScalar internalLimit = std::numeric_limits<ActsScalar>::max();
 
   /// boolean operator for abort condition without using the result
   ///
@@ -37,14 +37,14 @@ struct PathLimitReached {
   template <typename propagator_state_t, typename stepper_t>
   ACTS_DEVICE_FUNC bool operator()(propagator_state_t &state,
                                    const stepper_t & /*unused*/) const {
-    double internalLimit = std::numeric_limits<double>::max();
+    ActsScalar internalLimit = std::numeric_limits<ActsScalar>::max();
     if (state.navigation.targetReached) {
       return true;
     }
     // Check if the maximum allowed step size has to be updated
-    double distance = state.stepping.navDir * std::abs(internalLimit) -
-                      state.stepping.pathAccumulated;
-    double tolerance = state.options.targetTolerance;
+    ActsScalar distance = state.stepping.navDir * std::abs(internalLimit) -
+                          state.stepping.pathAccumulated;
+    ActsScalar tolerance = state.options.targetTolerance;
     state.stepping.stepSize.update(distance, ConstrainedStep::aborter);
     bool limitReached = (distance * distance < tolerance * tolerance);
     if (limitReached) {
@@ -100,7 +100,7 @@ struct SurfaceReached {
       return true;
     }
     // Calculate the distance to the surface
-    // const double tolerance = state.options.targetTolerance;
+    // const ActsScalar tolerance = state.options.targetTolerance;
     const auto sIntersection = targetSurface.intersect<target_surface_t>(
         state.geoContext, stepper.position(state.stepping),
         state.stepping.navDir * stepper.direction(state.stepping), true);
@@ -108,7 +108,7 @@ struct SurfaceReached {
     // The target is reached
     bool targetReached =
         (sIntersection.intersection.status == Intersection::Status::onSurface);
-    double distance = sIntersection.intersection.pathLength;
+    ActsScalar distance = sIntersection.intersection.pathLength;
 
     // Return true if you fall below tolerance
     if (targetReached) {
@@ -118,7 +118,7 @@ struct SurfaceReached {
       state.navigation.targetReached = true;
     } else {
       // Target is not reached, update the step size
-      const double overstepLimit = stepper.overstepLimit(state.stepping);
+      const ActsScalar overstepLimit = stepper.overstepLimit(state.stepping);
       // Check the alternative solution
       if (distance < overstepLimit and sIntersection.alternative) {
         // Update the distance to the alternative solution

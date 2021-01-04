@@ -219,9 +219,9 @@ public:
   ///
   /// @note input parameters are ignored
   /// @note there's no material associated to the line surface
-  ACTS_DEVICE_FUNC double pathCorrection(const GeometryContext &gctx,
-                                         const Vector3D &position,
-                                         const Vector3D &momentum) const;
+  ACTS_DEVICE_FUNC ActsScalar pathCorrection(const GeometryContext &gctx,
+                                             const Vector3D &position,
+                                             const Vector3D &momentum) const;
 
   /// @brief Straight line intersection schema
   ///

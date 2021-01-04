@@ -37,10 +37,10 @@ struct Transform2DBField
                                      Vector3D> {
   ACTS_DEVICE_FUNC Vector3D operator()(const Vector2D &field,
                                        const Vector3D &pos) const {
-    double r_sin_theta_2 = pos.x() * pos.x() + pos.y() * pos.y();
-    double cos_phi, sin_phi;
-    if (r_sin_theta_2 > std::numeric_limits<double>::min()) {
-      double inv_r_sin_theta = 1. / sqrt(r_sin_theta_2);
+    ActsScalar r_sin_theta_2 = pos.x() * pos.x() + pos.y() * pos.y();
+    ActsScalar cos_phi, sin_phi;
+    if (r_sin_theta_2 > std::numeric_limits<ActsScalar>::min()) {
+      ActsScalar inv_r_sin_theta = 1. / sqrt(r_sin_theta_2);
       cos_phi = pos.x() * inv_r_sin_theta;
       sin_phi = pos.y() * inv_r_sin_theta;
     } else {
@@ -101,8 +101,8 @@ public:
     /// @param [in] fieldValues field values at the hyper box corners sorted in
     ///                         the canonical order defined in Acts::interpolate
     ACTS_DEVICE_FUNC FieldCell(TransformPosType transformPos,
-                               ActsVector<double, DIM_POS> lowerLeft,
-                               ActsVector<double, DIM_POS> upperRight,
+                               ActsVector<ActsScalar, DIM_POS> lowerLeft,
+                               ActsVector<ActsScalar, DIM_POS> upperRight,
                                ActsVector<Vector3D, N> fieldValues)
         : m_transformPos(std::move(transformPos)),
           m_lowerLeft(std::move(lowerLeft)),
@@ -142,10 +142,10 @@ public:
     TransformPosType m_transformPos;
 
     /// generalized lower-left corner of the confining hyper-box
-    ActsVector<double, DIM_POS> m_lowerLeft;
+    ActsVector<ActsScalar, DIM_POS> m_lowerLeft;
 
     /// generalized upper-right corner of the confining hyper-box
-    ActsVector<double, DIM_POS> m_upperRight;
+    ActsVector<ActsScalar, DIM_POS> m_upperRight;
 
     /// @brief magnetic field vectors at the hyper-box corners
     ///
@@ -279,7 +279,7 @@ public:
     ///
     /// @note Negative values for @p scale are accepted and will invert the
     ///       direction of the magnetic field.
-    double scale = 1.;
+    ActsScalar scale = 1.;
 
     /// @brief object for global coordinate transformation and interpolation
     ///
@@ -366,7 +366,7 @@ public:
   /// @brief get global scaling factor for magnetic field
   ///
   /// @return global factor for scaling the magnetic field
-  ACTS_DEVICE_FUNC double getScale() const { return m_config.scale; }
+  ACTS_DEVICE_FUNC ActsScalar getScale() const { return m_config.scale; }
 
   /// @brief convenience method to access underlying field mapper
   ///

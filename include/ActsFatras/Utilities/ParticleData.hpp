@@ -18,12 +18,12 @@ namespace ActsFatras {
 /// Find the charge for a given PDG particle number.
 ///
 /// @return Charge in native units or NaN if not available.
-float findCharge(Acts::PdgParticle pdg);
+ActsScalar findCharge(Acts::PdgParticle pdg);
 
 /// Find the mass for a given PDG particle number.
 ///
 /// @return Mass in native units or zero if not available.
-float findMass(Acts::PdgParticle pdg);
+ActsScalar findMass(Acts::PdgParticle pdg);
 
 /// Find a descriptive particle name for a given PDG particle number.
 ///

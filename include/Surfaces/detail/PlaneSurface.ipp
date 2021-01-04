@@ -76,8 +76,9 @@ inline PlaneSurface<surface_bounds_t>::PlaneSurface(
     : Surface(std::move(htrans)), m_bounds(std::move(pbounds)) {}
 
 template <typename surface_bounds_t>
-inline PlaneSurface<surface_bounds_t> &Acts::PlaneSurface<surface_bounds_t>::
-operator=(const PlaneSurface<surface_bounds_t> &other) {
+inline PlaneSurface<surface_bounds_t> &
+Acts::PlaneSurface<surface_bounds_t>::operator=(
+    const PlaneSurface<surface_bounds_t> &other) {
   if (this != &other) {
     Surface::operator=(other);
     m_bounds = other.m_bounds;
@@ -129,16 +130,16 @@ inline void PlaneSurface<surface_bounds_t>::initJacobianToGlobal(
   //
   // Here, we can avoid it because the direction is by definition a unit
   // vector, with the following coordinate conversions...
-  const double x = direction(0); // == cos(phi) * sin(theta)
-  const double y = direction(1); // == sin(phi) * sin(theta)
-  const double z = direction(2); // == cos(theta)
+  const ActsScalar x = direction(0); // == cos(phi) * sin(theta)
+  const ActsScalar y = direction(1); // == sin(phi) * sin(theta)
+  const ActsScalar z = direction(2); // == cos(theta)
 
   // ...which we can invert to directly get the sines and cosines:
-  const double cos_theta = z;
-  const double sin_theta = sqrt(x * x + y * y);
-  const double inv_sin_theta = 1. / sin_theta;
-  const double cos_phi = x * inv_sin_theta;
-  const double sin_phi = y * inv_sin_theta;
+  const ActsScalar cos_theta = z;
+  const ActsScalar sin_theta = sqrt(x * x + y * y);
+  const ActsScalar inv_sin_theta = 1. / sin_theta;
+  const ActsScalar cos_phi = x * inv_sin_theta;
+  const ActsScalar sin_phi = y * inv_sin_theta;
   // retrieve the reference frame
   const auto rframe = referenceFrame(gctx, position, direction);
   // the local error components - given by reference frame
@@ -160,15 +161,15 @@ PlaneSurface<surface_bounds_t>::initJacobianToLocal(
     const GeometryContext &gctx, FreeToBoundMatrix &jacobian,
     const Vector3D &position, const Vector3D &direction) const {
   // Optimized trigonometry on the propagation direction
-  const double x = direction(0); // == cos(phi) * sin(theta)
-  const double y = direction(1); // == sin(phi) * sin(theta)
-  const double z = direction(2); // == cos(theta)
+  const ActsScalar x = direction(0); // == cos(phi) * sin(theta)
+  const ActsScalar y = direction(1); // == sin(phi) * sin(theta)
+  const ActsScalar z = direction(2); // == cos(theta)
   // can be turned into cosine/sine
-  const double cosTheta = z;
-  const double sinTheta = sqrt(x * x + y * y);
-  const double invSinTheta = 1. / sinTheta;
-  const double cosPhi = x * invSinTheta;
-  const double sinPhi = y * invSinTheta;
+  const ActsScalar cosTheta = z;
+  const ActsScalar sinTheta = sqrt(x * x + y * y);
+  const ActsScalar invSinTheta = 1. / sinTheta;
+  const ActsScalar cosPhi = x * invSinTheta;
+  const ActsScalar sinPhi = y * invSinTheta;
   // The measurement frame of the surface
   RotationMatrix3D rframeT =
       referenceFrame(gctx, position, direction).transpose();
@@ -194,9 +195,9 @@ inline const BoundRowVector PlaneSurface<surface_bounds_t>::derivativeFactors(
     const BoundToFreeMatrix &jacobian) const {
   // Create the normal and scale it with the projection onto the direction
   ActsRowVectorD<3> norm_vec = rft.template block<1, 3>(2, 0);
-  const double dotProduct = norm_vec[0] * direction[0] +
-                            norm_vec[1] * direction[1] +
-                            norm_vec[2] * direction[2];
+  const ActsScalar dotProduct = norm_vec[0] * direction[0] +
+                                norm_vec[1] * direction[1] +
+                                norm_vec[2] * direction[2];
   norm_vec /= dotProduct;
   // calculate the s factors
   return (norm_vec * jacobian.topLeftCorner<3, eBoundParametersSize>());
@@ -225,7 +226,7 @@ inline bool PlaneSurface<surface_bounds_t>::globalToLocal(
 }
 
 template <typename surface_bounds_t>
-inline double PlaneSurface<surface_bounds_t>::pathCorrection(
+inline ActsScalar PlaneSurface<surface_bounds_t>::pathCorrection(
     const GeometryContext &gctx, const Vector3D &position,
     const Vector3D &direction) const {
   // We can ignore the global position here

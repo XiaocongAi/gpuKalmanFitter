@@ -15,6 +15,7 @@ https://github.com/ampl/gsl/blob/master/specfunc/ellint.c
 #define ERROR_SELECT_2(a, b)                                                   \
   ((a) != SUCCESS ? (a) : ((b) != SUCCESS ? (b) : SUCCESS))
 
+#include "Utilities/Definitions.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -31,26 +32,26 @@ enum Status {
 };
 
 typedef struct {
-  double val;
-  double err;
+  ActsScalar val;
+  ActsScalar err;
 } Result;
 
-double max3(const double a, const double b, const double c) {
-  double d = std::max(a, b);
+ActsScalar max3(const ActsScalar a, const ActsScalar b, const ActsScalar c) {
+  ActsScalar d = std::max(a, b);
   return std::max(d, c);
 }
 
-double min3(const double a, const double b, const double c) {
-  double d = std::min(a, b);
+ActsScalar min3(const ActsScalar a, const ActsScalar b, const ActsScalar c) {
+  ActsScalar d = std::min(a, b);
   return std::min(d, c);
 }
 
-int ellint_RF_e(double x, double y, double z, Result &result);
-int ellint_Kcomp_e(double k, Result &result);
-int ellint_RD_e(double x, double y, double z, Result &result);
-int ellint_Ecomp_e(double k, Result &result);
+int ellint_RF_e(ActsScalar x, ActsScalar y, ActsScalar z, Result &result);
+int ellint_Kcomp_e(ActsScalar k, Result &result);
+int ellint_RD_e(ActsScalar x, ActsScalar y, ActsScalar z, Result &result);
+int ellint_Ecomp_e(ActsScalar k, Result &result);
 
-double comp_ellint_1(double k) {
+ActsScalar comp_ellint_1(ActsScalar k) {
   Result re;
   int status = ellint_Kcomp_e(k, re);
   if (status == SUCCESS) {
@@ -60,7 +61,7 @@ double comp_ellint_1(double k) {
   return 0.;
 }
 
-double comp_ellint_2(double k) {
+ActsScalar comp_ellint_2(ActsScalar k) {
   Result re;
   int status = ellint_Ecomp_e(k, re);
   if (status == SUCCESS) {
@@ -71,32 +72,32 @@ double comp_ellint_2(double k) {
 }
 
 /* [Carlson, Numer. Math. 33 (1979) 1, (4.5)] */
-int ellint_Kcomp_e(double k, Result &result) {
+int ellint_Kcomp_e(ActsScalar k, Result &result) {
   if (k * k >= 1.0) {
     return DOMAIN_ERROR;
   } else if (k * k >= 1.0 - SQRT_DBL_EPSILON) {
     /* [Abramowitz+Stegun, 17.3.34] */
-    const double y = 1.0 - k * k;
-    const double a[] = {1.38629436112, 0.09666344259, 0.03590092383};
-    const double b[] = {0.5, 0.12498593597, 0.06880248576};
-    const double ta = a[0] + y * (a[1] + y * a[2]);
-    const double tb = -log(y) * (b[0] + y * (b[1] + y * b[2]));
+    const ActsScalar y = 1.0 - k * k;
+    const ActsScalar a[] = {1.38629436112, 0.09666344259, 0.03590092383};
+    const ActsScalar b[] = {0.5, 0.12498593597, 0.06880248576};
+    const ActsScalar ta = a[0] + y * (a[1] + y * a[2]);
+    const ActsScalar tb = -log(y) * (b[0] + y * (b[1] + y * b[2]));
     result.val = ta + tb;
     result.err = 2.0 * DBL_EPSILON * (std::fabs(result.val) + std::fabs(k / y));
     return SUCCESS;
   } else {
-    double y = 1.0 - k * k;
+    ActsScalar y = 1.0 - k * k;
     int status = ellint_RF_e(0.0, y, 1.0, result);
     result.err += 0.5 * DBL_EPSILON / y;
     return status;
   }
 }
 
-int ellint_RF_e(double x, double y, double z, Result &result) {
-  const double lolim = 5.0 * DBL_MIN;
-  const double uplim = 0.2 * DBL_MAX;
-  const double errtol = 0.001;
-  const double prec = DBL_EPSILON;
+int ellint_RF_e(ActsScalar x, ActsScalar y, ActsScalar z, Result &result) {
+  const ActsScalar lolim = 5.0 * DBL_MIN;
+  const ActsScalar uplim = 0.2 * DBL_MAX;
+  const ActsScalar errtol = 0.001;
+  const ActsScalar prec = DBL_EPSILON;
   const int nmax = 10000;
 
   if (x < 0.0 || y < 0.0 || z < 0.0) {
@@ -104,17 +105,17 @@ int ellint_RF_e(double x, double y, double z, Result &result) {
   } else if (x + y < lolim || x + z < lolim || y + z < lolim) {
     return DOMAIN_ERROR;
   } else if (max3(x, y, z) < uplim) {
-    const double c1 = 1.0 / 24.0;
-    const double c2 = 3.0 / 44.0;
-    const double c3 = 1.0 / 14.0;
-    double xn = x;
-    double yn = y;
-    double zn = z;
-    double mu, xndev, yndev, zndev, e2, e3, s;
+    const ActsScalar c1 = 1.0 / 24.0;
+    const ActsScalar c2 = 3.0 / 44.0;
+    const ActsScalar c3 = 1.0 / 14.0;
+    ActsScalar xn = x;
+    ActsScalar yn = y;
+    ActsScalar zn = z;
+    ActsScalar mu, xndev, yndev, zndev, e2, e3, s;
     int n = 0;
     while (1) {
-      double epslon, lamda;
-      double xnroot, ynroot, znroot;
+      ActsScalar epslon, lamda;
+      ActsScalar xnroot, ynroot, znroot;
       mu = (xn + yn + zn) / 3.0;
       xndev = 2.0 - (mu + xn) / mu;
       yndev = 2.0 - (mu + yn) / mu;
@@ -146,23 +147,23 @@ int ellint_RF_e(double x, double y, double z, Result &result) {
 }
 
 /* [Carlson, Numer. Math. 33 (1979) 1, (4.6)] */
-int ellint_Ecomp_e(double k, Result &result) {
+int ellint_Ecomp_e(ActsScalar k, Result &result) {
   if (k * k >= 1.0) {
     return DOMAIN_ERROR;
   } else if (k * k >= 1.0 - SQRT_DBL_EPSILON) {
     /* [Abramowitz+Stegun, 17.3.36] */
-    const double y = 1.0 - k * k;
-    const double a[] = {0.44325141463, 0.06260601220, 0.04757383546};
-    const double b[] = {0.24998368310, 0.09200180037, 0.04069697526};
-    const double ta = 1.0 + y * (a[0] + y * (a[1] + a[2] * y));
-    const double tb = -y * std::log(y) * (b[0] + y * (b[1] + b[2] * y));
+    const ActsScalar y = 1.0 - k * k;
+    const ActsScalar a[] = {0.44325141463, 0.06260601220, 0.04757383546};
+    const ActsScalar b[] = {0.24998368310, 0.09200180037, 0.04069697526};
+    const ActsScalar ta = 1.0 + y * (a[0] + y * (a[1] + a[2] * y));
+    const ActsScalar tb = -y * std::log(y) * (b[0] + y * (b[1] + b[2] * y));
     result.val = ta + tb;
     result.err = 2.0 * DBL_EPSILON * result.val;
     return SUCCESS;
   } else {
     Result rf;
     Result rd;
-    const double y = 1.0 - k * k;
+    const ActsScalar y = 1.0 - k * k;
     const int rfstatus = ellint_RF_e(0.0, y, 1.0, rf);
     const int rdstatus = ellint_RD_e(0.0, y, 1.0, rd);
     result.val = rf.val - k * k / 3.0 * rd.val;
@@ -171,31 +172,31 @@ int ellint_Ecomp_e(double k, Result &result) {
   }
 }
 
-int ellint_RD_e(double x, double y, double z, Result &result) {
-  const double errtol = 0.001;
-  const double prec = DBL_EPSILON;
-  const double lolim = 2.0 / pow(DBL_MAX, 2.0 / 3.0);
-  const double uplim = pow(0.1 * errtol / DBL_MIN, 2.0 / 3.0);
+int ellint_RD_e(ActsScalar x, ActsScalar y, ActsScalar z, Result &result) {
+  const ActsScalar errtol = 0.001;
+  const ActsScalar prec = DBL_EPSILON;
+  const ActsScalar lolim = 2.0 / pow(DBL_MAX, 2.0 / 3.0);
+  const ActsScalar uplim = pow(0.1 * errtol / DBL_MIN, 2.0 / 3.0);
   const int nmax = 10000;
 
   if (std::min(x, y) < 0.0 || std::min(x + y, z) < lolim) {
     return DOMAIN_ERROR;
   } else if (max3(x, y, z) < uplim) {
-    const double c1 = 3.0 / 14.0;
-    const double c2 = 1.0 / 6.0;
-    const double c3 = 9.0 / 22.0;
-    const double c4 = 3.0 / 26.0;
-    double xn = x;
-    double yn = y;
-    double zn = z;
-    double sigma = 0.0;
-    double power4 = 1.0;
-    double ea, eb, ec, ed, ef, s1, s2;
-    double mu, xndev, yndev, zndev;
+    const ActsScalar c1 = 3.0 / 14.0;
+    const ActsScalar c2 = 1.0 / 6.0;
+    const ActsScalar c3 = 9.0 / 22.0;
+    const ActsScalar c4 = 3.0 / 26.0;
+    ActsScalar xn = x;
+    ActsScalar yn = y;
+    ActsScalar zn = z;
+    ActsScalar sigma = 0.0;
+    ActsScalar power4 = 1.0;
+    ActsScalar ea, eb, ec, ed, ef, s1, s2;
+    ActsScalar mu, xndev, yndev, zndev;
     int n = 0;
     while (1) {
-      double xnroot, ynroot, znroot, lamda;
-      double epslon;
+      ActsScalar xnroot, ynroot, znroot, lamda;
+      ActsScalar epslon;
       mu = (xn + yn + 3.0 * zn) * 0.2;
       xndev = (mu - xn) / mu;
       yndev = (mu - yn) / mu;

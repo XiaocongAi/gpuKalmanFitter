@@ -18,7 +18,7 @@ struct StepData {
 template <typename propagator_state_t>
 ACTS_DEVICE_FUNC auto evaluatek(const propagator_state_t &state,
                                 const Vector3D &bField, const int i = 0,
-                                const double h = 0.,
+                                const ActsScalar h = 0.,
                                 const Vector3D &kprev = Vector3D(0, 0, 0))
     -> Vector3D {
   Vector3D knew;
@@ -35,7 +35,7 @@ ACTS_DEVICE_FUNC auto evaluatek(const propagator_state_t &state,
 // 2) The propagation function for time coordinate
 template <typename propagator_state_t>
 ACTS_DEVICE_FUNC void propagationTime(propagator_state_t &state,
-                                      const double &h) {
+                                      const ActsScalar &h) {
   /// This evaluation is based on dt/ds = 1/v = 1/(beta * c) with the velocity
   /// v, the speed of light c and beta = v/c. This can be re-written as dt/ds
   /// = sqrt(m^2/p^2 + c^{-2}) with the mass m and the momentum p.
@@ -49,13 +49,13 @@ ACTS_DEVICE_FUNC void propagationTime(propagator_state_t &state,
 // 3) The following functor calculates the transport matrix D for the jacobian
 template <typename propagator_state_t>
 ACTS_DEVICE_FUNC void transportMatrix(const propagator_state_t &state,
-                                      const StepData &sd, const double &h,
+                                      const StepData &sd, const ActsScalar &h,
                                       FreeMatrix &D) {
   D = FreeMatrix::Identity();
   auto dir = state.stepping.dir;
   auto qop = state.stepping.q / state.stepping.p;
 
-  const double half_h = h * 0.5;
+  const ActsScalar half_h = h * 0.5;
   // This sets the reference to the sub matrices
   // dFdx is already initialised as (3x3) idendity
 
@@ -126,14 +126,14 @@ ACTS_DEVICE_FUNC void transportMatrix(const propagator_state_t &state,
 template <typename propagator_state_t>
 ACTS_DEVICE_FUNC void
 transportPartialMatrix(const propagator_state_t &state, const StepData &sd,
-                       const double &h, FreeMatrix &D, ActsMatrixD<3, 3> &dk1dT,
-                       ActsMatrixD<3, 3> &dk2dT, ActsMatrixD<3, 3> &dk3dT,
-                       ActsMatrixD<3, 3> &dk4dT) {
+                       const ActsScalar &h, FreeMatrix &D,
+                       ActsMatrixD<3, 3> &dk1dT, ActsMatrixD<3, 3> &dk2dT,
+                       ActsMatrixD<3, 3> &dk3dT, ActsMatrixD<3, 3> &dk4dT) {
   D = FreeMatrix::Identity();
   auto dir = state.stepping.dir;
   auto qop = state.stepping.q / state.stepping.p;
 
-  const double half_h = h * 0.5;
+  const ActsScalar half_h = h * 0.5;
   // This sets the reference to the sub matrices
   // dFdx is already initialised as (3x3) idendity
 
@@ -189,7 +189,7 @@ transportPartialMatrix(const propagator_state_t &state, const StepData &sd,
 }
 
 #ifdef __CUDACC__
-__device__ void transportdTOnDevice(const double &h,
+__device__ void transportdTOnDevice(const ActsScalar &h,
                                     const ActsMatrixD<3, 3> &dk1dT,
                                     const ActsMatrixD<3, 3> &dk2dT,
                                     const ActsMatrixD<3, 3> &dk3dT,
@@ -230,7 +230,7 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
   // Construt a stepping data here
   detail::StepData sd;
   // Default constructor will result in wrong value on GPU
-  double error_estimate = 0.;
+  ActsScalar error_estimate = 0.;
 
   // First Runge-Kutta point (at current position)
   sd.B_first = getField(state.stepping, state.stepping.pos);
@@ -242,8 +242,8 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
   // allowing integration to continue once the error is deemed satisfactory
   const auto tryRungeKuttaStep = [&](const ConstrainedStep &h) -> bool {
     // State the square and half of the step size
-    const double h2 = h * h;
-    const double half_h = h * 0.5;
+    const ActsScalar h2 = h * h;
+    const ActsScalar half_h = h * 0.5;
 
     // Second Runge-Kutta point
     const Vector3D pos1 =
@@ -262,12 +262,13 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
 
     // Compute and check the local integration error estimate
     // @Todo
-    error_estimate = std::max(
-        h2 * (sd.k1 - sd.k2 - sd.k3 + sd.k4).template lpNorm<1>(), 1e-20);
+    error_estimate =
+        std::max(h2 * (sd.k1 - sd.k2 - sd.k3 + sd.k4).template lpNorm<1>(),
+                 static_cast<ActsScalar>(1e-20));
     return (error_estimate <= state.options.tolerance);
   };
 
-  double stepSizeScaling = 1.;
+  ActsScalar stepSizeScaling = 1.;
   size_t nStepTrials = 0;
   // Select and adjust the appropriate Runge-Kutta step size as given
   // ATL-SOFT-PUB-2009-001
@@ -301,7 +302,7 @@ Acts::EigenStepper<B>::step(propagator_state_t &state) const {
   }
 
   // use the adjusted step size
-  const double h = state.stepping.stepSize;
+  const ActsScalar h = state.stepping.stepSize;
 
   // Propagate the time
   detail::propagationTime(state, h);
@@ -341,7 +342,7 @@ Acts::EigenStepper<B>::stepOnDevice(propagator_state_t &state) const {
   // Construt a stepping data here
   __shared__ detail::StepData sd;
   // Default constructor will result in wrong value on GPU
-  double error_estimate = 0.;
+  ActsScalar error_estimate = 0.;
 
   // First Runge-Kutta point (at current position)
   if (IS_MAIN_THREAD) {
@@ -357,8 +358,8 @@ Acts::EigenStepper<B>::stepOnDevice(propagator_state_t &state) const {
   // allowing integration to continue once the error is deemed satisfactory
   const auto tryRungeKuttaStep = [&](const ConstrainedStep &h) -> bool {
     // State the square and half of the step size
-    const double h2 = h * h;
-    const double half_h = h * 0.5;
+    const ActsScalar h2 = h * h;
+    const ActsScalar half_h = h * 0.5;
 
     // Second Runge-Kutta point
     const Vector3D pos1 =
@@ -377,15 +378,16 @@ Acts::EigenStepper<B>::stepOnDevice(propagator_state_t &state) const {
 
     // Compute and check the local integration error estimate
     // @Todo
-    error_estimate = std::max(
-        h2 * (sd.k1 - sd.k2 - sd.k3 + sd.k4).template lpNorm<1>(), 1e-20);
+    error_estimate =
+        std::max(h2 * (sd.k1 - sd.k2 - sd.k3 + sd.k4).template lpNorm<1>(),
+                 static_cast<ActsScalar>(1e-20));
     return (error_estimate <= state.options.tolerance);
   };
 
   __shared__ bool earlyExit;
 
   if (IS_MAIN_THREAD) {
-    double stepSizeScaling = 1.;
+    ActsScalar stepSizeScaling = 1.;
     size_t nStepTrials = 0;
 
     earlyExit = false;
@@ -429,7 +431,7 @@ Acts::EigenStepper<B>::stepOnDevice(propagator_state_t &state) const {
   }
 
   // use the adjusted step size
-  const double h = state.stepping.stepSize;
+  const ActsScalar h = state.stepping.stepSize;
 
   if (IS_MAIN_THREAD) {
     // Propagate the time
@@ -456,7 +458,7 @@ Acts::EigenStepper<B>::stepOnDevice(propagator_state_t &state) const {
 
     // detail::transportdTOnDevice(h, dk1dT, dk2dT, dk3dT, dk4dT, D);
 
-    double acc = 0.0;
+    ActsScalar acc = 0.0;
     for (int i = 0; i < eFreeParametersSize; ++i) {
       acc += D(threadIdx.x, i) * state.stepping.jacTransport(i, threadIdx.y);
     }
@@ -484,7 +486,7 @@ template <typename surface_derived_t>
 __device__ void Acts::EigenStepper<B>::boundStateOnDevice(
     State &state, const Surface &surface,
     BoundParameters<surface_derived_t> &boundParams, BoundMatrix &jacobian,
-    double &path) const {
+    ActsScalar &path) const {
   __shared__ FreeVector parameters;
   // Initialize with the main thread
   if (threadIdx.x == 0 && threadIdx.y == 0) {
@@ -516,7 +518,7 @@ template <typename surface_derived_t>
 ACTS_DEVICE_FUNC void Acts::EigenStepper<B>::boundState(
     State &state, const Surface &surface,
     BoundParameters<surface_derived_t> &boundParams, BoundMatrix &jacobian,
-    double &path) const {
+    ActsScalar &path) const {
   FreeVector parameters;
   parameters[0] = state.pos[0];
   parameters[1] = state.pos[1];
@@ -564,8 +566,8 @@ Acts::EigenStepper<B>::update(State &state, const FreeVector &parameters,
 template <typename B>
 ACTS_DEVICE_FUNC void
 Acts::EigenStepper<B>::update(State &state, const Vector3D &uposition,
-                              const Vector3D &udirection, double up,
-                              double time) const {
+                              const Vector3D &udirection, ActsScalar up,
+                              ActsScalar time) const {
   state.pos = uposition;
   state.dir = udirection;
   state.p = up;

@@ -25,12 +25,12 @@ public:
     /// Location parameter.
     ///
     /// @warning This is neither the mean nor the most probable value.
-    double location = 0.0;
+    ActsScalar location = 0.0;
     /// Scale parameter.
-    double scale = 1.0;
+    ActsScalar scale = 1.0;
 
     /// Construct from parameters.
-    param_type(double location_, double scale_)
+    param_type(ActsScalar location_, ActsScalar scale_)
         : location(location_), scale(scale_) {}
     // Explicitlely defaulted construction and assignment
     param_type() = default;
@@ -48,10 +48,11 @@ public:
     }
   };
   /// The type of the generated values.
-  using result_type = double;
+  using result_type = ActsScalar;
 
   /// Construct directly from the distribution parameters.
-  LandauDistribution(double location, double scale) : m_cfg(location, scale) {}
+  LandauDistribution(ActsScalar location, ActsScalar scale)
+      : m_cfg(location, scale) {}
   /// Construct from a parameter object.
   LandauDistribution(const param_type &cfg) : m_cfg(cfg) {}
   // Explicitlely defaulted construction and assignment
@@ -69,9 +70,13 @@ public:
   void param(const param_type &cfg) { m_cfg = cfg; }
 
   /// The minimum value the distribution generates.
-  result_type min() const { return -std::numeric_limits<double>::infinity(); }
+  result_type min() const {
+    return -std::numeric_limits<ActsScalar>::infinity();
+  }
   /// The maximum value the distribution generates.
-  result_type max() const { return std::numeric_limits<double>::infinity(); }
+  result_type max() const {
+    return std::numeric_limits<ActsScalar>::infinity();
+  }
 
   /// Generate a random number from the configured Landau distribution.
   template <typename Generator> result_type operator()(Generator &generator) {
@@ -80,7 +85,7 @@ public:
   /// Generate a random number from the given Landau distribution.
   template <typename Generator>
   result_type operator()(Generator &generator, const param_type &params) {
-    const auto z = std::uniform_real_distribution<double>()(generator);
+    const auto z = std::uniform_real_distribution<ActsScalar>()(generator);
     return params.location + params.scale * quantile(z);
   }
 
@@ -97,7 +102,7 @@ public:
 private:
   param_type m_cfg;
 
-  static double quantile(double z);
+  static ActsScalar quantile(ActsScalar z);
 };
 
 } // namespace ActsFatras

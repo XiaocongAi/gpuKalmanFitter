@@ -285,7 +285,7 @@ namespace concept {
  * can be written like
  * ```
  * template <typename T>
- * using foo_method_t = decltype(std::declval<T>().foo(double, int)>);
+ * using foo_method_t = decltype(std::declval<T>().foo(ActsScalar, int)>);
  * ```.
  * This only checks if the given expression is valid. That means this
  * will evaluate to true even if the actual arguments of that function are

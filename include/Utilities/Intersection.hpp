@@ -31,7 +31,7 @@ struct Intersection {
   /// Position of the intersection
   Vector3D position{0., 0., 0.};
   /// Signed path length to the intersection (if valid)
-  double pathLength{std::numeric_limits<double>::infinity()};
+  ActsScalar pathLength{std::numeric_limits<ActsScalar>::infinity()};
   /// The Status of the intersection
   Status status{Status::unreachable};
 
@@ -40,7 +40,7 @@ struct Intersection {
   /// @param sinter is the position of the intersection
   /// @param slength is the path length to the intersection
   /// @param svalid is a boolean indicating if intersection is valid
-  ACTS_DEVICE_FUNC Intersection(const Vector3D &sinter, double slength,
+  ACTS_DEVICE_FUNC Intersection(const Vector3D &sinter, ActsScalar slength,
                                 Status sstatus)
       : position(sinter), pathLength(slength), status(sstatus) {}
 

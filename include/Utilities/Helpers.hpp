@@ -40,7 +40,7 @@ namespace VectorHelpers {
 /// in case of dynamic size, will abort execution if that is not the case.
 /// @return The value of the angle in the transverse plane.
 template <typename Derived>
-ACTS_DEVICE_FUNC double phi(const Eigen::MatrixBase<Derived> &v) noexcept {
+ACTS_DEVICE_FUNC ActsScalar phi(const Eigen::MatrixBase<Derived> &v) noexcept {
   // constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
   // if constexpr (rows != -1) {
   //  // static size, do compile time check
@@ -65,7 +65,7 @@ ACTS_DEVICE_FUNC double phi(const Eigen::MatrixBase<Derived> &v) noexcept {
 /// in case of dynamic size, will abort execution if that is not the case.
 /// @return The transverse radius value.
 template <typename Derived>
-ACTS_DEVICE_FUNC double perp(const Eigen::MatrixBase<Derived> &v) noexcept {
+ACTS_DEVICE_FUNC ActsScalar perp(const Eigen::MatrixBase<Derived> &v) noexcept {
   // constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
   //  if constexpr (rows != -1) {
   //    // static size, do compile time check
@@ -89,7 +89,8 @@ ACTS_DEVICE_FUNC double perp(const Eigen::MatrixBase<Derived> &v) noexcept {
 /// in case of dynamic size, will abort execution if that is not the case.
 /// @return The theta value
 template <typename Derived>
-ACTS_DEVICE_FUNC double theta(const Eigen::MatrixBase<Derived> &v) noexcept {
+ACTS_DEVICE_FUNC ActsScalar
+theta(const Eigen::MatrixBase<Derived> &v) noexcept {
   // constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
   // if constexpr (rows != -1) {
   //  // static size, do compile time check
@@ -112,7 +113,7 @@ ACTS_DEVICE_FUNC double theta(const Eigen::MatrixBase<Derived> &v) noexcept {
 /// in case of dynamic size, will abort execution if that is not the case.
 /// @return The pseudorapidity value
 template <typename Derived>
-ACTS_DEVICE_FUNC double eta(const Eigen::MatrixBase<Derived> &v) noexcept {
+ACTS_DEVICE_FUNC ActsScalar eta(const Eigen::MatrixBase<Derived> &v) noexcept {
   // constexpr int rows = Eigen::MatrixBase<Derived>::RowsAtCompileTime;
   //  if constexpr (rows != -1) {
   //    // static size, do compile time check
@@ -132,7 +133,7 @@ ACTS_DEVICE_FUNC double eta(const Eigen::MatrixBase<Derived> &v) noexcept {
 ///
 /// For this method a 3D vector is required to guarantee all potential
 /// binning values.
-inline double cast(const Vector3D &position, BinningValue bval) {
+inline ActsScalar cast(const Vector3D &position, BinningValue bval) {
   switch (bval) {
   case binX:
     return position[0];
@@ -154,7 +155,7 @@ inline double cast(const Vector3D &position, BinningValue bval) {
     return position.norm();
   default:
     assert(false and "Invalid BinningValue enum value");
-    return std::numeric_limits<double>::quiet_NaN();
+    return std::numeric_limits<ActsScalar>::quiet_NaN();
   }
 }
 
@@ -188,7 +189,8 @@ ACTS_DEVICE_FUNC inline auto position(const FreeVector &params) {
 
 namespace detail {
 
-ACTS_DEVICE_FUNC inline double roundWithPrecision(double val, int precision) {
+ACTS_DEVICE_FUNC inline ActsScalar roundWithPrecision(ActsScalar val,
+                                                      int precision) {
   if (val < 0 && std::abs(val) * std::pow(10, precision) < 1.) {
     return -val;
   }
@@ -209,7 +211,7 @@ inline std::string toString(const ActsMatrixXd &matrix, int precision = 4,
   if (matrix.cols() == 1) {
     sout << "(";
     for (int i = 0; i < matrix.rows(); ++i) {
-      double val = detail::roundWithPrecision(matrix(i, 0), precision);
+      ActsScalar val = detail::roundWithPrecision(matrix(i, 0), precision);
       sout << val;
       if (i != matrix.rows() - 1) {
         sout << ", ";
@@ -222,7 +224,7 @@ inline std::string toString(const ActsMatrixXd &matrix, int precision = 4,
         if (j == 0) {
           sout << "(";
         }
-        double val = detail::roundWithPrecision(matrix(i, j), precision);
+        ActsScalar val = detail::roundWithPrecision(matrix(i, j), precision);
         sout << val;
         if (j == matrix.cols() - 1) {
           sout << ")";
@@ -385,7 +387,7 @@ auto matrixToBitset(const Eigen::PlainObjectBase<Derived> &m) {
 template <typename S>
 ACTS_DEVICE_FUNC ActsMatrix<S, 2, 2>
 get2DMatrixInverse(const ActsMatrix<S, 2, 2> &cov) {
-  double det = cov(0, 0) * cov(1, 1) - cov(0, 1) * cov(1, 0);
+  ActsScalar det = cov(0, 0) * cov(1, 1) - cov(0, 1) * cov(1, 0);
   ActsMatrix<S, 2, 2> inverse = ActsMatrix<S, 2, 2>::Zero();
 
   inverse(0, 0) = cov(1, 1) / det;

@@ -41,7 +41,7 @@ constexpr unsigned int FreeParsDim = 8;
 constexpr unsigned int SpacePointDim = 4;
 
 using ParID_t = ParDef;
-using ParValue_t = double;
+using ParValue_t = ActsScalar;
 
 ///
 /// Type namings with bound parameters
@@ -105,15 +105,15 @@ template <> struct par_type<ParDef::eLOC_0> { using type = local_parameter; };
 template <> struct par_type<ParDef::eLOC_1> { using type = local_parameter; };
 
 template <> struct par_type<ParDef::ePHI> {
-  static constexpr double pMin() { return -M_PI; }
-  static constexpr double pMax() { return M_PI; }
-  using type = cyclic_parameter<double, pMin, pMax>;
+  static constexpr ActsScalar pMin() { return -M_PI; }
+  static constexpr ActsScalar pMax() { return M_PI; }
+  using type = cyclic_parameter<ActsScalar, pMin, pMax>;
 };
 
 template <> struct par_type<ParDef::eTHETA> {
-  static constexpr double pMin() { return 0; }
-  static constexpr double pMax() { return M_PI; }
-  using type = bound_parameter<double, pMin, pMax>;
+  static constexpr ActsScalar pMin() { return 0; }
+  static constexpr ActsScalar pMax() { return M_PI; }
+  using type = bound_parameter<ActsScalar, pMin, pMax>;
 };
 
 template <> struct par_type<ParDef::eQOP> { using type = unbound_parameter; };

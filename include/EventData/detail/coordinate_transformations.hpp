@@ -65,9 +65,9 @@ struct coordinate_transformation {
   ACTS_DEVICE_FUNC static Vector3D
   parameters2globalMomentum(const ParVector_t &pars) {
     Vector3D momentum;
-    double p = std::abs(1. / pars(Acts::eQOP));
-    double phi = pars(Acts::ePHI);
-    double theta = pars(Acts::eTHETA);
+    ActsScalar p = std::abs(1. / pars(Acts::eQOP));
+    ActsScalar phi = pars(Acts::ePHI);
+    ActsScalar theta = pars(Acts::eTHETA);
     momentum[0] = p * sin(theta) * cos(phi);
     momentum[1] = p * sin(theta) * sin(phi);
     momentum[2] = p * cos(theta);
@@ -88,7 +88,7 @@ struct coordinate_transformation {
   /// @return curvilinear parameter representation
   ACTS_DEVICE_FUNC static ParVector_t
   global2curvilinear(const Vector3D & /*pos*/, const Vector3D &mom,
-                     double charge, double time) {
+                     ActsScalar charge, ActsScalar time) {
     using VectorHelpers::phi;
     using VectorHelpers::theta;
     ParVector_t parameters;
@@ -115,7 +115,7 @@ struct coordinate_transformation {
   template <typename surface_derived_t>
   ACTS_DEVICE_FUNC static ParVector_t
   global2parameters(const GeometryContext &gctx, const Vector3D &pos,
-                    const Vector3D &mom, double charge, double time,
+                    const Vector3D &mom, ActsScalar charge, ActsScalar time,
                     const Surface &s) {
     using VectorHelpers::phi;
     using VectorHelpers::theta;
@@ -129,8 +129,9 @@ struct coordinate_transformation {
 
   /// @brief static calculate the charge from the track parameterisation
   ///
-  /// @return the charge as a double
-  ACTS_DEVICE_FUNC static double parameters2charge(const ParVector_t &pars) {
+  /// @return the charge as a ActsScalar
+  ACTS_DEVICE_FUNC static ActsScalar
+  parameters2charge(const ParVector_t &pars) {
     return (pars(Acts::eQOP) > 0) ? 1. : -1.;
   }
 

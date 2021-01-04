@@ -47,7 +47,7 @@ struct local_parameter : public unbound_parameter {};
 /// This parameter type could be useful to describe parameter with physical
 /// meaningful bounds (e.g. radius).
 ///
-/// @tparam T type for boundary value (usually @c double)
+/// @tparam T type for boundary value (usually @c ActsScalar)
 /// @tparam MIN pointer to a @c constexpr function returning the lower bound of
 /// the value range
 /// @tparam MAX pointer to a @c constexpr function returning the upper bound of
@@ -84,7 +84,7 @@ template <typename T, T (*MIN)(), T (*MAX)()> struct bound_parameter {
 ///
 /// This parameter type is useful to e.g. describe angles.
 ///
-/// @tparam T type for boundary value (usually @c double)
+/// @tparam T type for boundary value (usually @c ActsScalar)
 /// @tparam MIN pointer to a @c constexpr function returning the lower bound of
 /// the value range
 /// @tparam MAX pointer to a @c constexpr function returning the upper bound of

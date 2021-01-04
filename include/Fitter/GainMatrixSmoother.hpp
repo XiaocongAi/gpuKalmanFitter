@@ -58,7 +58,7 @@ public:
       // Gain smoothing matrix
       G = (*ts.parameter.filtered.covariance()) *
           prev_ts->parameter.jacobian.transpose() *
-          (BoundSymMatrix)(calculateInverse<TDD_real_t>(
+          (BoundSymMatrix)(calculateInverse<ActsScalar>(
               *prev_ts->parameter.predicted.covariance()));
       // if (G.hasNaN()) {
       //  printf("WARNING: G has NaN!\n");

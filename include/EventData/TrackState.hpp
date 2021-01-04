@@ -148,9 +148,9 @@ public:
     /// The transport jacobian matrix
     Jacobian jacobian;
     /// The path length along the track - will help sorting
-    double pathLength = 0.;
+    ActsScalar pathLength = 0.;
     /// chisquare
-    double chi2 = 0;
+    ActsScalar chi2 = 0;
   } parameter;
 
   /// @brief Nested measurement part

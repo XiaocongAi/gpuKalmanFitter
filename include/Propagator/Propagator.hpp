@@ -44,7 +44,7 @@ struct PropagatorResult {
   unsigned int steps = 0;
 
   /// Signed distance over which the parameters were propagated
-  double pathLength = 0.;
+  ActsScalar pathLength = 0.;
 };
 
 /// @brief Options for propagate() call
@@ -70,7 +70,7 @@ template <typename action_t, typename aborter_t> struct PropagatorOptions {
   int absPdgCode = 13;
 
   /// The mass for the particle for (eventual) material integration
-  double mass = 105.6583755 * Acts::UnitConstants::MeV;
+  ActsScalar mass = 105.6583755 * Acts::UnitConstants::MeV;
 
   /// Maximum number of steps for one propagate call
   unsigned int maxSteps = 1000;
@@ -79,20 +79,20 @@ template <typename action_t, typename aborter_t> struct PropagatorOptions {
   unsigned int maxRungeKuttaStepTrials = 10000;
 
   /// Absolute maximum step size
-  double maxStepSize = std::numeric_limits<double>::max();
+  ActsScalar maxStepSize = std::numeric_limits<ActsScalar>::max();
 
   /// Absolute maximum path length
-  double pathLimit = std::numeric_limits<double>::max();
+  ActsScalar pathLimit = std::numeric_limits<ActsScalar>::max();
 
   /// Required tolerance to reach target (surface, pathlength)
-  double targetTolerance = s_onSurfaceTolerance;
+  ActsScalar targetTolerance = s_onSurfaceTolerance;
 
   // Configurations for Stepper
   /// Tolerance for the error of the integration
-  double tolerance = 1e-4;
+  ActsScalar tolerance = 1e-4;
 
   /// Cut-off value for the step size
-  double stepSizeCutOff = 0.;
+  ActsScalar stepSizeCutOff = 0.;
 
   /// The single actor
   action_t action;

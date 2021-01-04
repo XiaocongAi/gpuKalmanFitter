@@ -30,7 +30,7 @@ public:
   /// Constructor
   ///
   /// @param splitFactor is the splitting ratio between pre/post update
-  ACTS_DEVICE_FUNC ISurfaceMaterial(double splitFactor)
+  ACTS_DEVICE_FUNC ISurfaceMaterial(ActsScalar splitFactor)
       : m_splitFactor(splitFactor) {}
 
   /// Destructor
@@ -39,7 +39,7 @@ public:
   /// Scale operator
   ///
   /// @param scale is the scale factor applied
-  ACTS_DEVICE_FUNC ISurfaceMaterial &operator*=(double scale);
+  ACTS_DEVICE_FUNC ISurfaceMaterial &operator*=(ActsScalar scale);
 
   /// Return method for full material description of the Surface
   /// - from local coordinate on the surface
@@ -68,8 +68,8 @@ public:
   ///
   /// @param pDir is the navigation direction through the surface
   /// @param mStage is the material update directive (onapproach, full, onleave)
-  ACTS_DEVICE_FUNC double factor(NavigationDirection pDir,
-                                 MaterialUpdateStage mStage) const;
+  ACTS_DEVICE_FUNC ActsScalar factor(NavigationDirection pDir,
+                                     MaterialUpdateStage mStage) const;
 
   /// Return method for fully scaled material description of the Surface
   /// - from local coordinate on the surface
@@ -96,12 +96,12 @@ public:
                                              MaterialUpdateStage mStage) const;
 
 protected:
-  double m_splitFactor{1.}; //!< the split factor in favour of oppositePre
+  ActsScalar m_splitFactor{1.}; //!< the split factor in favour of oppositePre
 };
 
 template <typename Derived>
-inline ISurfaceMaterial<Derived> &ISurfaceMaterial<Derived>::
-operator*=(double scale) {
+inline ISurfaceMaterial<Derived> &
+ISurfaceMaterial<Derived>::operator*=(ActsScalar scale) {
   return static_cast<Derived &>(*this).operator*=(scale);
 }
 
@@ -124,7 +124,7 @@ ISurfaceMaterial<Derived>::materialSlab(size_t ib0, size_t ib1) const {
 }
 
 template <typename Derived>
-inline double
+inline ActsScalar
 ISurfaceMaterial<Derived>::factor(NavigationDirection pDir,
                                   MaterialUpdateStage mStage) const {
   if (mStage == Acts::fullUpdate) {
@@ -142,7 +142,7 @@ ISurfaceMaterial<Derived>::materialSlab(const Vector2D &lp,
   MaterialSlab plainMatProp = materialSlab(lp);
   // Scale if you have material to scale
   if (plainMatProp) {
-    double scaleFactor = factor(pDir, mStage);
+    ActsScalar scaleFactor = factor(pDir, mStage);
     if (scaleFactor == 0.) {
       return MaterialSlab();
     }
@@ -160,7 +160,7 @@ ISurfaceMaterial<Derived>::materialSlab(const Vector3D &gp,
   MaterialSlab plainMatProp = materialSlab(gp);
   // Scale if you have material to scale
   if (plainMatProp) {
-    double scaleFactor = factor(pDir, mStage);
+    ActsScalar scaleFactor = factor(pDir, mStage);
     if (scaleFactor == 0.) {
       return MaterialSlab();
     }

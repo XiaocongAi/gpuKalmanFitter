@@ -37,7 +37,7 @@ static const Vector2D s_origin2D(0., 0.);
 static const Vector3D s_origin(0, 0, 0); //!< origin position
 
 namespace detail {
-static const double _helper[9] = {0., 1., 0., 1., 0., 0., 0., 0., -1.};
+static const ActsScalar _helper[9] = {0., 1., 0., 1., 0., 0., 0., 0., -1.};
 }
 
 static const RotationMatrix3D s_idRotationZinverse(detail::_helper);

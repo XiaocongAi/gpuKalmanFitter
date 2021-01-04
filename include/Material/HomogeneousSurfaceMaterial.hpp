@@ -31,7 +31,7 @@ public:
   /// @param full are the full material properties
   /// @param splitFactor is the split for pre/post update
   ACTS_DEVICE_FUNC HomogeneousSurfaceMaterial(const MaterialSlab &full,
-                                              double splitFactor = 1.);
+                                              ActsScalar splitFactor = 1.);
 
   /// Copy Constructor
   ///
@@ -62,7 +62,7 @@ public:
   /// - it is effectively a thickness scaling
   ///
   /// @param scale is the scale factor
-  ACTS_DEVICE_FUNC HomogeneousSurfaceMaterial &operator*=(double scale);
+  ACTS_DEVICE_FUNC HomogeneousSurfaceMaterial &operator*=(ActsScalar scale);
 
   /// Equality operator
   ///
@@ -103,12 +103,12 @@ private:
 };
 
 inline HomogeneousSurfaceMaterial::HomogeneousSurfaceMaterial(
-    const MaterialSlab &full, double splitFactor)
+    const MaterialSlab &full, ActsScalar splitFactor)
     : ISurfaceMaterial<HomogeneousSurfaceMaterial>(splitFactor),
       m_fullMaterial(full) {}
 
-inline HomogeneousSurfaceMaterial &HomogeneousSurfaceMaterial::
-operator*=(double scale) {
+inline HomogeneousSurfaceMaterial &
+HomogeneousSurfaceMaterial::operator*=(ActsScalar scale) {
   m_fullMaterial.scaleThickness(scale);
   return (*this);
 }
@@ -132,8 +132,8 @@ HomogeneousSurfaceMaterial::materialSlab(size_t /*ib0*/, size_t /*ib1*/) const {
   return (m_fullMaterial);
 }
 
-inline bool HomogeneousSurfaceMaterial::
-operator==(const HomogeneousSurfaceMaterial &hsm) const {
+inline bool HomogeneousSurfaceMaterial::operator==(
+    const HomogeneousSurfaceMaterial &hsm) const {
   return (m_fullMaterial == hsm.m_fullMaterial);
 }
 
