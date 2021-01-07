@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
   unsigned int nTracks = 10000;
   unsigned int nThreads = 250;
   bool output = false;
-  bool smoothing = false;
+  bool smoothing = true;
   std::string device;
   std::string bFieldFileName;
   ActsScalar p;
@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
   // Set translation vectors
   std::vector<Acts::Vector3D> translations;
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
-    translations.push_back({(isur * 30. + 19) * Acts::units::_mm, 0., 0.});
+    translations.push_back({(isur * 30. + 20.) * Acts::units::_mm, 0., 0.});
   }
   // The silicon material
   Acts::MaterialSlab matProp(Test::makeSilicon(), 0.5 * Acts::units::_mm);
@@ -217,11 +217,11 @@ int main(int argc, char *argv[]) {
         "fitted_" + param + "_cpu_nTracks_" + std::to_string(nTracks) + ".obj";
     writeStatesObj(fittedStates.data(), fitStatus, nTracks, nSurfaces,
                    stateFileName, param);
-    // write fitted params to cvs file
-    std::string paramFileName =
-        "fitted_param_cpu_nTracks_" + std::to_string(nTracks) + ".csv";
-    writeParamsCsv(fittedParams.data(), fitStatus, nTracks, paramFileName);
     if (smoothing) {
+      // write fitted params to cvs file
+      std::string paramFileName =
+          "fitted_param_cpu_nTracks_" + std::to_string(nTracks) + ".csv";
+      writeParamsCsv(fittedParams.data(), fitStatus, nTracks, paramFileName);
       // write fitted params and residual/pull to root file
       std::string rootFileName =
           "fitted_param_cpu_nTracks_" + std::to_string(nTracks) + ".root";
