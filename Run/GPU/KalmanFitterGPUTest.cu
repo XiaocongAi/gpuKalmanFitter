@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
   const Size nSurfaces = 10;
   bool output = false;
   bool useSharedMemory = false;
-  bool smoothing = false;
+  bool smoothing = true;
   std::string device = "cpu";
   std::string bFieldFileName;
   // ActsScalar p = 1 * Acts::units::_GeV;
@@ -174,7 +174,7 @@ int main(int argc, char *argv[]) {
   // Set translation vectors
   std::vector<Acts::Vector3D> translations;
   for (Size isur = 0; isur < nSurfaces; isur++) {
-    translations.push_back({(isur * 30. + 19) * Acts::units::_mm, 0., 0.});
+    translations.push_back({(isur * 30. + 20.) * Acts::units::_mm, 0., 0.});
   }
   // The silicon material
   Acts::MaterialSlab matProp(Test::makeSilicon(), 0.5 * Acts::units::_mm);
