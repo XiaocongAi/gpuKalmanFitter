@@ -1,5 +1,6 @@
 add_executable(KalmanFitterGPUTest KalmanFitterGPUTest.cu)
-target_link_libraries(KalmanFitterGPUTest Actscore  ROOT::Core ROOT::Hist ROOT::Tree)
+target_link_libraries(KalmanFitterGPUTest Actscore
+                          ROOT::Core ROOT::Hist ROOT::Tree)
 
 target_include_directories(
   KalmanFitterGPUTest 
@@ -7,24 +8,33 @@ target_include_directories(
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../Common>
 )
 
+install(TARGETS KalmanFitterGPUTest EXPORT $ { PROJECT_NAME } Targets RUNTIME
+            DESTINATION bin COMPONENT runtime LIBRARY DESTINATION bin COMPONENT
+                runtime ARCHIVE DESTINATION bin COMPONENT devel PUBLIC_HEADER
+                    DESTINATION include COMPONENT devel RESOURCE DESTINATION
+                        resource COMPONENT runtime)
 
-install(TARGETS KalmanFitterGPUTest
-  EXPORT ${PROJECT_NAME}Targets
-  RUNTIME       DESTINATION bin      COMPONENT runtime
-  LIBRARY       DESTINATION bin      COMPONENT runtime
-  ARCHIVE       DESTINATION bin      COMPONENT devel
-  PUBLIC_HEADER DESTINATION include  COMPONENT devel
-  RESOURCE      DESTINATION resource COMPONENT runtime
+add_executable(KalmanFitterGPUSTest KalmanFitterGPUSTest.cu)
+target_link_libraries(KalmanFitterGPUSTest Actscore
+                          ROOT::Core ROOT::Hist ROOT::Tree)
+
+target_include_directories(
+  KalmanFitterGPUSTest 
+  PUBLIC 
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../Common>
 )
+
+install(TARGETS KalmanFitterGPUSTest EXPORT $ { PROJECT_NAME } Targets RUNTIME
+            DESTINATION bin COMPONENT runtime LIBRARY DESTINATION bin COMPONENT
+                runtime ARCHIVE DESTINATION bin COMPONENT devel PUBLIC_HEADER
+                    DESTINATION include COMPONENT devel RESOURCE DESTINATION
+                        resource COMPONENT runtime)
 
 add_executable(IntersectGPUTest IntersectGPUTest.cu)
 target_link_libraries(IntersectGPUTest Actscore)
 
-install(TARGETS IntersectGPUTest
-  EXPORT ${PROJECT_NAME}Targets
-  RUNTIME       DESTINATION bin      COMPONENT runtime
-  LIBRARY       DESTINATION bin      COMPONENT runtime
-  ARCHIVE       DESTINATION bin      COMPONENT devel
-  PUBLIC_HEADER DESTINATION include  COMPONENT devel
-  RESOURCE      DESTINATION resource COMPONENT runtime
-)
+install(TARGETS IntersectGPUTest EXPORT $ { PROJECT_NAME } Targets RUNTIME
+            DESTINATION bin COMPONENT runtime LIBRARY DESTINATION bin COMPONENT
+                runtime ARCHIVE DESTINATION bin COMPONENT devel PUBLIC_HEADER
+                    DESTINATION include COMPONENT devel RESOURCE DESTINATION
+                        resource COMPONENT runtime)
