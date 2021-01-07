@@ -436,7 +436,7 @@ int main(int argc, char *argv[]) {
             std::to_string(nStreams), "gridSize", dim3ToString(grid),
             "blockSize", dim3ToString(block), "sharedMemory",
             std::to_string(static_cast<Size>(useSharedMemory))),
-        ms / 1000);
+        ms);
 
   } else {
     /// Run on host

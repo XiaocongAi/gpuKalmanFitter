@@ -207,7 +207,7 @@ int main(int argc, char *argv[]) {
   Test::Logger::logTime(Test::Logger::buildFilename(
                             "timing_cpu", "nTracks", std::to_string(nTracks),
                             "OMP_NumThreads", std::to_string(threads)),
-                        elapsed_seconds.count());
+                        elapsed_seconds.count()*1000);
 
   if (output) {
     std::cout << "writing fitting results" << std::endl;
