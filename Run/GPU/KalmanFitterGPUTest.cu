@@ -39,6 +39,7 @@ static void show_usage(std::string name) {
             << "\t-t,--tracks \tSpecify the number of tracks\n"
             << "\t-e,--streams \tSpecify number of streams\n"
             << "\t-r,--threads \tSpecify the number of threads\n"
+            << "\t-u,--multiple-devices \tIndicator for running on multiple GPUs (if available)\n"
             // << "\t-p,--pt \tSpecify the pt of particle\n"
             << "\t-o,--output \tIndicator for writing propagation results\n"
             << "\t-d,--device \tSpecify the device: 'gpu' or 'cpu'\n"
@@ -55,11 +56,13 @@ int main(int argc, char *argv[]) {
   Size nTracks = 10000;
   Size nStreams = 1;
   Size nThreads = 250;
+  Size nDevices = 1;
   // The number of navigation surfaces
   const Size nSurfaces = 10;
   bool output = false;
   bool useSharedMemory = false;
   bool smoothing = true;
+  bool multiGpu = false;
   std::string device = "cpu";
   std::string machine;
   std::string bFieldFileName;
@@ -76,10 +79,28 @@ int main(int argc, char *argv[]) {
         nTracks = atoi(argv[++i]);
       } else if ((arg == "-e") or (arg == "--streams")) {
         nStreams = atoi(argv[++i]);
+        if (multiGpu && nStreams > 1) {
+          std::cerr << "--multiple-devices and --streams options are incompatible. Choose only one for now!" << std::endl;
+          return 1;
+        }
       } else if ((arg == "-r") or (arg == "--threads")) {
         nThreads = atoi(argv[++i]);
+      }
         //} else if ((arg == "-p") or (arg == "--pt")) {
         //  p = atof(argv[++i]) * Acts::units::_GeV;
+      } else if ((arg == "-u") or (arg == "--multiple-devices")) {
+        multiGpu = (atoi(argv[++i]) == 1);
+        if (multiGpu) {
+          if (nStreams > 1) { 
+            std::cerr << "--multiple-devices and --streams options are incompatible. Choose only one for now!" << std::endl;
+            return 1;
+          } else  {
+           int nDev;
+           GPUERRCHK(cudaGetDeviceCount(&nDev));
+           nDevices = (Size)nDev;
+           nStreams = nDevices;
+          }
+        }
       } else if ((arg == "-o") or (arg == "--output")) {
         output = (atoi(argv[++i]) == 1);
       } else if ((arg == "-d") or (arg == "--device")) {
@@ -109,17 +130,18 @@ int main(int argc, char *argv[]) {
   std::cout << grid.x << " " << grid.y << " " << block.x << " " << block.y
             << std::endl;
 
-  Size devId = 0;
-
-  cudaDeviceProp prop;
-  GPUERRCHK(cudaGetDeviceProperties(&prop, devId));
-  printf("Device : %s\n", prop.name);
-  GPUERRCHK(cudaSetDevice(devId));
-  int driverVersion, rtVersion;
-  GPUERRCHK(cudaDriverGetVersion(&driverVersion));
-  printf("cuda driver version: %i\n", driverVersion);
-  GPUERRCHK(cudaRuntimeGetVersion(&rtVersion));
-  printf("cuda rt version: %i\n", rtVersion);
+  std::cout << "Devices requested for KF: " << std::endl;
+  for (Size devId = 0; devId < nDevices; devId++) {
+    GPUERRCHK(cudaSetDevice(devId));
+    cudaDeviceProp prop;
+    GPUERRCHK(cudaGetDeviceProperties(&prop, devId));
+    printf("   Device : %s\n", prop.name);
+    int driverVersion, rtVersion;
+    GPUERRCHK(cudaDriverGetVersion(&driverVersion));
+    printf("   Cuda driver version: %i\n", driverVersion);
+    GPUERRCHK(cudaRuntimeGetVersion(&rtVersion));
+    printf("   Cuda rt version: %i\n\n", rtVersion);
+  }
 
   if (machine.empty()) {
     if (device == "gpu") {
@@ -319,30 +341,46 @@ int main(int argc, char *argv[]) {
 
   float ms; // elapsed time in milliseconds
 
-  // Create events and streams
-  cudaEvent_t startEvent, stopEvent;
-  cudaStream_t stream[nStreams];
-  GPUERRCHK(cudaEventCreate(&startEvent));
-  GPUERRCHK(cudaEventCreate(&stopEvent));
-  for (int i = 0; i < nStreams; ++i) {
-    GPUERRCHK(cudaStreamCreate(&stream[i]));
-  }
-
   // @note: prefetch the surface or not
   // cudaMemPrefetchAsync(surfaces, navigationSurfaceBytes, devId, stream[0]);
 
   // Running directly on host or offloading to GPU
   bool useGPU = (device == "gpu");
   if (useGPU) {
-    GPUERRCHK(cudaEventRecord(startEvent, 0));
+    
+    auto start_fit = std::chrono::high_resolution_clock::now();
+    
+    // Create events and streams for each device
+    cudaEvent_t startEvent[nDevices], stopEvent[nDevices];
+    // The same number of streams is available, but used either:
+    // a. in parallel on the same device, OR
+    // b. one per device, in parallel for all devices;
+    cudaStream_t stream[nStreams]; 
+    for (Size devId = 0; devId < nDevices; ++devId) {
+      GPUERRCHK(cudaSetDevice(devId));
+      GPUERRCHK(cudaEventCreate(&startEvent[devId]));
+      GPUERRCHK(cudaEventCreate(&stopEvent[devId]));
+      // If more devices are available, then there is only 1 stream per device;
+      // If only 1 device is available, then there are nStreams streams available;
+      if (!multiGpu) {
+        for (Size i = 0; i < nStreams; ++i) {
+         GPUERRCHK(cudaStreamCreate(&stream[i]));
+        }
+      } else {
+        GPUERRCHK(cudaStreamCreate(&stream[devId]));
+      }   
+   }
+    
+  #pragma omp parallel for num_threads(nDevices) proc_bind(master)
+  for (Size devId = 0; devId < nDevices; ++devId) {
+    GPUERRCHK(cudaSetDevice(devId));
+    GPUERRCHK(cudaEventRecord(startEvent[devId], 0));
 
     // Allocate memory on device
 
     PlaneSurfaceType *d_surfaces;
     KalmanFitterType *d_kFitter;
     Acts::PixelSourceLink *d_sourcelinks;
-    // The start pars will be constructed on GPU with bound vector and
-    // covariance
     BoundState *d_boundStates;
     Acts::LineSurface *d_targetSurfaces;
     FitOptionsType *d_fitOptions;
@@ -366,8 +404,16 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaMemcpy(d_kFitter, &kFitter, sizeof(KalmanFitterType),
                          cudaMemcpyHostToDevice));
 
+    // If more devices are available, then there is only 1 stream per device;
+    // If only 1 device is available, then there are nStreams streams used;
+    Size streamStartIdx = multiGpu ? devId : 0;
+    Size streamEndIdx = multiGpu ? (devId+1) : nStreams;
+   
     // Run on device
-    for (Size i = 0; i < nStreams; ++i) {
+    for (Size i = streamStartIdx; i < streamEndIdx; ++i) {
+      // make sure the thread is communicating with the appropriate device
+      GPUERRCHK(cudaSetDevice(devId));
+
       Size offset = i * tracksPerStream;
       const auto streamTracks =
           (i < nStreams - 1) ? tracksPerStream : tracksLastStream;
@@ -413,8 +459,8 @@ int main(int argc, char *argv[]) {
             d_fitOptions, d_fitStates, d_fitPars, d_fitStatus, d_surfaces,
             nSurfaces, streamTracks, offset);
       }
-      GPUERRCHK(cudaEventRecord(stopEvent, stream[i]));
-      GPUERRCHK(cudaEventSynchronize(stopEvent));
+      GPUERRCHK(cudaEventRecord(stopEvent[devId], stream[i]));
+      GPUERRCHK(cudaEventSynchronize(stopEvent[devId]));
       // copy the fitted states to host
       GPUERRCHK(cudaMemcpyAsync(&fitStates[offset * nSurfaces],
                                 &d_fitStates[offset * nSurfaces],
@@ -446,10 +492,21 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaFree(d_kFitter));
     GPUERRCHK(cudaFree(d_surfaces));
 
-    GPUERRCHK(cudaEventRecord(stopEvent, 0));
-    GPUERRCHK(cudaEventSynchronize(stopEvent));
-    GPUERRCHK(cudaEventElapsedTime(&ms, startEvent, stopEvent));
-    printf("Time (ms) for KF memory transfer and execution: %f\n", ms);
+    GPUERRCHK(cudaEventRecord(stopEvent[devId], 0));
+    GPUERRCHK(cudaEventSynchronize(stopEvent[devId]));
+    GPUERRCHK(cudaEventElapsedTime(&ms, startEvent[devId], stopEvent[devId]));
+  
+    printf("Thread %d: Time (ms) for KF memory transfer and execution on "
+             "device %d : %f\n",
+             omp_get_thread_num(), devId, ms);
+
+    /// TODO: destroy streams and events
+  }
+
+  auto end_fit = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<float> fsec = end_fit - start_fit;
+  std::chrono::milliseconds mss = std::chrono::duration_cast<std::chrono::milliseconds>(fsec);
+  printf("Wall clock time (ms) for KF: %f\n", mss.count());
 
     // Log the execution time in seconds (not including the managed memory
     // allocation time for the surfaces)
