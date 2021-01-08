@@ -14,7 +14,7 @@ void  perf() {
   gStyle->SetPadTopMargin(0.1);
   gStyle->SetPadBottomMargin(0.15);
 	
-  std::string fileName = "data/perf.txt";
+  std::string fileName = "./plotData/perf.txt";
 
   TGraph* gr1 = new TGraph(fileName.c_str(), "%lg %*lg %*lg %lg %*lg %*lg %*lg %*lg %*lg",",;"); 
   TGraph* gr2 = new TGraph(fileName.c_str(), "%lg %*lg %*lg %*lg %lg %*lg %*lg %*lg %*lg",",;"); 
