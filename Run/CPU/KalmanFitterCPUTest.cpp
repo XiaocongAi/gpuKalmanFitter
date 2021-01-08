@@ -110,9 +110,9 @@ int main(int argc, char *argv[]) {
                      .setVolume(0u)
                      .setLayer((uint64_t)(isur))
                      .setSensitive((uint64_t)(isur));
-    std::cout << isur << " has volume " << geoID.volume() << ", layer "
-              << geoID.layer() << ", sensitive " << geoID.sensitive()
-              << std::endl;
+    //std::cout << isur << " has volume " << geoID.volume() << ", layer "
+    //          << geoID.layer() << ", sensitive " << geoID.sensitive()
+    //          << std::endl;
     surfaces[isur].assignGeoID(geoID);
   }
 

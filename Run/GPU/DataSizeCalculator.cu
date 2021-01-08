@@ -33,9 +33,9 @@ std::array<Size, 8> streamBytes(Size nSurfaces, Size nTracks, Size nStreams,
     throw std::invalid_argument("There are only " + nStreams);
   }
 
-  Size tracksPerStream = (nTracks + nStreams - 1) / nStreams;
+  Size tracksPerStream = nTracks / nStreams;
   Size tracksLastStream =
-      tracksPerStream - (tracksPerStream * nStreams - nTracks);
+      tracksPerStream + nTracks % nStreams;
   Size streamSize =
       (iStream == nStreams - 1) ? tracksLastStream : tracksPerStream;
   std::array<Size, 8> fitData;

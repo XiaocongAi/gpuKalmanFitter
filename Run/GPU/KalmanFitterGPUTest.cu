@@ -123,6 +123,7 @@ int main(int argc, char *argv[]) {
 
   if ((device == "gpu") and machine.empty()) {
     machine = prop.name;
+    std::replace( machine.begin(), machine.end(), ' ', '_' );
   } else {
     std::cout << "The name of the CPU being tested must be provided, like e.g. "
                  "Intel_i7-8559U."
@@ -132,7 +133,6 @@ int main(int argc, char *argv[]) {
   Size tracksPerBlock = block.x * block.y;
 
   // Use 8*8 block if using one block for one track
-  // @todo Extend to run multiple (block.z) tracks in one block
   if (useSharedMemory) {
     std::cout << "Shared memory used. Block size is set to 8*8!" << std::endl;
     block = dim3(8, 8);
@@ -163,19 +163,19 @@ int main(int argc, char *argv[]) {
   const Size blocksPerGrid =
       (tracksPerStream + tracksPerBlock - 1) / tracksPerBlock;
   if (grid.x * grid.y < blocksPerGrid) {
-    std::cout << "Grid size too small. It should be at least " << blocksPerGrid
+    std::cout << "WARNING: Grid size too small. It's set to the minimum size: " << blocksPerGrid
               << std::endl;
-    return 1;
+    grid=blocksPerGrid; 
   }
 
   // The shared memory size
-  using PropState = PropagatorType::State<PropOptionsType>;
-  int sharedMemoryPerTrack =
-      sizeof(Acts::PathLimitReached) + sizeof(PropState) + sizeof(bool) * 2 +
-      sizeof(Acts::PropagatorResult) +
-      sizeof(Acts::ActsMatrixD<2, Acts::eBoundParametersSize>) * 2 +
-      sizeof(Acts::ActsMatrixD<2, 2>) * 2 + sizeof(Acts::BoundMatrix);
-  std::cout << "shared memory is " << sharedMemoryPerTrack << std::endl;
+//  using PropState = PropagatorType::State<PropOptionsType>;
+//  int sharedMemoryPerTrack =
+//      sizeof(Acts::PathLimitReached) + sizeof(PropState) + sizeof(bool) * 2 +
+//      sizeof(Acts::PropagatorResult) +
+//      sizeof(Acts::ActsMatrixD<2, Acts::eBoundParametersSize>) * 2 +
+//      sizeof(Acts::ActsMatrixD<2, 2>) * 2 + sizeof(Acts::BoundMatrix);
+//  std::cout << "shared memory is " << sharedMemoryPerTrack << std::endl;
 
   // Create a test context
   Acts::GeometryContext gctx(0);
@@ -213,9 +213,9 @@ int main(int argc, char *argv[]) {
     auto geoID =
         Acts::GeometryID().setVolume(0u).setLayer(isur).setSensitive(isur);
     surfaces[isur].assignGeoID(geoID);
-    printf("surface value = %d, geoID = (%d, %d, %d)\n",
-           surfaces[isur].geoID().value(), surfaces[isur].geoID().volume(),
-           surfaces[isur].geoID().layer(), surfaces[isur].geoID().sensitive());
+    //printf("surface value = %d, geoID = (%d, %d, %d)\n",
+    //       surfaces[isur].geoID().value(), surfaces[isur].geoID().volume(),
+    //       surfaces[isur].geoID().layer(), surfaces[isur].geoID().sensitive());
   }
   const Acts::Surface *surfacePtrs = surfaces;
   std::cout << "Creating " << nSurfaces << " boundless plane surfaces"
@@ -394,7 +394,6 @@ int main(int argc, char *argv[]) {
                                 streamDataBytes[FitData::FitStatus],
                                 cudaMemcpyHostToDevice, stream[i]));
 
-      std::cout << "prepared to launch kernel\n" << std::endl;
       // Use shared memory for one track if requested
       if (useSharedMemory) {
         fitKernelBlockPerTrack<<<grid, block, 0, stream[i]>>>(
