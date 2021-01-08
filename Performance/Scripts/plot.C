@@ -22,13 +22,14 @@ void  plot() {
   gStyle->SetPadBottomMargin(0.15);
 
   std::string filePath = "./plotData/";
+  
   std::vector<std::string> fileNames={
   "Results_timing_Haswell_customInverter_OMP_NumThreads_1.csv",
   "Results_timing_Haswell_customInverter_OMP_NumThreads_60.csv",
-  "Results_timing_v100_nStreams_1_gridSize_20000*1*1_blockSize_8*8*1_sharedMemory_0.csv",
-  "Results_timing_v100_nStreams_1_gridSize_20000*1*1_blockSize_8*8*1_sharedMemory_1.csv",
+  "Results_timing_Tesla_V100-SXM2-16GB_nStreams_1_gridSize_20000*1*1_blockSize_8*8*1_sharedMemory_0.csv",
+  "Results_timing_Tesla_V100-SXM2-16GB_nStreams_1_gridSize_20000*1*1_blockSize_8*8*1_sharedMemory_1.csv",
   };
-  
+ 
   std::vector<std::string> machines={
    "Haswell 1 thread",
    "Haswell 60 threads",
@@ -38,6 +39,16 @@ void  plot() {
 
   std::vector<int> styles = {20, 20, 24, 24};
   std::vector<int> colors = {14, 6, 4, 3};
+  
+  if(fileNames.size()!=machines.size()){
+    throw std::runtime_error("The fileNames size must be equal to the machines size!"); 
+  }
+  if(styles.size() != fileNames.size()){
+    throw std::runtime_error("The styles size must be equal to the fileNames size!"); 
+  }
+  if(colors.size() != fileNames.size()){
+    throw std::runtime_error("The colors size must be equal to the fileNames size!"); 
+  }
 
   std::vector<TGraphAsymmErrors*> grs(fileNames.size());
  

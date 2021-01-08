@@ -10,7 +10,7 @@ if [ ! -d "plotData" ]; then
    mkdir plotData
 fi
 
-machines=("Intel_i7-8559U_EigenInverter")
+machines=("Haswell_EigenInverter" "Haswell_customInverter")
 threads=(1 60)
 nTracks=(5 10 50 100 500 1000 5000 10000) 
 
