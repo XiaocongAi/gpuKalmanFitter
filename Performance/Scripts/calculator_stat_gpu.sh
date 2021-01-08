@@ -18,7 +18,7 @@ fi
 machines=("Tesla_V100-SXM2-16GB")
 nTracks=(5 10 50 100 500 1000 5000 10000) 
 nStreams=(1 4) 
-gridSizes=('40*1*1')
+gridSizes=('20000*1*1')
 blockSizes=('8*8*1')
 
 # helper functions to compare two floats

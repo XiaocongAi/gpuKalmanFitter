@@ -11,7 +11,7 @@ echo "Start statistical runs for $1"
 
 nTracks=(5 10 50 100 500 1000 5000 10000) 
 nStreams=(1 4) 
-gridSizes=('40')
+gridSizes=('20000')
 blockSizes=('8*8')
 
 for i in ${nTracks[@]}; do
@@ -28,7 +28,7 @@ for i in ${nTracks[@]}; do
                         echo " 1 block per thread: $1 -t ${i} -e ${k} -d "gpu" -o 0 -g ${gridSizes[j]} -s 1" 
 			$1 -t ${i} -e ${k} -d "gpu" -o 0 -g ${gridSizes[j]} -s 1
                 
-			sleep 2;
+			sleep 1;
 		done
 	    done
         done;
