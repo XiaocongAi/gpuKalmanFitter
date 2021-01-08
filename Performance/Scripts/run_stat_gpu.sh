@@ -18,12 +18,17 @@ for i in ${nTracks[@]}; do
 	for ((j=0; j<${#gridSizes[@]};++j)); do
             for k in ${nStreams[@]}; do
 		for cnt in {1..5}; do
-                	echo "Run $cnt for ${i} tracks with gridSize=${gridSizes[j]} and blockSize=${blockSizes[j]}"
+			echo "Run $cnt for ${i} tracks with gridSize=${gridSizes[j]} and blockSize=${blockSizes[j]} and ${k} streams:"
+                        
+			echo " 1 track per thread: $1 -t ${i} -e ${k} -d "gpu" -o 0 -g ${gridSizes[j]} -b ${blockSizes[j]}"
                         # 1 track per thread	
 			$1 -t ${i} -e ${k} -d "gpu" -o 0 -g ${gridSizes[j]} -b ${blockSizes[j]}
-	                # 1 block per thread, always 8** threads per block	
+	                
+			# 1 block per thread, always 8** threads per block	
+                        echo " 1 block per thread: $1 -t ${i} -e ${k} -d "gpu" -o 0 -g ${gridSizes[j]} -s 1" 
 			$1 -t ${i} -e ${k} -d "gpu" -o 0 -g ${gridSizes[j]} -s 1
-                	sleep 1;
+                
+			sleep 2;
 		done
 	    done
         done;

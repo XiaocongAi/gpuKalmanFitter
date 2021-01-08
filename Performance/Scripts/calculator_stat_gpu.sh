@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ "$#" -ne 1 ] || ! [ -d "$1" ]; then
+if [ $# -ne 1 ]; then
   echo "Missing boolean for shared memory or not"
   exit 1
 fi
@@ -15,10 +15,10 @@ if [ ! -d "plotData" ]; then
    mkdir plotData   
 fi
 
-machines=("v100")
+machines=("Tesla_V100-SXM2-16GB")
 nTracks=(5 10 50 100 500 1000 5000 10000) 
 nStreams=(1 4) 
-gridSizes=('20000*1*1')
+gridSizes=('40*1*1')
 blockSizes=('8*8*1')
 
 # helper functions to compare two floats
@@ -40,17 +40,17 @@ fi
 for ((m=0; m<${#machines[@]};++m)); do
     for ((j=0; j<${#gridSizes[@]};++j)); do
         for k in ${nStreams[@]}; do
-	   if [ $1 -eq 1]; then 
+	   if [ $1 -eq 1 ]; then 
 	     output=./plotData/Results_timing_${machines[m]}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_8*8*1_sharedMemory_$1.csv
 	   else 
 	     output=./plotData/Results_timing_${machines[m]}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_${blockSizes[j]}_sharedMemory_$1.csv
 	   fi 
 
 	   for i in ${nTracks[@]}; do
-	        if [ $1 -eq 1]; then 
-	          input=./results/Results_timing_$1_nTracks_${i}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_8*8*1_sharedMemory_$1.csv
+	        if [ $1 -eq 1 ]; then 
+	          input=./results/Results_timing_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_8*8*1_sharedMemory_$1.csv
                 else
-	          input=./results/Results_timing_$1_nTracks_${i}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_${blockSizes[j]}_sharedMemory_$1.csv
+	          input=./results/Results_timing_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_${blockSizes[j]}_sharedMemory_$1.csv
 		fi	
 
 	   	if [ ! -f ${input} ]; then 
