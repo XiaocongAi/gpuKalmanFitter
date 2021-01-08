@@ -122,38 +122,23 @@ using ActsRowVectorXf = ActsRowVectorX<float>;
 template <typename T> using ActsMatrix3X = Eigen::Matrix<T, 3, Eigen::Dynamic>;
 
 // coordinate vectors
-using Vector2F = ActsVector<float, 2>;
-using Vector3F = ActsVector<float, 3>;
-using Vector4F = ActsVector<float, 4>;
 using Vector2D = ActsVector<ActsScalar, 2>;
 using Vector3D = ActsVector<ActsScalar, 3>;
 using Vector4D = ActsVector<ActsScalar, 4>;
 // symmetric matrices e.g. for coordinate covariance matrices
-using SymMatrix2F = ActsSymMatrix<float, 2>;
-using SymMatrix3F = ActsSymMatrix<float, 3>;
-using SymMatrix4F = ActsSymMatrix<float, 4>;
 using SymMatrix2D = ActsSymMatrix<ActsScalar, 2>;
 using SymMatrix3D = ActsSymMatrix<ActsScalar, 3>;
 using SymMatrix4D = ActsSymMatrix<ActsScalar, 4>;
 
 // pure translation transformations
-using Translation2F = Eigen::Translation<float, 2>;
-using Translation3F = Eigen::Translation<float, 3>;
-using Translation4F = Eigen::Translation<float, 4>;
 using Translation2D = Eigen::Translation<ActsScalar, 2>;
 using Translation3D = Eigen::Translation<ActsScalar, 3>;
 using Translation4D = Eigen::Translation<ActsScalar, 4>;
 // linear (rotation) matrices
-using RotationMatrix2F = Eigen::Matrix<float, 2, 2>;
-using RotationMatrix3F = Eigen::Matrix<float, 3, 3>;
-using RotationMatrix4F = Eigen::Matrix<float, 4, 4>;
 using RotationMatrix2D = Eigen::Matrix<ActsScalar, 2, 2>;
 using RotationMatrix3D = Eigen::Matrix<ActsScalar, 3, 3>;
 using RotationMatrix4D = Eigen::Matrix<ActsScalar, 4, 4>;
 // pure rotation transformations. only available in 2d and 3d
-using Rotation2F = Eigen::Rotation2D<float>;
-using Rotation3F = Eigen::Quaternion<float>;
-using AngleAxis3F = Eigen::AngleAxis<float>;
 using Rotation2D = Eigen::Rotation2D<ActsScalar>;
 using Rotation3D = Eigen::Quaternion<ActsScalar>;
 using AngleAxis3D = Eigen::AngleAxis<ActsScalar>;
@@ -161,9 +146,6 @@ using AngleAxis3D = Eigen::AngleAxis<ActsScalar>;
 // - 2d affine compact stored as 2x3 matrix
 // - 3d affine stored as 4x4 matrix
 // - 4d affine compact stored as 4x5 matrix
-using Transform2F = Eigen::Transform<float, 2, Eigen::AffineCompact>;
-using Transform3F = Eigen::Transform<float, 3, Eigen::Affine>;
-using Transform4F = Eigen::Transform<float, 4, Eigen::AffineCompact>;
 using Transform2D = Eigen::Transform<ActsScalar, 2, Eigen::AffineCompact>;
 using Transform3D = Eigen::Transform<ActsScalar, 3, Eigen::Affine>;
 using Transform4D = Eigen::Transform<ActsScalar, 4, Eigen::AffineCompact>;

@@ -407,7 +407,7 @@ private:
         const Surface *surface, propagator_state_t &state, stepper_t &stepper,
         const MaterialUpdateStage &updateStage = fullUpdate) const {
       // Indicator if having material
-      bool hasMaterial = false;
+      //bool hasMaterial = false;
 
       // The material might be zero
       if (surface and surface->surfaceMaterial().materialSlab()) {
@@ -417,7 +417,7 @@ private:
         // Evaluate the material properties
         if (interaction.evaluateMaterialSlab(state, updateStage)) {
           // Surface has material at this stage
-          hasMaterial = true;
+          //hasMaterial = true;
 
           // Evaluate the material effects
           interaction.evaluatePointwiseMaterialInteraction(multipleScattering,

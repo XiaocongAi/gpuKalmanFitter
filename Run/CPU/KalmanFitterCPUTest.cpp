@@ -30,6 +30,7 @@ static void show_usage(std::string name) {
             //   "BField map\n"
             << "\t-r,--threads \tSpecify the number of threads\n"
             << "\t-m,--smoothing \tIndicator for running smoothing\n"
+            << "\t-a,--machine \tThe name of the machine, e.g. V100\n"
             << std::endl;
 }
 
@@ -39,6 +40,7 @@ int main(int argc, char *argv[]) {
   bool output = false;
   bool smoothing = true;
   std::string device;
+  std::string machine;
   std::string bFieldFileName;
   ActsScalar p;
   for (int i = 1; i < argc; ++i) {
@@ -57,11 +59,19 @@ int main(int argc, char *argv[]) {
         nThreads = atoi(argv[++i]);
       } else if ((arg == "-m") or (arg == "--smoothing")) {
         smoothing = (atoi(argv[++i]) == 1);
+      } else if ((arg == "-a") or (arg == "--machine")) {
+        machine = argv[++i];
       } else {
         std::cerr << "Unknown argument." << std::endl;
         return 1;
       }
     }
+  }
+
+  if (machine.empty()) {
+    std::cout << "The name of the CPU being tested must be provided, like e.g. "
+                 "Intel_i7-8559U."
+              << std::endl;
   }
 
   // Create a random number service
@@ -78,7 +88,8 @@ int main(int argc, char *argv[]) {
   // Set translation vectors
   std::vector<Acts::Vector3D> translations;
   for (unsigned int isur = 0; isur < nSurfaces; isur++) {
-    translations.push_back({(isur * 30. + 20.) * Acts::units::_mm, 0., 0.});
+    Acts::Vector3D translation(isur * 30. + 20., 0., 0.);
+    translations.emplace_back(translation);
   }
   // The silicon material
   Acts::MaterialSlab matProp(Test::makeSilicon(), 0.5 * Acts::units::_mm);
@@ -133,10 +144,10 @@ int main(int argc, char *argv[]) {
   runSimulation(gctx, mctx, rng, propagator, generatedParticles, validParticles,
                 simResult, surfacePtrs, nSurfaces);
   auto end_propagate = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<ActsScalar> elapsed_seconds =
+  std::chrono::duration<double> elapsed_seconds =
       end_propagate - start_propagate;
   std::cout << "Time (ms) to run propagation tests: "
-            << elapsed_seconds.count() * 1000 << std::endl;
+            << elapsed_seconds.count()*1000 << std::endl;
   if (output) {
     std::cout << "writing propagation results" << std::endl;
     writeSimHitsObj(simResult);
@@ -201,30 +212,31 @@ int main(int argc, char *argv[]) {
   auto end_fit = std::chrono::high_resolution_clock::now();
   elapsed_seconds = end_fit - start_fit;
   std::cout << "Time (ms) to run KalmanFitter for " << nTracks << " : "
-            << elapsed_seconds.count() * 1000 << std::endl;
+            << elapsed_seconds.count() *1000<< std::endl;
 
   // Log execution time in csv file
-  Test::Logger::logTime(Test::Logger::buildFilename(
-                            "timing_cpu", "nTracks", std::to_string(nTracks),
-                            "OMP_NumThreads", std::to_string(threads)),
-                        elapsed_seconds.count()*1000);
+  Test::Logger::logTime(
+      Test::Logger::buildFilename("timing", machine, "nTracks",
+                                  std::to_string(nTracks), "OMP_NumThreads",
+                                  std::to_string(threads)),
+      elapsed_seconds.count()*1000);
 
   if (output) {
     std::cout << "writing fitting results" << std::endl;
-    std::string param = smoothing ? "smoothed" : "filtered";
+    std::string state = smoothing ? "smoothed" : "filtered";
     // write fitted states to obj file
-    std::string stateFileName =
-        "fitted_" + param + "_cpu_nTracks_" + std::to_string(nTracks) + ".obj";
+    std::string stateFileName = "fitted_" + state + "_" + machine +
+                                "_nTracks_" + std::to_string(nTracks) + ".obj";
     writeStatesObj(fittedStates.data(), fitStatus, nTracks, nSurfaces,
-                   stateFileName, param);
+                   stateFileName, state);
     if (smoothing) {
       // write fitted params to cvs file
-      std::string paramFileName =
-          "fitted_param_cpu_nTracks_" + std::to_string(nTracks) + ".csv";
-      writeParamsCsv(fittedParams.data(), fitStatus, nTracks, paramFileName);
+      std::string csvFileName = "fitted_param_" + machine + "_nTracks_" +
+                                std::to_string(nTracks) + ".csv";
+      writeParamsCsv(fittedParams.data(), fitStatus, nTracks, csvFileName);
       // write fitted params and residual/pull to root file
-      std::string rootFileName =
-          "fitted_param_cpu_nTracks_" + std::to_string(nTracks) + ".root";
+      std::string rootFileName = "fitted_param_" + machine + "_nTracks_" +
+                                 std::to_string(nTracks) + ".root";
       writeParamsRoot(gctx, fittedParams.data(), fitStatus, validParticles,
                       nTracks, rootFileName, "params");
     }

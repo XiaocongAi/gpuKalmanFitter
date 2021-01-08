@@ -37,7 +37,8 @@ static void show_usage(std::string name) {
             << "Options:\n"
             << "\t-h,--help\t\tShow this help message\n"
             << "\t-t,--tracks \tSpecify the number of tracks\n"
-            << "\t-r,--streams \tSpecify number of streams\n"
+            << "\t-e,--streams \tSpecify number of streams\n"
+            << "\t-r,--threads \tSpecify the number of threads\n"
             // << "\t-p,--pt \tSpecify the pt of particle\n"
             << "\t-o,--output \tIndicator for writing propagation results\n"
             << "\t-d,--device \tSpecify the device: 'gpu' or 'cpu'\n"
@@ -46,18 +47,21 @@ static void show_usage(std::string name) {
             << "\t-s,--shared-memory \tIndicator for using shared memory for "
                "one track or not\n"
             << "\t-m,--smoothing \tIndicator for running smoothing\n"
+            << "\t-a,--machine \tThe name of the machine, e.g. V100\n"
             << std::endl;
 }
 
 int main(int argc, char *argv[]) {
   Size nTracks = 10000;
   Size nStreams = 1;
+  Size nThreads = 250;
   // The number of navigation surfaces
   const Size nSurfaces = 10;
   bool output = false;
   bool useSharedMemory = false;
   bool smoothing = true;
   std::string device = "cpu";
+  std::string machine;
   std::string bFieldFileName;
   // ActsScalar p = 1 * Acts::units::_GeV;
   dim3 grid(20000), block(8, 8);
@@ -70,14 +74,18 @@ int main(int argc, char *argv[]) {
     } else if (i + 1 < argc) {
       if ((arg == "-t") or (arg == "--tracks")) {
         nTracks = atoi(argv[++i]);
-      } else if ((arg == "-r") or (arg == "--streams")) {
+      } else if ((arg == "-e") or (arg == "--streams")) {
         nStreams = atoi(argv[++i]);
+      } else if ((arg == "-r") or (arg == "--threads")) {
+        nThreads = atoi(argv[++i]);
         //} else if ((arg == "-p") or (arg == "--pt")) {
         //  p = atof(argv[++i]) * Acts::units::_GeV;
       } else if ((arg == "-o") or (arg == "--output")) {
         output = (atoi(argv[++i]) == 1);
       } else if ((arg == "-d") or (arg == "--device")) {
         device = argv[++i];
+      } else if ((arg == "-a") or (arg == "--machine")) {
+        machine = argv[++i];
       } else if ((arg == "-g") or (arg == "--grid-size")) {
         grid = stringToDim3(argv[++i]);
       } else if ((arg == "-b") or (arg == "--block-size")) {
@@ -112,6 +120,14 @@ int main(int argc, char *argv[]) {
   printf("cuda driver version: %i\n", driverVersion);
   GPUERRCHK(cudaRuntimeGetVersion(&rtVersion));
   printf("cuda rt version: %i\n", rtVersion);
+
+  if ((device == "gpu") and machine.empty()) {
+    machine = prop.name;
+  } else {
+    std::cout << "The name of the CPU being tested must be provided, like e.g. "
+                 "Intel_i7-8559U."
+              << std::endl;
+  }
 
   Size tracksPerBlock = block.x * block.y;
 
@@ -174,7 +190,8 @@ int main(int argc, char *argv[]) {
   // Set translation vectors
   std::vector<Acts::Vector3D> translations;
   for (Size isur = 0; isur < nSurfaces; isur++) {
-    translations.push_back({(isur * 30. + 20.) * Acts::units::_mm, 0., 0.});
+    Acts::Vector3D translation(isur * 30. + 20., 0., 0.);
+    translations.emplace_back(translation);
   }
   // The silicon material
   Acts::MaterialSlab matProp(Test::makeSilicon(), 0.5 * Acts::units::_mm);
@@ -253,10 +270,10 @@ int main(int argc, char *argv[]) {
   runSimulation(gctx, mctx, rng, propagator, generatedParticles, validParticles,
                 simResult, surfacePtrs, nSurfaces);
   auto end_propagate = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<ActsScalar> elapsed_seconds =
+  std::chrono::duration<double> elapsed_seconds =
       end_propagate - start_propagate;
   std::cout << "Time (ms) to run propagation tests: "
-            << elapsed_seconds.count() * 1000 << std::endl;
+            << elapsed_seconds.count()*1000 << std::endl;
   if (output) {
     std::cout << "writing propagation results" << std::endl;
     writeSimHitsObj(simResult);
@@ -293,7 +310,7 @@ int main(int argc, char *argv[]) {
     fitStatus[it] = false;
   }
 
-  ActsScalar ms; // elapsed time in milliseconds
+  float ms; // elapsed time in milliseconds
 
   // Create events and streams
   cudaEvent_t startEvent, stopEvent;
@@ -432,16 +449,17 @@ int main(int argc, char *argv[]) {
     // allocation time for the surfaces)
     Test::Logger::logTime(
         Test::Logger::buildFilename(
-            "timing_gpu", "nTracks", std::to_string(nTracks), "nStreams",
+            "timing", machine, "nTracks", std::to_string(nTracks), "nStreams",
             std::to_string(nStreams), "gridSize", dim3ToString(grid),
             "blockSize", dim3ToString(block), "sharedMemory",
             std::to_string(static_cast<Size>(useSharedMemory))),
         ms);
 
   } else {
-    /// Run on host
+    /// Test without GPU offloading
+    int threads = 1;
     auto start_fit = std::chrono::high_resolution_clock::now();
-#pragma omp parallel for num_threads(250)
+#pragma omp parallel for num_threads(nThreads)
     for (Size it = 0; it < nTracks; it++) {
       // The fit result wrapper
       KalmanFitterResultType kfResult;
@@ -458,48 +476,67 @@ int main(int argc, char *argv[]) {
       if (not status) {
         std::cout << "fit failure for track " << it << std::endl;
       }
+      // store the fit parameters and status
       fitStatus[it] = status;
       fitPars[it] = kfResult.fittedParameters;
+      threads = omp_get_num_threads();
     }
     auto end_fit = std::chrono::high_resolution_clock::now();
     elapsed_seconds = end_fit - start_fit;
     std::cout << "Time (ms) to run KalmanFitter for " << nTracks << " : "
-              << elapsed_seconds.count() * 1000 << std::endl;
+              << elapsed_seconds.count()*1000 << std::endl;
+
+    // Log execution time in csv file
+    Test::Logger::logTime(
+        Test::Logger::buildFilename("timing_semi", machine, "nTracks",
+                                    std::to_string(nTracks), "OMP_NumThreads",
+                                    std::to_string(threads)),
+        elapsed_seconds.count()*1000);
   }
-  Size threads = omp_get_num_threads();
 
   if (output) {
     std::cout << "writing KF results" << std::endl;
     std::string stateFileName;
-    std::string paramFileName;
+    std::string csvFileName;
     std::string rootFileName;
 
-    std::string param = smoothing ? "smoothed" : "filtered";
+    // The type of output parameters
+    std::string state = smoothing ? "smoothed" : "filtered";
     stateFileName.append("fitted_");
-    stateFileName.append(param);
+    stateFileName.append(state);
 
-    paramFileName.append("fitted_");
-    paramFileName.append("param");
+    // The fitted parameters at the target surface
+    csvFileName.append("fitted_");
+    csvFileName.append("param");
 
     rootFileName.append("fitted_");
     rootFileName.append("param");
-    if (useGPU) {
-      stateFileName.append("_gpu_nTracks_");
-      paramFileName.append("_gpu_nTracks_");
-      rootFileName.append("_gpu_nTracks_");
-    } else {
-      stateFileName.append("_semi_cpu_nTracks_");
-      paramFileName.append("_semi_cpu_nTracks_");
-      rootFileName.append("_semi_cpu_nTracks_");
-    }
+
+    // The type of machines
+    std::string machine_prefix = useGPU ? "_" : "_semi_";
+    stateFileName.append(machine_prefix);
+    stateFileName.append(machine);
+
+    csvFileName.append(machine_prefix);
+    csvFileName.append(machine);
+
+    rootFileName.append(machine_prefix);
+    rootFileName.append(machine);
+
+    // The number of tracks
+    stateFileName.append("_nTracks_");
+    csvFileName.append("_nTracks_");
+    rootFileName.append("_nTracks_");
+
+    // The type of the file written out
     stateFileName.append(std::to_string(nTracks)).append(".obj");
-    paramFileName.append(std::to_string(nTracks)).append(".csv");
+    csvFileName.append(std::to_string(nTracks)).append(".csv");
     rootFileName.append(std::to_string(nTracks)).append(".root");
     writeStatesObj(fitStates, fitStatus, nTracks, nSurfaces, stateFileName,
-                   param);
+                   state);
     // The fitted parameters will be meaningful only after smoothing
     if (smoothing) {
-      writeParamsCsv(fitPars, fitStatus, nTracks, paramFileName);
+      writeParamsCsv(fitPars, fitStatus, nTracks, csvFileName);
       writeParamsRoot(gctx, fitPars, fitStatus, validParticles, nTracks,
                       rootFileName, "params");
     }
