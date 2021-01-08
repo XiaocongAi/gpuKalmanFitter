@@ -45,6 +45,12 @@ for ((m=0; m<${#machines[@]};++m)); do
 	   else 
 	     output=./plotData/Results_timing_${machines[m]}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_${blockSizes[j]}_sharedMemory_$1.csv
 	   fi 
+           
+	   #delete the original if already exists
+           if [ -f ${output} ]; then
+	     echo WARNING: the ${output} already exists. Will be overritten! 
+	     rm ${output}
+           fi	
 
 	   for i in ${nTracks[@]}; do
 	        if [ $1 -eq 1 ]; then 
