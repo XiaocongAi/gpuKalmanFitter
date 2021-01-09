@@ -60,9 +60,10 @@ public:
           prev_ts->parameter.jacobian.transpose() *
           (BoundSymMatrix)(calculateInverse<ActsScalar>(
               *prev_ts->parameter.predicted.covariance()));
-      // if (G.hasNaN()) {
-      //  printf("WARNING: G has NaN!\n");
-      //}
+      if (G.hasNaN()) {
+        printf("WARNING: G has NaN!\n");
+        return nullptr;
+      }
 
       // Calculate the smoothed parameters
       ParVector_t prevDiffPars = prev_ts->parameter.smoothed.parameters() -
