@@ -69,9 +69,11 @@ int main(int argc, char *argv[]) {
   }
 
   if (machine.empty()) {
-    std::cout << "The name of the CPU being tested must be provided, like e.g. "
+    std::cout << "ERROR: The name of the CPU being tested must be provided, "
+                 "like e.g. "
                  "Intel_i7-8559U."
               << std::endl;
+    return 1;
   }
 
   // Create a random number service
@@ -110,7 +112,7 @@ int main(int argc, char *argv[]) {
                      .setVolume(0u)
                      .setLayer((uint64_t)(isur))
                      .setSensitive((uint64_t)(isur));
-    //std::cout << isur << " has volume " << geoID.volume() << ", layer "
+    // std::cout << isur << " has volume " << geoID.volume() << ", layer "
     //          << geoID.layer() << ", sensitive " << geoID.sensitive()
     //          << std::endl;
     surfaces[isur].assignGeoID(geoID);
@@ -147,10 +149,12 @@ int main(int argc, char *argv[]) {
   std::chrono::duration<double> elapsed_seconds =
       end_propagate - start_propagate;
   std::cout << "Time (ms) to run propagation tests: "
-            << elapsed_seconds.count()*1000 << std::endl;
+            << elapsed_seconds.count() * 1000 << std::endl;
   if (output) {
     std::cout << "writing propagation results" << std::endl;
-    writeSimHitsObj(simResult);
+    std::string simFileName =
+        "sim_hits_for_" + std::to_string(nTracks) + "_particles.obj";
+    writeSimHitsObj(simResult, simFileName);
   }
 
   // Build the target surfaces based on the truth particle position
@@ -212,14 +216,14 @@ int main(int argc, char *argv[]) {
   auto end_fit = std::chrono::high_resolution_clock::now();
   elapsed_seconds = end_fit - start_fit;
   std::cout << "Time (ms) to run KalmanFitter for " << nTracks << " : "
-            << elapsed_seconds.count() *1000<< std::endl;
+            << elapsed_seconds.count() * 1000 << std::endl;
 
   // Log execution time in csv file
   Test::Logger::logTime(
       Test::Logger::buildFilename("timing", machine, "nTracks",
                                   std::to_string(nTracks), "OMP_NumThreads",
                                   std::to_string(threads)),
-      elapsed_seconds.count()*1000);
+      elapsed_seconds.count() * 1000);
 
   if (output) {
     std::cout << "writing fitting results" << std::endl;

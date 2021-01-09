@@ -34,8 +34,7 @@ std::array<Size, 8> streamBytes(Size nSurfaces, Size nTracks, Size nStreams,
   }
 
   Size tracksPerStream = nTracks / nStreams;
-  Size tracksLastStream =
-      tracksPerStream + nTracks % nStreams;
+  Size tracksLastStream = tracksPerStream + nTracks % nStreams;
   Size streamSize =
       (iStream == nStreams - 1) ? tracksLastStream : tracksPerStream;
   std::array<Size, 8> fitData;

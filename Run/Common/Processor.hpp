@@ -231,7 +231,8 @@ runParticleSmearing(random_engine_t &rng, const Acts::GeometryContext &gctx,
     params[Acts::eBoundPhi] = newPhi;
     params[Acts::eBoundTheta] = newTheta;
     // compute smeared absolute momentum vector
-    const ActsScalar newP = std::max((float)0.0, p + sigmaP * stdNormal(rng));
+    const ActsScalar newP =
+        std::max((ActsScalar)0.0, p + sigmaP * stdNormal(rng));
     params[Acts::eBoundQOverP] = (q != 0) ? (q / newP) : (1 / newP);
 
     // build the track covariance matrix using the smearing sigmas

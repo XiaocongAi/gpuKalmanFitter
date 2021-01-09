@@ -121,13 +121,17 @@ int main(int argc, char *argv[]) {
   GPUERRCHK(cudaRuntimeGetVersion(&rtVersion));
   printf("cuda rt version: %i\n", rtVersion);
 
-  if ((device == "gpu") and machine.empty()) {
-    machine = prop.name;
-    std::replace( machine.begin(), machine.end(), ' ', '_' );
-  } else {
-    std::cout << "The name of the CPU being tested must be provided, like e.g. "
-                 "Intel_i7-8559U."
-              << std::endl;
+  if (machine.empty()) {
+    if (device == "gpu") {
+      machine = prop.name;
+      std::replace(machine.begin(), machine.end(), ' ', '_');
+    } else {
+      std::cout << "ERROR: The name of the CPU being tested must be provided, "
+                   "like e.g. "
+                   "Intel_i7-8559U."
+                << std::endl;
+      return 1;
+    }
   }
 
   Size tracksPerBlock = block.x * block.y;
@@ -163,19 +167,19 @@ int main(int argc, char *argv[]) {
   const Size blocksPerGrid =
       (tracksPerStream + tracksPerBlock - 1) / tracksPerBlock;
   if (grid.x * grid.y < blocksPerGrid) {
-    std::cout << "WARNING: Grid size too small. It's set to the minimum size: " << blocksPerGrid
-              << std::endl;
-    grid=blocksPerGrid; 
+    std::cout << "WARNING: Grid size too small. It's set to the minimum size: "
+              << blocksPerGrid << std::endl;
+    grid = blocksPerGrid;
   }
 
   // The shared memory size
-//  using PropState = PropagatorType::State<PropOptionsType>;
-//  int sharedMemoryPerTrack =
-//      sizeof(Acts::PathLimitReached) + sizeof(PropState) + sizeof(bool) * 2 +
-//      sizeof(Acts::PropagatorResult) +
-//      sizeof(Acts::ActsMatrixD<2, Acts::eBoundParametersSize>) * 2 +
-//      sizeof(Acts::ActsMatrixD<2, 2>) * 2 + sizeof(Acts::BoundMatrix);
-//  std::cout << "shared memory is " << sharedMemoryPerTrack << std::endl;
+  //  using PropState = PropagatorType::State<PropOptionsType>;
+  //  int sharedMemoryPerTrack =
+  //      sizeof(Acts::PathLimitReached) + sizeof(PropState) + sizeof(bool) * 2
+  //      + sizeof(Acts::PropagatorResult) + sizeof(Acts::ActsMatrixD<2,
+  //      Acts::eBoundParametersSize>) * 2 + sizeof(Acts::ActsMatrixD<2, 2>) * 2
+  //      + sizeof(Acts::BoundMatrix);
+  //  std::cout << "shared memory is " << sharedMemoryPerTrack << std::endl;
 
   // Create a test context
   Acts::GeometryContext gctx(0);
@@ -213,9 +217,10 @@ int main(int argc, char *argv[]) {
     auto geoID =
         Acts::GeometryID().setVolume(0u).setLayer(isur).setSensitive(isur);
     surfaces[isur].assignGeoID(geoID);
-    //printf("surface value = %d, geoID = (%d, %d, %d)\n",
+    // printf("surface value = %d, geoID = (%d, %d, %d)\n",
     //       surfaces[isur].geoID().value(), surfaces[isur].geoID().volume(),
-    //       surfaces[isur].geoID().layer(), surfaces[isur].geoID().sensitive());
+    //       surfaces[isur].geoID().layer(),
+    //       surfaces[isur].geoID().sensitive());
   }
   const Acts::Surface *surfacePtrs = surfaces;
   std::cout << "Creating " << nSurfaces << " boundless plane surfaces"
@@ -273,10 +278,12 @@ int main(int argc, char *argv[]) {
   std::chrono::duration<double> elapsed_seconds =
       end_propagate - start_propagate;
   std::cout << "Time (ms) to run propagation tests: "
-            << elapsed_seconds.count()*1000 << std::endl;
+            << elapsed_seconds.count() * 1000 << std::endl;
   if (output) {
     std::cout << "writing propagation results" << std::endl;
-    writeSimHitsObj(simResult);
+    std::string simFileName =
+        "sim_hits_for_" + std::to_string(nTracks) + "_particles.obj";
+    writeSimHitsObj(simResult, simFileName);
   }
 
   // Build the target surfaces based on the truth particle position
@@ -483,14 +490,14 @@ int main(int argc, char *argv[]) {
     auto end_fit = std::chrono::high_resolution_clock::now();
     elapsed_seconds = end_fit - start_fit;
     std::cout << "Time (ms) to run KalmanFitter for " << nTracks << " : "
-              << elapsed_seconds.count()*1000 << std::endl;
+              << elapsed_seconds.count() * 1000 << std::endl;
 
     // Log execution time in csv file
     Test::Logger::logTime(
         Test::Logger::buildFilename("timing_semi", machine, "nTracks",
                                     std::to_string(nTracks), "OMP_NumThreads",
                                     std::to_string(threads)),
-        elapsed_seconds.count()*1000);
+        elapsed_seconds.count() * 1000);
   }
 
   if (output) {

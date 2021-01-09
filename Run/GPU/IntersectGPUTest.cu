@@ -173,7 +173,7 @@ int main() {
   std::cout << "Creating " << nSurfaces << " ConvexBounds plane surfaces"
             << std::endl;
 
-  ActsScalar ms; // elapsed time in milliseconds
+  float ms; // elapsed time in milliseconds
 
   // Create events and streams
   cudaEvent_t startEvent, stopEvent, dummyEvent;

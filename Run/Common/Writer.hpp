@@ -14,10 +14,13 @@
 #include <TTree.h>
 
 template <typename hits_collection_t>
-void writeSimHitsObj(const hits_collection_t &simHits) {
+void writeSimHitsObj(const hits_collection_t &simHits,
+                     const std::string &fileName) {
   // Write all of the created tracks to one obj file
   std::ofstream obj_hits;
-  std::string fileName = "sim-hits.obj";
+  if (fileName.empty()) {
+    fileName = "sim-hits.obj";
+  }
   obj_hits.open(fileName.c_str());
 
   // Initialize the vertex counter
@@ -40,7 +43,8 @@ void writeSimHitsObj(const hits_collection_t &simHits) {
 template <typename track_state_t>
 void writeStatesObj(const track_state_t *states, const bool *status,
                     unsigned int nTracks, unsigned int nSurfaces,
-                    std::string fileName, std::string parameters = "smoothed") {
+                    const std::string &fileName,
+                    std::string parameters = "smoothed") {
   // Write all of the created tracks to one obj file
   std::ofstream obj_tracks;
   if (fileName.empty()) {
