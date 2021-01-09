@@ -165,9 +165,9 @@ int main(int argc, char *argv[]) {
   std::array<ActsScalar, 2> hitResolution = {30. * Acts::units::_mm,
                                              30. * Acts::units::_mm};
   // Run sim hits smearing to create source links
-  Acts::PixelSourceLink sourcelinks[nTracks * nSurfaces];
+  std::vector<Acts::PixelSourceLink> sourcelinks(nTracks * nSurfaces);
   // @note pass the concreate PlaneSurfaceType pointer here
-  runHitSmearing(gctx, rng, simResult, hitResolution, sourcelinks,
+  runHitSmearing(gctx, rng, simResult, hitResolution, sourcelinks.data(),
                  surfaces.data(), nSurfaces);
 
   // The particle smearing resolution
@@ -195,7 +195,7 @@ int main(int argc, char *argv[]) {
         fittedStates.data() + it * nSurfaces, nSurfaces);
     // The input source links wrapper
     auto sourcelinkTrack = Acts::CudaKernelContainer<Acts::PixelSourceLink>(
-        sourcelinks + it * nSurfaces, nSurfaces);
+        sourcelinks.data() + it * nSurfaces, nSurfaces);
     // @todo Use perigee surface as the target surface. Needs a perigee surface
     // object
     FitOptionsType kfOptions(gctx, mctx, smoothing);

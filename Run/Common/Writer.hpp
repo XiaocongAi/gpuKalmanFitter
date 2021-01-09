@@ -14,8 +14,7 @@
 #include <TTree.h>
 
 template <typename hits_collection_t>
-void writeSimHitsObj(const hits_collection_t &simHits,
-                     const std::string &fileName) {
+void writeSimHitsObj(const hits_collection_t &simHits, std::string fileName) {
   // Write all of the created tracks to one obj file
   std::ofstream obj_hits;
   if (fileName.empty()) {
@@ -43,8 +42,7 @@ void writeSimHitsObj(const hits_collection_t &simHits,
 template <typename track_state_t>
 void writeStatesObj(const track_state_t *states, const bool *status,
                     unsigned int nTracks, unsigned int nSurfaces,
-                    const std::string &fileName,
-                    std::string parameters = "smoothed") {
+                    std::string fileName, std::string parameters = "smoothed") {
   // Write all of the created tracks to one obj file
   std::ofstream obj_tracks;
   if (fileName.empty()) {
