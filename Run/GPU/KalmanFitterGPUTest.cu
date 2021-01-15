@@ -86,9 +86,8 @@ int main(int argc, char *argv[]) {
         }
       } else if ((arg == "-r") or (arg == "--threads")) {
         nThreads = atoi(argv[++i]);
-      }
-        //} else if ((arg == "-p") or (arg == "--pt")) {
-        //  p = atof(argv[++i]) * Acts::units::_GeV;
+    //} else if ((arg == "-p") or (arg == "--pt")) {
+     //  p = atof(argv[++i]) * Acts::units::_GeV;
       } else if ((arg == "-u") or (arg == "--multiple-devices")) {
         multiGpu = (atoi(argv[++i]) == 1);
         if (multiGpu) {
@@ -132,9 +131,9 @@ int main(int argc, char *argv[]) {
             << std::endl;
 
   std::cout << "Devices requested for KF: " << std::endl;
+  cudaDeviceProp prop;
   for (Size devId = 0; devId < nDevices; devId++) {
     GPUERRCHK(cudaSetDevice(devId));
-    cudaDeviceProp prop;
     GPUERRCHK(cudaGetDeviceProperties(&prop, devId));
     printf("   Device : %s\n", prop.name);
     int driverVersion, rtVersion;
@@ -340,7 +339,7 @@ int main(int argc, char *argv[]) {
     fitStatus[it] = false;
   }
 
-  ActsScalar sec; // elapsed time in seconds
+  float sec; // elapsed time in seconds
 
   // @note: prefetch the surface or not
   // cudaMemPrefetchAsync(surfaces, navigationSurfaceBytes, devId, stream[0]);
@@ -366,7 +365,7 @@ int main(int argc, char *argv[]) {
   #pragma omp parallel for num_threads(max) proc_bind(master)
   for (Size devId = 0; devId < nDevices; ++devId) {
         auto startDeviceTime = omp_get_wtime();
-        
+ 
         // Set the corresponding device
         GPUERRCHK(cudaSetDevice(devId));
       
@@ -396,10 +395,6 @@ int main(int argc, char *argv[]) {
                              cudaMemcpyHostToDevice));
         GPUERRCHK(cudaMemcpy(d_kFitter, &kFitter, sizeof(KalmanFitterType),
                              cudaMemcpyHostToDevice));
-      
-     //   auto memAllocTime = omp_get_wtime();
-     //   std::cout << "Time for allocating memory and copy surface and fitter on device " 
-     //     << devId << " : " << memAllocTime-startDeviceTime << std::endl;
        
         // If more devices are available, then there is only 1 stream per device;
         // If only 1 device is available, then there are nStreams streams used;
@@ -440,9 +435,7 @@ int main(int argc, char *argv[]) {
           GPUERRCHK(cudaMemcpyAsync(&d_fitStatus[offset], &fitStatus[offset],
                                     streamDataBytes[FitData::FitStatus],
                                     cudaMemcpyHostToDevice, stream[i]));
-       //   auto memTransfTime = omp_get_wtime();
-       //   std::cout << "Time for copy asynch memory to device  " << devId << " : " << memTransfTime-memAllocTime << std::endl;
-       
+     
       //    std::cout << "prepared to launch kernel\n" << std::endl;
           // Use shared memory for one track if requested
           if (useSharedMemory) {
@@ -456,9 +449,7 @@ int main(int argc, char *argv[]) {
                 d_fitOptions, d_fitStates, d_fitPars, d_fitStatus, d_surfaces,
                 nSurfaces, streamTracks, offset);
           }
-       //   auto kernelExecTime = omp_get_wtime();
-       //   std::cout << "Time for kernel execution on device " << devId << " : " << kernelExecTime-memTransfTime << std::endl;
-      
+       
           // copy the fitted states to host
           GPUERRCHK(cudaMemcpyAsync(&fitStates[offset * nSurfaces],
                                     &d_fitStates[offset * nSurfaces],
@@ -474,12 +465,8 @@ int main(int argc, char *argv[]) {
           GPUERRCHK(cudaMemcpyAsync(&fitStatus[offset], &d_fitStatus[offset],
                                     streamDataBytes[FitData::FitStatus],
                                     cudaMemcpyDeviceToHost, stream[i]));
-      //    auto copyResTime = omp_get_wtime();
-      //    std::cout << "Time for copy asynch memory to host from device " << devId << " : " << copyResTime-kernelExecTime << std::endl;
-      
         }
-        auto startFreeTime = omp_get_wtime();
-      
+       
         GPUERRCHK(cudaPeekAtLastError());
         GPUERRCHK(cudaDeviceSynchronize());
           
@@ -498,17 +485,15 @@ int main(int argc, char *argv[]) {
           GPUERRCHK(cudaStreamDestroy(stream[i]));
         }
       
-        auto stopFreeTime = omp_get_wtime();
-     //   std::cout << "Time for final sync and freeing the memory on device " << devId << " : " 
-     //   << stopFreeTime-stopFreeTime << std::endl;
-      
+        auto stopDeviceTime = omp_get_wtime();
+     
         printf("Thread %d: Time (ms) for KF memory transfer and execution on "
                  "device %d : %f\n",
-                 omp_get_thread_num(), devId, stopFreeTime-startDeviceTime);            
+                 omp_get_thread_num(), devId, stopDeviceTime-startDeviceTime);            
     } 
   
     auto end_fit = omp_get_wtime();
-    sec =  (ActsScalar)(end_fit - start_fit); 
+    sec = end_fit - start_fit; 
     printf("Total Wall clock time (sec) for KF: %f\n", sec);
 
     // Log the execution time in seconds (not including the managed memory
