@@ -131,6 +131,7 @@ int main(int argc, char *argv[]) {
             << std::endl;
 
   std::cout << "Devices requested for KF: " << std::endl;
+
   cudaDeviceProp prop;
   for (Size devId = 0; devId < nDevices; devId++) {
     GPUERRCHK(cudaSetDevice(devId));
@@ -348,7 +349,7 @@ int main(int argc, char *argv[]) {
   bool useGPU = (device == "gpu");
   if (useGPU) {
     
-    auto start_fit = omp_get_wtime();
+    auto startFitTime = omp_get_wtime();
 
     // The same number of streams is available, but used either:
     // a. in parallel on the same device, OR
@@ -365,7 +366,7 @@ int main(int argc, char *argv[]) {
   #pragma omp parallel for num_threads(max) proc_bind(master)
   for (Size devId = 0; devId < nDevices; ++devId) {
         auto startDeviceTime = omp_get_wtime();
- 
+
         // Set the corresponding device
         GPUERRCHK(cudaSetDevice(devId));
       
@@ -435,7 +436,6 @@ int main(int argc, char *argv[]) {
           GPUERRCHK(cudaMemcpyAsync(&d_fitStatus[offset], &fitStatus[offset],
                                     streamDataBytes[FitData::FitStatus],
                                     cudaMemcpyHostToDevice, stream[i]));
-     
       //    std::cout << "prepared to launch kernel\n" << std::endl;
           // Use shared memory for one track if requested
           if (useSharedMemory) {
@@ -449,7 +449,7 @@ int main(int argc, char *argv[]) {
                 d_fitOptions, d_fitStates, d_fitPars, d_fitStatus, d_surfaces,
                 nSurfaces, streamTracks, offset);
           }
-       
+
           // copy the fitted states to host
           GPUERRCHK(cudaMemcpyAsync(&fitStates[offset * nSurfaces],
                                     &d_fitStates[offset * nSurfaces],
@@ -466,7 +466,6 @@ int main(int argc, char *argv[]) {
                                     streamDataBytes[FitData::FitStatus],
                                     cudaMemcpyDeviceToHost, stream[i]));
         }
-       
         GPUERRCHK(cudaPeekAtLastError());
         GPUERRCHK(cudaDeviceSynchronize());
           
@@ -490,10 +489,10 @@ int main(int argc, char *argv[]) {
         printf("Thread %d: Time (ms) for KF memory transfer and execution on "
                  "device %d : %f\n",
                  omp_get_thread_num(), devId, stopDeviceTime-startDeviceTime);            
-    } 
-  
-    auto end_fit = omp_get_wtime();
-    sec = end_fit - start_fit; 
+    }
+
+    auto endFitTime = omp_get_wtime();
+    sec = endFitTime - startFitTime; 
     printf("Total Wall clock time (sec) for KF: %f\n", sec);
 
     // Log the execution time in seconds (not including the managed memory
