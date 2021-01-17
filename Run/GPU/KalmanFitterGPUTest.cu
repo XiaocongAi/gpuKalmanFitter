@@ -39,6 +39,7 @@ static void show_usage(std::string name) {
             << "\t-t,--tracks \tSpecify the number of tracks\n"
             << "\t-e,--streams \tSpecify number of streams\n"
             << "\t-r,--threads \tSpecify the number of threads\n"
+            << "\t-u,--multiple-devices \tIndicator for running on multiple GPUs (if available)\n"
             // << "\t-p,--pt \tSpecify the pt of particle\n"
             << "\t-o,--output \tIndicator for writing propagation results\n"
             << "\t-d,--device \tSpecify the device: 'gpu' or 'cpu'\n"
@@ -51,15 +52,18 @@ static void show_usage(std::string name) {
             << std::endl;
 }
 
+
 int main(int argc, char *argv[]) {
   Size nTracks = 10000;
   Size nStreams = 1;
   Size nThreads = 250;
+  Size nDevices = 1;
   // The number of navigation surfaces
   const Size nSurfaces = 10;
   bool output = false;
   bool useSharedMemory = false;
   bool smoothing = true;
+  bool multiGpu = false;
   std::string device = "cpu";
   std::string machine;
   std::string bFieldFileName;
@@ -76,10 +80,27 @@ int main(int argc, char *argv[]) {
         nTracks = atoi(argv[++i]);
       } else if ((arg == "-e") or (arg == "--streams")) {
         nStreams = atoi(argv[++i]);
+        if (multiGpu && nStreams > 1) {
+          std::cerr << "--multiple-devices and --streams options are incompatible. Choose only one for now!" << std::endl;
+          return 1;
+        }
       } else if ((arg == "-r") or (arg == "--threads")) {
         nThreads = atoi(argv[++i]);
-        //} else if ((arg == "-p") or (arg == "--pt")) {
-        //  p = atof(argv[++i]) * Acts::units::_GeV;
+    //} else if ((arg == "-p") or (arg == "--pt")) {
+     //  p = atof(argv[++i]) * Acts::units::_GeV;
+      } else if ((arg == "-u") or (arg == "--multiple-devices")) {
+        multiGpu = (atoi(argv[++i]) == 1);
+        if (multiGpu) {
+          if (nStreams > 1) { 
+            std::cerr << "--multiple-devices and --streams options are incompatible. Choose only one for now!" << std::endl;
+            return 1;
+          } else  {
+           int nDev;
+           GPUERRCHK(cudaGetDeviceCount(&nDev));
+           nDevices = (Size)nDev;
+           nStreams = nDevices;
+          }
+        }
       } else if ((arg == "-o") or (arg == "--output")) {
         output = (atoi(argv[++i]) == 1);
       } else if ((arg == "-d") or (arg == "--device")) {
@@ -109,17 +130,19 @@ int main(int argc, char *argv[]) {
   std::cout << grid.x << " " << grid.y << " " << block.x << " " << block.y
             << std::endl;
 
-  Size devId = 0;
+  std::cout << "Devices requested for KF: " << std::endl;
 
   cudaDeviceProp prop;
-  GPUERRCHK(cudaGetDeviceProperties(&prop, devId));
-  printf("Device : %s\n", prop.name);
-  GPUERRCHK(cudaSetDevice(devId));
-  int driverVersion, rtVersion;
-  GPUERRCHK(cudaDriverGetVersion(&driverVersion));
-  printf("cuda driver version: %i\n", driverVersion);
-  GPUERRCHK(cudaRuntimeGetVersion(&rtVersion));
-  printf("cuda rt version: %i\n", rtVersion);
+  for (Size devId = 0; devId < nDevices; devId++) {
+    GPUERRCHK(cudaSetDevice(devId));
+    GPUERRCHK(cudaGetDeviceProperties(&prop, devId));
+    printf("   Device : %s\n", prop.name);
+    int driverVersion, rtVersion;
+    GPUERRCHK(cudaDriverGetVersion(&driverVersion));
+    printf("   Cuda driver version: %i\n", driverVersion);
+    GPUERRCHK(cudaRuntimeGetVersion(&rtVersion));
+    printf("   Cuda rt version: %i\n\n", rtVersion);
+  }
 
   if (machine.empty()) {
     if (device == "gpu") {
@@ -317,16 +340,7 @@ int main(int argc, char *argv[]) {
     fitStatus[it] = false;
   }
 
-  float ms; // elapsed time in milliseconds
-
-  // Create events and streams
-  cudaEvent_t startEvent, stopEvent;
-  cudaStream_t stream[nStreams];
-  GPUERRCHK(cudaEventCreate(&startEvent));
-  GPUERRCHK(cudaEventCreate(&stopEvent));
-  for (int i = 0; i < nStreams; ++i) {
-    GPUERRCHK(cudaStreamCreate(&stream[i]));
-  }
+  float sec; // elapsed time in seconds
 
   // @note: prefetch the surface or not
   // cudaMemPrefetchAsync(surfaces, navigationSurfaceBytes, devId, stream[0]);
@@ -334,132 +348,162 @@ int main(int argc, char *argv[]) {
   // Running directly on host or offloading to GPU
   bool useGPU = (device == "gpu");
   if (useGPU) {
-    GPUERRCHK(cudaEventRecord(startEvent, 0));
+    
+    auto startFitTime = omp_get_wtime();
 
-    // Allocate memory on device
+    // The same number of streams is available, but used either:
+    // a. in parallel on the same device, OR
+    // b. one per device, in parallel for all devices;
+    cudaStream_t stream[nStreams];
+    Size max = std::max(nDevices,nStreams);
 
-    PlaneSurfaceType *d_surfaces;
-    KalmanFitterType *d_kFitter;
-    Acts::PixelSourceLink *d_sourcelinks;
-    // The start pars will be constructed on GPU with bound vector and
-    // covariance
-    BoundState *d_boundStates;
-    Acts::LineSurface *d_targetSurfaces;
-    FitOptionsType *d_fitOptions;
-    TSType *d_fitStates;
-    Acts::BoundParameters<Acts::LineSurface> *d_fitPars;
-    bool *d_fitStatus;
+    #pragma omp parallel for 
+    for (Size i = 0; i < max; ++i) {
+         GPUERRCHK(cudaSetDevice(multiGpu ? i : 0));
+         GPUERRCHK(cudaStreamCreate(&stream[i]));
+    }
+  
+  #pragma omp parallel for num_threads(max) proc_bind(master)
+  for (Size devId = 0; devId < nDevices; ++devId) {
+        auto startDeviceTime = omp_get_wtime();
 
-    GPUERRCHK(cudaMalloc(&d_surfaces, navigationSurfaceBytes));
-    GPUERRCHK(cudaMalloc(&d_kFitter, sizeof(KalmanFitterType)));
-    GPUERRCHK(cudaMalloc(&d_sourcelinks, dataBytes[FitData::SourceLinks]));
-    GPUERRCHK(cudaMalloc(&d_boundStates, dataBytes[FitData::StartState]));
-    GPUERRCHK(cudaMalloc(&d_targetSurfaces, dataBytes[FitData::TargetSurface]));
-    GPUERRCHK(cudaMalloc(&d_fitOptions, dataBytes[FitData::FitOptions]));
-    GPUERRCHK(cudaMalloc(&d_fitStates, dataBytes[FitData::FitStates]));
-    GPUERRCHK(cudaMalloc(&d_fitPars, dataBytes[FitData::FitParams]));
-    GPUERRCHK(cudaMalloc(&d_fitStatus, dataBytes[FitData::FitStatus]));
+        // Set the corresponding device
+        GPUERRCHK(cudaSetDevice(devId));
+      
+        // Allocate memory on the device
+        PlaneSurfaceType *d_surfaces;
+        KalmanFitterType *d_kFitter;
+        Acts::PixelSourceLink *d_sourcelinks;
+        BoundState *d_boundStates;
+        Acts::LineSurface *d_targetSurfaces;
+        FitOptionsType *d_fitOptions;
+        TSType *d_fitStates;
+        Acts::BoundParameters<Acts::LineSurface> *d_fitPars;
+        bool *d_fitStatus;
+      
+        GPUERRCHK(cudaMalloc(&d_surfaces, navigationSurfaceBytes));
+        GPUERRCHK(cudaMalloc(&d_kFitter, sizeof(KalmanFitterType)));
+        GPUERRCHK(cudaMalloc(&d_sourcelinks, dataBytes[FitData::SourceLinks]));
+        GPUERRCHK(cudaMalloc(&d_boundStates, dataBytes[FitData::StartState]));
+        GPUERRCHK(cudaMalloc(&d_targetSurfaces, dataBytes[FitData::TargetSurface]));
+        GPUERRCHK(cudaMalloc(&d_fitOptions, dataBytes[FitData::FitOptions]));
+        GPUERRCHK(cudaMalloc(&d_fitStates, dataBytes[FitData::FitStates]));
+        GPUERRCHK(cudaMalloc(&d_fitPars, dataBytes[FitData::FitParams]));
+        GPUERRCHK(cudaMalloc(&d_fitStatus, dataBytes[FitData::FitStatus]));
+      
+        // Copy the KalmanFitter from host to device (shared between all tracks)
+        GPUERRCHK(cudaMemcpy(d_surfaces, surfaces, navigationSurfaceBytes,
+                             cudaMemcpyHostToDevice));
+        GPUERRCHK(cudaMemcpy(d_kFitter, &kFitter, sizeof(KalmanFitterType),
+                             cudaMemcpyHostToDevice));
+       
+        // If more devices are available, then there is only 1 stream per device;
+        // If only 1 device is available, then there are nStreams streams used;
+        Size streamStartIdx = multiGpu ? devId : 0;
+        Size streamEndIdx = multiGpu ? (devId+1) : nStreams;
 
-    // Copy the KalmanFitter from host to device (shared between all tracks)
-    GPUERRCHK(cudaMemcpy(d_surfaces, surfaces, navigationSurfaceBytes,
-                         cudaMemcpyHostToDevice));
-    GPUERRCHK(cudaMemcpy(d_kFitter, &kFitter, sizeof(KalmanFitterType),
-                         cudaMemcpyHostToDevice));
+        for (Size i = streamStartIdx; i < streamEndIdx; ++i) {
+	  GPUERRCHK(cudaSetDevice(devId));
+          Size offset = i * tracksPerStream;
+          const auto streamTracks =
+              (i < nStreams - 1) ? tracksPerStream : tracksLastStream;
+          const auto streamDataBytes =
+              (i < nStreams - 1) ? dataBytesPerStream : dataBytesLastStream;
+      
+          // Copy the sourcelinsk, starting parameters and fitted tracks from host
+          // to device
+          GPUERRCHK(cudaMemcpyAsync(&d_sourcelinks[offset * nSurfaces],
+                                    &sourcelinks[offset * nSurfaces],
+                                    streamDataBytes[FitData::SourceLinks],
+                                    cudaMemcpyHostToDevice, stream[i]));
+          GPUERRCHK(cudaMemcpyAsync(&d_boundStates[offset], &boundStates[offset],
+                                    streamDataBytes[FitData::StartState],
+                                    cudaMemcpyHostToDevice, stream[i]));
+          GPUERRCHK(cudaMemcpyAsync(&d_targetSurfaces[offset],
+                                    &targetSurfaces[offset],
+                                    streamDataBytes[FitData::TargetSurface],
+                                    cudaMemcpyHostToDevice, stream[i]));
+          GPUERRCHK(cudaMemcpyAsync(&d_fitOptions[offset], &fitOptions[offset],
+                                    streamDataBytes[FitData::FitOptions],
+                                    cudaMemcpyHostToDevice, stream[i]));
+          GPUERRCHK(cudaMemcpyAsync(&d_fitStates[offset * nSurfaces],
+                                    &fitStates[offset * nSurfaces],
+                                    streamDataBytes[FitData::FitStates],
+                                    cudaMemcpyHostToDevice, stream[i]));
+          GPUERRCHK(cudaMemcpyAsync(&d_fitPars[offset], &fitPars[offset],
+                                    streamDataBytes[FitData::FitParams],
+                                    cudaMemcpyHostToDevice, stream[i]));
+          GPUERRCHK(cudaMemcpyAsync(&d_fitStatus[offset], &fitStatus[offset],
+                                    streamDataBytes[FitData::FitStatus],
+                                    cudaMemcpyHostToDevice, stream[i]));
+      //    std::cout << "prepared to launch kernel\n" << std::endl;
+          // Use shared memory for one track if requested
+          if (useSharedMemory) {
+            fitKernelBlockPerTrack<<<grid, block, 0, stream[i]>>>(
+                d_kFitter, d_sourcelinks, d_boundStates, d_targetSurfaces,
+                d_fitOptions, d_fitStates, d_fitPars, d_fitStatus, d_surfaces,
+                nSurfaces, streamTracks, offset);
+          } else {
+            fitKernelThreadPerTrack<<<grid, block, 0, stream[i]>>>(
+                d_kFitter, d_sourcelinks, d_boundStates, d_targetSurfaces,
+                d_fitOptions, d_fitStates, d_fitPars, d_fitStatus, d_surfaces,
+                nSurfaces, streamTracks, offset);
+          }
 
-    // Run on device
-    for (Size i = 0; i < nStreams; ++i) {
-      Size offset = i * tracksPerStream;
-      const auto streamTracks =
-          (i < nStreams - 1) ? tracksPerStream : tracksLastStream;
-      const auto streamDataBytes =
-          (i < nStreams - 1) ? dataBytesPerStream : dataBytesLastStream;
-
-      // Copy the sourcelinsk, starting parameters and fitted tracks from host
-      // to device
-      GPUERRCHK(cudaMemcpyAsync(&d_sourcelinks[offset * nSurfaces],
-                                &sourcelinks[offset * nSurfaces],
-                                streamDataBytes[FitData::SourceLinks],
-                                cudaMemcpyHostToDevice, stream[i]));
-      GPUERRCHK(cudaMemcpyAsync(&d_boundStates[offset], &boundStates[offset],
-                                streamDataBytes[FitData::StartState],
-                                cudaMemcpyHostToDevice, stream[i]));
-      GPUERRCHK(cudaMemcpyAsync(&d_targetSurfaces[offset],
-                                &targetSurfaces[offset],
-                                streamDataBytes[FitData::TargetSurface],
-                                cudaMemcpyHostToDevice, stream[i]));
-      GPUERRCHK(cudaMemcpyAsync(&d_fitOptions[offset], &fitOptions[offset],
-                                streamDataBytes[FitData::FitOptions],
-                                cudaMemcpyHostToDevice, stream[i]));
-      GPUERRCHK(cudaMemcpyAsync(&d_fitStates[offset * nSurfaces],
-                                &fitStates[offset * nSurfaces],
-                                streamDataBytes[FitData::FitStates],
-                                cudaMemcpyHostToDevice, stream[i]));
-      GPUERRCHK(cudaMemcpyAsync(&d_fitPars[offset], &fitPars[offset],
-                                streamDataBytes[FitData::FitParams],
-                                cudaMemcpyHostToDevice, stream[i]));
-      GPUERRCHK(cudaMemcpyAsync(&d_fitStatus[offset], &fitStatus[offset],
-                                streamDataBytes[FitData::FitStatus],
-                                cudaMemcpyHostToDevice, stream[i]));
-
-      // Use shared memory for one track if requested
-      if (useSharedMemory) {
-        fitKernelBlockPerTrack<<<grid, block, 0, stream[i]>>>(
-            d_kFitter, d_sourcelinks, d_boundStates, d_targetSurfaces,
-            d_fitOptions, d_fitStates, d_fitPars, d_fitStatus, d_surfaces,
-            nSurfaces, streamTracks, offset);
-      } else {
-        fitKernelThreadPerTrack<<<grid, block, 0, stream[i]>>>(
-            d_kFitter, d_sourcelinks, d_boundStates, d_targetSurfaces,
-            d_fitOptions, d_fitStates, d_fitPars, d_fitStatus, d_surfaces,
-            nSurfaces, streamTracks, offset);
-      }
-      GPUERRCHK(cudaEventRecord(stopEvent, stream[i]));
-      GPUERRCHK(cudaEventSynchronize(stopEvent));
-      // copy the fitted states to host
-      GPUERRCHK(cudaMemcpyAsync(&fitStates[offset * nSurfaces],
-                                &d_fitStates[offset * nSurfaces],
-                                streamDataBytes[FitData::FitStates],
-                                cudaMemcpyDeviceToHost, stream[i]));
-      if (smoothing) {
-        // copy the fitted params to host
-        GPUERRCHK(cudaMemcpyAsync(&fitPars[offset], &d_fitPars[offset],
-                                  streamDataBytes[FitData::FitParams],
-                                  cudaMemcpyDeviceToHost, stream[i]));
-      }
-      // copy the fit status to host
-      GPUERRCHK(cudaMemcpyAsync(&fitStatus[offset], &d_fitStatus[offset],
-                                streamDataBytes[FitData::FitStatus],
-                                cudaMemcpyDeviceToHost, stream[i]));
+          // copy the fitted states to host
+          GPUERRCHK(cudaMemcpyAsync(&fitStates[offset * nSurfaces],
+                                    &d_fitStates[offset * nSurfaces],
+                                    streamDataBytes[FitData::FitStates],
+                                    cudaMemcpyDeviceToHost, stream[i]));
+          if (smoothing) {
+            // copy the fitted params to host
+            GPUERRCHK(cudaMemcpyAsync(&fitPars[offset], &d_fitPars[offset],
+                                      streamDataBytes[FitData::FitParams],
+                                      cudaMemcpyDeviceToHost, stream[i]));
+          }
+          // copy the fit status to host
+          GPUERRCHK(cudaMemcpyAsync(&fitStatus[offset], &d_fitStatus[offset],
+                                    streamDataBytes[FitData::FitStatus],
+                                    cudaMemcpyDeviceToHost, stream[i]));
+        }
+        GPUERRCHK(cudaPeekAtLastError());
+        GPUERRCHK(cudaDeviceSynchronize());
+          
+        // Free the memory on device
+        GPUERRCHK(cudaFree(d_sourcelinks));
+        GPUERRCHK(cudaFree(d_boundStates));
+        GPUERRCHK(cudaFree(d_targetSurfaces));
+        GPUERRCHK(cudaFree(d_fitOptions));
+        GPUERRCHK(cudaFree(d_fitStates));
+        GPUERRCHK(cudaFree(d_fitPars));
+        GPUERRCHK(cudaFree(d_fitStatus));
+        GPUERRCHK(cudaFree(d_kFitter));
+        GPUERRCHK(cudaFree(d_surfaces));
+        
+        for (Size i = streamStartIdx; i < streamEndIdx; i++) {
+          GPUERRCHK(cudaStreamDestroy(stream[i]));
+        }
+      
+        auto stopDeviceTime = omp_get_wtime();
+     
+        printf("Thread %d: Time (ms) for KF memory transfer and execution on "
+                 "device %d : %f\n",
+                 omp_get_thread_num(), devId, stopDeviceTime-startDeviceTime);            
     }
 
-    GPUERRCHK(cudaPeekAtLastError());
-    GPUERRCHK(cudaDeviceSynchronize());
-
-    // Free the memory on device
-    GPUERRCHK(cudaFree(d_sourcelinks));
-    GPUERRCHK(cudaFree(d_boundStates));
-    GPUERRCHK(cudaFree(d_targetSurfaces));
-    GPUERRCHK(cudaFree(d_fitOptions));
-    GPUERRCHK(cudaFree(d_fitStates));
-    GPUERRCHK(cudaFree(d_fitPars));
-    GPUERRCHK(cudaFree(d_fitStatus));
-    GPUERRCHK(cudaFree(d_kFitter));
-    GPUERRCHK(cudaFree(d_surfaces));
-
-    GPUERRCHK(cudaEventRecord(stopEvent, 0));
-    GPUERRCHK(cudaEventSynchronize(stopEvent));
-    GPUERRCHK(cudaEventElapsedTime(&ms, startEvent, stopEvent));
-    printf("Time (ms) for KF memory transfer and execution: %f\n", ms);
+    auto endFitTime = omp_get_wtime();
+    sec = endFitTime - startFitTime; 
+    printf("Total Wall clock time (sec) for KF: %f\n", sec);
 
     // Log the execution time in seconds (not including the managed memory
     // allocation time for the surfaces)
-    Test::Logger::logTime(
+   Test::Logger::logTime(
         Test::Logger::buildFilename(
             "timing", machine, "nTracks", std::to_string(nTracks), "nStreams",
             std::to_string(nStreams), "gridSize", dim3ToString(grid),
             "blockSize", dim3ToString(block), "sharedMemory",
             std::to_string(static_cast<Size>(useSharedMemory))),
-        ms);
+        sec);
 
   } else {
     /// Test without GPU offloading
