@@ -14,9 +14,6 @@
 
 namespace Acts {
 
-// the precision of the matrix inversion computations
-using T = double;
-
 // forward definition
 template <typename T> ACTS_DEVICE_FUNC T determinant(T *m, int size);
 
@@ -103,7 +100,7 @@ ACTS_DEVICE_FUNC void invert(const ActsMatrixX<P> *em, ActsMatrixX<P> *result) {
     }
 }
 
-template <typename P>
+template <typename P, typename T = double>
 ACTS_DEVICE_FUNC ActsMatrixX<P> calculateInverse(ActsMatrixX<P> m) {
 #ifdef __CUDA_ARCH__
   ActsMatrixX<P> result(m.rows(), m.cols());
