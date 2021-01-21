@@ -1,0 +1,2 @@
+When the gridSize=1024 or gridSize=32*32, the __launch_bounds__ for the kernel is set to (1024, 2);
+For other tests, the __launch_bounds__ is (256, 2)

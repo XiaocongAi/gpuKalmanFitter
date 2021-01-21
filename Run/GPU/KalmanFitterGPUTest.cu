@@ -488,7 +488,7 @@ int main(int argc, char *argv[]) {
      
         printf("Thread %d: Time (ms) for KF memory transfer and execution on "
                  "device %d : %f\n",
-                 omp_get_thread_num(), devId, stopDeviceTime-startDeviceTime);            
+                 omp_get_thread_num(), devId, (stopDeviceTime-startDeviceTime)*1000);            
     }
 
     auto endFitTime = omp_get_wtime();
