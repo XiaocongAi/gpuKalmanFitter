@@ -8,7 +8,7 @@ fi
 #The input parameter is the location of the executable and the machine name
 echo "Start statistical runs for $1 $2"
 
-nTracks=(5 10 50 100 500 1000 5000 10000) 
+nTracks=(5 10 50 100 500 1000 5000 10000 50000 100000) 
 nThreads=(1 60)
 
 for i in ${nTracks[@]}; do

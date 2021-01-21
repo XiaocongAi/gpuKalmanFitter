@@ -12,7 +12,7 @@ fi
 
 machines=("Haswell_EigenInverter" "Haswell_customInverter")
 threads=(1 60)
-nTracks=(5 10 50 100 500 1000 5000 10000) 
+nTracks=(5 10 50 100 500 1000 5000 10000 50000 100000) 
 
 # helper functions to compare two floats
 getMax(){
@@ -34,12 +34,13 @@ fi
 for ((m=0; m<${#machines[@]};++m)); do
     for ((j=0; j<${#threads[@]};++j)); do
         output=./plotData/Results_timing_${machines[m]}_OMP_NumThreads_${threads[j]}.csv
-        #delete the original if already exists
+        #check if already exists
         if [ -f ${output} ]; then
 	  echo WARNING: the ${output} already exists. Will be overritten! 
-	  rm output
         fi	
 
+	# echo the csv header
+	echo "nTracks,time,time_low_error,time_high_error" > $output
 	for i in ${nTracks[@]}; do
 	        input=./results/Results_timing_${machines[m]}_nTracks_${i}_OMP_NumThreads_${threads[j]}.csv
                 

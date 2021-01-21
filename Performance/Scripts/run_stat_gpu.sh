@@ -9,9 +9,9 @@ fi
 #The input parameter is the location of the executable
 echo "Start statistical runs for $1"
 
-nTracks=(5 10 50 100 500 1000 5000 10000) 
+nTracks=(5 10 50 100 500 1000 5000 10000 50000 100000) 
 nStreams=(1 4) 
-gridSizes=('20000')
+gridSizes=('100000')
 blockSizes=('8*8')
 
 for i in ${nTracks[@]}; do
