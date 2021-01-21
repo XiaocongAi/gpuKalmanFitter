@@ -493,7 +493,7 @@ int main(int argc, char *argv[]) {
 
     auto endFitTime = omp_get_wtime();
     sec = endFitTime - startFitTime; 
-    printf("Total Wall clock time (sec) for KF: %f\n", sec);
+    printf("Total Wall clock time (ms) for KF: %f\n", sec*1000);
 
     // Log the execution time in seconds (not including the managed memory
     // allocation time for the surfaces)
@@ -503,7 +503,7 @@ int main(int argc, char *argv[]) {
             std::to_string(nStreams), "gridSize", dim3ToString(grid),
             "blockSize", dim3ToString(block), "sharedMemory",
             std::to_string(static_cast<Size>(useSharedMemory))),
-        sec);
+        sec*1000);
 
   } else {
     /// Test without GPU offloading
