@@ -20,7 +20,7 @@ nTracks=(5 10 50 100 500 1000 5000 10000 50000 100000)
 nStreams=(1 4)
 #Note the script could only handle the real 1D gridSize
 gridSizes=('100000*1*1' '5120*1*1')
-blockSizes=('8*8*1')
+blockSizes=('8*8*1' '8*8*1')
 
 ### griSizes and blockSizes list for other blockSizes configurations ###
 # gridSizes=('100000*1*1' '100000*1*1' '100000*1*1' '100000*1*1' '100000*1*1' '5120*1*1' '5120*1*1' '5120*1*1' '5120*1*1' '5120*1*1')
@@ -67,17 +67,17 @@ for ((m=0; m<${#machines[@]};++m)); do
 		  gridSizeX=`echo ${gridSizes[j]} | sed 's/*1*1//g'`
 		  echo tracksPerGrid=${tracksPerGrid} 
 		  if [ ${tracksPerGrid} -gt ${gridSizeX} ]; then
-		    gridSize=${tracksPerGrid}*1*1
+		    gridSize=${tracksPerGrid}\*1\*1
 		  else
 		    gridSize=${gridSizes[j]}
                   fi		   
 		  echo gridSize=${gridSize} 
-	          input=./results/Results_timing_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSize}_blockSize_8*8*1_sharedMemory_$1.csv
+	          input=./results/Results_timing_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSize}_blockSize_8\*8\*1_sharedMemory_$1.csv
                 else
 	          input=./results/Results_timing_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_${blockSizes[j]}_sharedMemory_$1.csv
 		fi	
 
-	   	if [ ! -f ${input} ]; then 
+	   	if [ ! -e ${input} ]; then 
 	   	  echo ${input} does not exit!
 	   	  exit
 	        else
