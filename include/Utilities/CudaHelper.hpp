@@ -17,7 +17,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line,
   }
 }
 
-#define DELIMITER "*"
+#define DELIMITER "x"
 
 // Convert GPU string configuration from gridSize and/or blockSize to cuda::dim3
 //
