@@ -17,9 +17,16 @@ fi
 
 machines=("Tesla_V100-SXM2-16GB")
 nTracks=(5 10 50 100 500 1000 5000 10000 50000 100000) 
-nStreams=(1 4) 
-gridSizes=('100000*1*1')
+nStreams=(1 4)
+#Note the script could only handle the real 1D gridSize
+gridSizes=('100000*1*1' '5120*1*1')
 blockSizes=('8*8*1')
+
+### griSizes and blockSizes list for other blockSizes configurations ###
+# gridSizes=('100000*1*1' '100000*1*1' '100000*1*1' '100000*1*1' '100000*1*1' '5120*1*1' '5120*1*1' '5120*1*1' '5120*1*1' '5120*1*1')
+# blockSizes=('16*16*1' '32*32*1' '64*1*1' '256*1*1' '1024*1*1' '16*16*1' '32*32*1' '64*1*1' '256*1*1' '1024*1*1')
+############################################################
+
 
 # helper functions to compare two floats
 getMax(){
@@ -54,8 +61,18 @@ for ((m=0; m<${#machines[@]};++m)); do
 	   # echo the csv header
 	   echo "nTracks,time,time_low_error,time_high_error" > $output
 	   for i in ${nTracks[@]}; do
-	        if [ $1 -eq 1 ]; then 
-	          input=./results/Results_timing_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_8*8*1_sharedMemory_$1.csv
+	        if [ $1 -eq 1 ]; then
+                  # Additional calculation of the gridSize
+	          tracksPerGrid=`expr ${i} / ${k}`
+		  gridSizeX=`echo ${gridSizes[j]} | sed 's/*1*1//g'`
+		  echo tracksPerGrid=${tracksPerGrid} 
+		  if [ ${tracksPerGrid} -gt ${gridSizeX} ]; then
+		    gridSize=${tracksPerGrid}*1*1
+		  else
+		    gridSize=${gridSizes[j]}
+                  fi		   
+		  echo gridSize=${gridSize} 
+	          input=./results/Results_timing_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSize}_blockSize_8*8*1_sharedMemory_$1.csv
                 else
 	          input=./results/Results_timing_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_${blockSizes[j]}_sharedMemory_$1.csv
 		fi	
@@ -63,7 +80,14 @@ for ((m=0; m<${#machines[@]};++m)); do
 	   	if [ ! -f ${input} ]; then 
 	   	  echo ${input} does not exit!
 	   	  exit
-	           else
+	        else
+                  #check the lines of the input results
+                  nTests=`wc -l < ${input}`
+		  echo nTest = ${nTests}
+                  if [ ${nTests} -ne 5 ]; then
+                     echo WAENING: There are ${nTests} test results for one point. Are you sure about this?
+                  fi
+
 	   	  sum=`perl -lne '$x += $_; END { print $x; }' < ${input}`
 	             numLine=`wc -l < ${input}`	  
 	             average=`echo "scale=2; ${sum} / ${numLine} " | bc -l` 
