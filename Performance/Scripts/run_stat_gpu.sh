@@ -11,8 +11,17 @@ echo "Start statistical runs for $1"
 
 nTracks=(5 10 50 100 500 1000 5000 10000 50000 100000) 
 nStreams=(1 4) 
-gridSizes=('100000')
-blockSizes=('8*8')
+gridSizes=('100000' '5120')
+blockSizes=('8*8' '8*8')
+
+### griSizes and blockSizes list for other blockSizes configurations ###
+#1) lauch bounds (256, 2)
+#gridSizes=('100000*1*1' '100000*1*1' '100000*1*1' '5120*1*1' '5120*1*1' '5120*1*1')
+#blockSizes=('16*16*1' '64*1*1' '256*1*1' '16*16*1' '64*1*1' '256*1*1')
+#2) lauch bounds (1024, 2)
+#gridSizes=('100000*1*1' '100000*1*1' '5120*1*1' '5120*1*1')
+#blockSizes=('1024*1*1' '32*32*1' '1024*1*1' '32*32*1')
+############################################################
 
 for i in ${nTracks[@]}; do
 	for ((j=0; j<${#gridSizes[@]};++j)); do
