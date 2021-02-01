@@ -16,15 +16,16 @@ if [ ! -d "plotData" ]; then
 fi
 
 machines=("Tesla_V100-SXM2-16GB")
-nTracks=(5 10 50 100 500 1000 5000 10000 50000 100000) 
 nStreams=(1 4)
 #Note the script could only handle the real 1D gridSize
-gridSizes=('100000x1x1' '5120x1x1')
-blockSizes=('8x8x1' '8x8x1')
+#nTracks=(5 10 50 100 500 1000 5000 10000 50000 100000) 
+#gridSizes=('100000x1x1' '5120x1x1')
+#blockSizes=('8x8x1' '8x8x1')
 
 ### griSizes and blockSizes list for other blockSizes configurations ###
-# gridSizes=('100000x1x1' '100000x1x1' '100000x1x1' '100000x1x1' '100000x1x1' '5120x1x1' '5120x1x1' '5120x1x1' '5120x1x1' '5120x1x1')
-# blockSizes=('16x16x1' '32x32x1' '64x1x1' '256x1x1' '1024x1x1' '16x16x1' '32x32x1' '64x1x1' '256x1x1' '1024x1x1')
+nTracks=(10000)
+gridSizes=('100000x1x1' '100000x1x1' '100000x1x1' '100000x1x1' '100000x1x1' '5120x1x1' '5120x1x1' '5120x1x1' '5120x1x1' '5120x1x1')
+blockSizes=('16x16x1' '32x32x1' '64x1x1' '256x1x1' '1024x1x1' '16x16x1' '32x32x1' '64x1x1' '256x1x1' '1024x1x1')
 ############################################################
 
 
@@ -48,7 +49,7 @@ for ((m=0; m<${#machines[@]};++m)); do
     for ((j=0; j<${#gridSizes[@]};++j)); do
         for k in ${nStreams[@]}; do
 	   if [ $1 -eq 1 ]; then 
-	     output=./plotData/Results_timing_${machines[m]}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_8*8*1_sharedMemory_$1.csv
+	     output=./plotData/Results_timing_${machines[m]}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_8x8x1_sharedMemory_$1.csv
 	   else 
 	     output=./plotData/Results_timing_${machines[m]}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_${blockSizes[j]}_sharedMemory_$1.csv
 	   fi 
@@ -64,15 +65,15 @@ for ((m=0; m<${#machines[@]};++m)); do
 	        if [ $1 -eq 1 ]; then
                   # Additional calculation of the gridSize
 	          tracksPerGrid=`expr ${i} / ${k}`
-		  gridSizeX=`echo ${gridSizes[j]} | sed 's/*1*1//g'`
+		  gridSizeX=`echo ${gridSizes[j]} | sed 's/x1x1//g'`
 		  echo tracksPerGrid=${tracksPerGrid} 
 		  if [ ${tracksPerGrid} -gt ${gridSizeX} ]; then
-		    gridSize=${tracksPerGrid}\*1\*1
+		    gridSize=${tracksPerGrid}x1x1
 		  else
 		    gridSize=${gridSizes[j]}
                   fi		   
 		  echo gridSize=${gridSize} 
-	          input=./results/Results_timing_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSize}_blockSize_8\*8\*1_sharedMemory_$1.csv
+	          input=./results/Results_timing_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSize}_blockSize_8x8x1_sharedMemory_$1.csv
                 else
 	          input=./results/Results_timing_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_${blockSizes[j]}_sharedMemory_$1.csv
 		fi	
@@ -85,7 +86,7 @@ for ((m=0; m<${#machines[@]};++m)); do
                   nTests=`wc -l < ${input}`
 		  echo nTest = ${nTests}
                   if [ ${nTests} -ne 5 ]; then
-                     echo WAENING: There are ${nTests} test results for one point. Are you sure about this?
+                     echo WAENING: There are ${nTests} test results in ${input}. Are you sure about this?
                   fi
 
 	   	  sum=`perl -lne '$x += $_; END { print $x; }' < ${input}`
