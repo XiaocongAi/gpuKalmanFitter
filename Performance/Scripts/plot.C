@@ -26,8 +26,8 @@ void  plot() {
   std::vector<std::string> fileNames={
   "Results_timing_Haswell_customInverter_OMP_NumThreads_1.csv",
   "Results_timing_Haswell_customInverter_OMP_NumThreads_60.csv",
-  "Results_timing_Tesla_V100-SXM2-16GB_nStreams_1_gridSize_100000*1*1_blockSize_8*8*1_sharedMemory_0.csv",
-  "Results_timing_Tesla_V100-SXM2-16GB_nStreams_1_gridSize_100000*1*1_blockSize_8*8*1_sharedMemory_1.csv",
+  "Results_timing_Tesla_V100-SXM2-16GB_nStreams_1_gridSize_100000x1x1_blockSize_8x8x1_sharedMemory_0.csv",
+  "Results_timing_Tesla_V100-SXM2-16GB_nStreams_1_gridSize_100000x1x1_blockSize_8x8x1_sharedMemory_1.csv",
   };
  
   std::vector<std::string> machines={
