@@ -12,6 +12,8 @@ fi
 
 machines=("Haswell_EigenInverter" "Haswell_customInverter")
 threads=(1 60)
+#machines=("Knl_EigenInverter" "Knl_customInverter")
+#threads=(1 250)
 nTracks=(5 10 50 100 500 1000 5000 10000 50000 100000) 
 
 # helper functions to compare two floats
