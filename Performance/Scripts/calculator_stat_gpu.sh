@@ -15,10 +15,12 @@ if [ ! -d "plotData" ]; then
    mkdir plotData   
 fi
 
-machines=("Tesla_V100-SXM2-16GB")
+#machines=("Tesla_V100-SXM2-16GB")
+machines=("Tesla_P100-PCIE-16GB")
 nStreams=(1 4)
 #Note the script could only handle the real 1D gridSize
-nTracks=(5 10 50 100 500 1000 5000 10000 50000 100000) 
+#nTracks=(5 10 50 100 500 1000 5000 10000 50000 100000) 
+nTracks=(5 10 50 100 500 1000 5000 10000 50000) 
 gridSizes=('100000x1x1' '5120x1x1')
 blockSizes=('8x8x1' '8x8x1')
 
