@@ -1,0 +1,44 @@
+Generating CUDA API Statistics...
+CUDA API Statistics (nanoseconds)
+
+Time(%)      Total Time       Calls         Average         Minimum         Maximum  Name                                                                            
+-------  --------------  ----------  --------------  --------------  --------------  --------------------------------------------------------------------------------
+   68.0       257769446           1     257769446.0       257769446       257769446  cudaHostAlloc                                                                   
+   16.3        61797762           1      61797762.0        61797762        61797762  cudaDeviceSynchronize                                                           
+    8.9        33669161           7       4809880.1            6717        30528521  cudaMallocHost                                                                  
+    3.6        13789632           8       1723704.0            7835        12144521  cudaFreeHost                                                                    
+    2.1         7777187           4       1944296.7            8819         7744887  cudaLaunchKernel                                                                
+    0.5         1823473           9        202608.1            3731          622393  cudaMalloc                                                                      
+    0.4         1641496           9        182388.4            5368          557068  cudaFree                                                                        
+    0.1          321875           4         80468.7           57535          112263  cudaStreamCreate                                                                
+    0.0          188772          40          4719.3            3374           13563  cudaMemcpyAsync                                                                 
+    0.0           56590           2         28295.0            8815           47775  cudaMemcpy                                                                      
+    0.0           15733           4          3933.3            2341            8023  cudaStreamDestroy                                                               
+
+
+
+
+Generating CUDA Kernel Statistics...
+CUDA Kernel Statistics (nanoseconds)
+
+Time(%)      Total Time   Instances         Average         Minimum         Maximum  Name                                                                                                                                                                                                                                                                                                                                         
+-------  --------------  ----------  --------------  --------------  --------------  --------------------------------------------------------------------------------------------------------------------                                                                                                                                                                                                                         
+  100.0       201867298           4      50466824.5        46909458        56110736  fitKernelThreadPerTrack(Acts::KalmanFitter<Acts::Propagator<Acts::EigenStepper<Test::ConstantBField>, Acts::DirectNavigator<Acts::PlaneSurface<Acts::InfiniteBounds> > >, Acts::GainMatrixUpdater, Acts::GainMatrixSmoother<Acts::SingleBoundTrackParameters<Acts::ChargedPolicy, Acts::PlaneSurface<Acts::InfiniteBounds> > >, Acts::VoidOut
+
+
+
+Generating CUDA Memory Operation Statistics...
+CUDA Memory Operation Statistics (nanoseconds)
+
+Time(%)      Total Time  Operations         Average         Minimum         Maximum  Name                                                                            
+-------  --------------  ----------  --------------  --------------  --------------  --------------------------------------------------------------------------------
+   61.8        10685970          30        356199.0            1151         2807244  [CUDA memcpy HtoD]                                                              
+   38.2         6613038          12        551086.5            2272         1611380  [CUDA memcpy DtoH]                                                              
+
+
+CUDA Memory Operation Statistics (KiB)
+
+              Total      Operations              Average            Minimum              Maximum  Name                                                                            
+-------------------  --------------  -------------------  -----------------  -------------------  --------------------------------------------------------------------------------
+          90714.074              30             3023.802              0.012            20703.125  [CUDA memcpy HtoD]                                                              
+          84931.641              12             7077.637              2.441            20703.125  [CUDA memcpy DtoH]   
