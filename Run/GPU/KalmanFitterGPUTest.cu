@@ -148,6 +148,8 @@ int main(int argc, char *argv[]) {
     if (device == "gpu") {
       machine = prop.name;
       std::replace(machine.begin(), machine.end(), ' ', '_');
+      if (multiGpu)
+ 	machine.append("x").append(std::to_string(nDevices));	
     } else {
       std::cout << "ERROR: The name of the CPU being tested must be provided, "
                    "like e.g. "
