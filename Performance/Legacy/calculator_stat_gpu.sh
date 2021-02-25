@@ -15,8 +15,6 @@ if [ ! -d "plotData" ]; then
    mkdir plotData   
 fi
 
-precision=float
-
 
 machines=("Tesla_V100-SXM2-16GB")
 #machines=("Tesla_P100-PCIE-16GB")
@@ -33,23 +31,29 @@ blockSizes=('8x8x1' '8x8x1')
 ############################################################
 
 
-# helper functions to get mean and sigma
-getMean(){
-awk 'BEGIN{s=0;}{s=s+$1;}END{print s/NR;}' $1
+# helper functions to compare two floats
+getMax(){
+if (( $(echo "$1 > $2" |bc -l) )); then
+  max=$1
+ else 
+  max=$2
+fi
 }
-
-getSigma(){
-awk '{delta = $1 - avg; avg += delta / NR; mean2 += delta * ($1 - avg); } END { print sqrt(mean2 / NR); }' $1
+getMin(){
+if (( $(echo "$1 < $2" |bc -l) )); then
+  min=$1
+ else 
+  min=$2
+fi
 }
-
 
 for ((m=0; m<${#machines[@]};++m)); do
     for ((j=0; j<${#gridSizes[@]};++j)); do
         for k in ${nStreams[@]}; do
 	   if [ $1 -eq 1 ]; then 
-	     output=./plotData/${precision}/Results_timing_${machines[m]}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_8x8x1_sharedMemory_$1.csv
+	     output=./plotData/double/Results_timing_${machines[m]}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_8x8x1_sharedMemory_$1.csv
 	   else 
-	     output=./plotData/${precision}/Results_timing_${machines[m]}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_${blockSizes[j]}_sharedMemory_$1.csv
+	     output=./plotData/double/Results_timing_${machines[m]}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_${blockSizes[j]}_sharedMemory_$1.csv
 	   fi 
            
            #check if already exists
@@ -70,12 +74,10 @@ for ((m=0; m<${#machines[@]};++m)); do
 		  else
 		    gridSize=${gridSizes[j]}
                   fi		   
-		  echo gridSize=${gridSize}
-	          input=./results/Results_timing_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSize}_blockSize_8x8x1_sharedMemory_$1.csv
-	          #input=./results/Results_timing_double_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSize}_blockSize_8x8x1_sharedMemory_$1.csv
+		  echo gridSize=${gridSize} 
+	          input=./results/Results_timing_double_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSize}_blockSize_8x8x1_sharedMemory_$1.csv
                 else
-	          input=./results/Results_timing_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_${blockSizes[j]}_sharedMemory_$1.csv
-	          #input=./results/Results_timing_double_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_${blockSizes[j]}_sharedMemory_$1.csv
+	          input=./results/Results_timing_double_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_${blockSizes[j]}_sharedMemory_$1.csv
 		fi	
 
 	   	if [ ! -e ${input} ]; then 
@@ -88,13 +90,27 @@ for ((m=0; m<${#machines[@]};++m)); do
                   if [ ${nTests} -ne 5 ]; then
                      echo WAENING: There are ${nTests} test results in ${input}. Are you sure about this?
                   fi
-                
-		  mean=`getMean ${input}`
-                  sigma=`getSigma ${input}`
 
-                  # echo the ntracks, timing, timing_low_error, timing_high_error in csv format 
-                  echo ${i}\,${mean}\,${sigma}\,${sigma} 
-                  echo ${i}\,${mean}\,${sigma}\,${sigma} >> $output
+	   	  sum=`perl -lne '$x += $_; END { print $x; }' < ${input}`
+	             numLine=`wc -l < ${input}`	  
+	             average=`echo "scale=2; ${sum} / ${numLine} " | bc -l` 
+	   	  echo sum=${sum}, average=${average} for tracks ${i} 
+	   	  
+	   	  min=99999
+	   	  max=0
+	   	  while IFS= read -r line
+                       do
+	   	      newline=`echo ${line} | sed 's/,//g'` 
+                         echo "$newline"
+	   	      getMax ${max} ${newline} 
+	   	      getMin ${min} ${newline} 
+	             done < "${input}"
+	   	  echo min=${min}, max=${max}
+	   	  lowErr=`echo "scale=2; ${average} - ${min}" |bc -l`
+	   	  highErr=`echo "scale=2; ${max} - ${average}" |bc -l`
+	   	 
+	   	  # echo the ntracks, timing, timing_low_error, timing_high_error in csv format 
+	   	  echo ${i}\,${average}\,${lowErr}\,${highErr} >> $output 
 	   	fi	
 	   done;
 

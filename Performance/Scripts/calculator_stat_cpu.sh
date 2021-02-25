@@ -10,32 +10,28 @@ if [ ! -d "plotData" ]; then
    mkdir plotData
 fi
 
-machines=("Haswell_EigenInverter" "Haswell_customInverter")
-threads=(1 60)
+precision=float
+
+machines=("Haswell_customInverter")
+threads=(60)
 #machines=("Knl_EigenInverter" "Knl_customInverter")
 #threads=(1 250)
+
 nTracks=(5 10 50 100 500 1000 5000 10000 50000 100000) 
 
-# helper functions to compare two floats
-getMax(){
-if (( $(echo "$1 > $2" |bc -l) )); then
-  max=$1
- else 
-  max=$2
-fi
+# helper functions to get mean and sigma 
+getMean(){
+awk 'BEGIN{s=0;}{s=s+$1;}END{print s/NR;}' $1
 }
-getMin(){
-if (( $(echo "$1 < $2" |bc -l) )); then
-  min=$1
- else 
-  min=$2
-fi
+
+getSigma(){
+awk '{delta = $1 - avg; avg += delta / NR; mean2 += delta * ($1 - avg); } END { print sqrt(mean2 / NR); }' $1
 }
 
 
 for ((m=0; m<${#machines[@]};++m)); do
     for ((j=0; j<${#threads[@]};++j)); do
-        output=./plotData/Results_timing_${machines[m]}_OMP_NumThreads_${threads[j]}.csv
+        output=./plotData/${precision}/Results_timing_${machines[m]}_OMP_NumThreads_${threads[j]}.csv
         #check if already exists
         if [ -f ${output} ]; then
 	  echo WARNING: the ${output} already exists. Will be overritten! 
@@ -45,31 +41,24 @@ for ((m=0; m<${#machines[@]};++m)); do
 	echo "nTracks,time,time_low_error,time_high_error" > $output
 	for i in ${nTracks[@]}; do
 	        input=./results/Results_timing_${machines[m]}_nTracks_${i}_OMP_NumThreads_${threads[j]}.csv
+	        #input=./results/Results_timing_double_${machines[m]}_nTracks_${i}_OMP_NumThreads_${threads[j]}.csv
                 
 		if [ ! -f ${input} ]; then 
 		  echo ${input} does not exit
 		  exit
 	        else
-		  sum=`perl -lne '$x += $_; END { print $x; }' < ${input}`
-	          numLine=`wc -l < ${input}`	  
-	          average=`echo "scale=2; ${sum} / ${numLine} " | bc -l` 
-		  echo sum=${sum}, average=${average} for tracks ${i} 
-		 
-		  min=99999
-		  max=0
-		  while IFS= read -r line
-                    do
-		      newline=`echo ${line} | sed 's/,//g'` 
-                      echo "$newline"
-		      getMax ${max} ${newline} 
-		      getMin ${min} ${newline} 
-	          done < "${input}"
-		  echo min=${min}, max=${max}
-		  lowErr=`echo "scale=2; ${average} - ${min}" |bc -l`
-		  highErr=`echo "scale=2; ${max} - ${average}" |bc -l`
+	          nTest=`wc -l < ${input}`	  
+	          echo nTest = ${nTests}
+                  if [ ${nTests} -ne 5 ]; then
+                     echo WAENING: There are ${nTests} test results in ${input}. Are you sure about this?
+                  fi
+	
+		  mean=`getMean ${input}`
+		  sigma=`getSigma ${input}` 
 		 
 		  # echo the ntracks, timing, timing_low_error, timing_high_error in csv format 
-		  echo ${i}\,${average}\,${lowErr}\,${highErr} >> $output 
+		  echo ${i}\,${mean}\,${sigma}\,${sigma} 
+		  echo ${i}\,${mean}\,${sigma}\,${sigma} >> $output 
 		fi	
 	done;
     done;
