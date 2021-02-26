@@ -752,7 +752,7 @@ public:
     kalmanActor.m_outlierFinder = kfOptions.outlierFinder;
 
     // Run the fitter
-    const auto propRes =
+    const PropagatorResult propRes =
         m_propagator.template propagate(sParameters, kalmanOptions, kfResult);
 
     POP_RANGE();
