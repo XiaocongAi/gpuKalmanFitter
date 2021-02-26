@@ -12,9 +12,14 @@ fi
 
 precision=float
 
-machines=("Haswell_customInverter")
-threads=(60)
+#=======The Haswell test===================
+machines=("Haswell_EigenInverter" "Haswell_customInverter")
+machineso=("Haswell_EigenInverter" "Haswell_CustomInverter")
+threads=(1 60)
+
+#=========The KNL test====================
 #machines=("Knl_EigenInverter" "Knl_customInverter")
+#machineso=("KNL_EigenInverter" "KNL_CustomInverter")
 #threads=(1 250)
 
 nTracks=(5 10 50 100 500 1000 5000 10000 50000 100000) 
@@ -31,7 +36,7 @@ awk '{delta = $1 - avg; avg += delta / NR; mean2 += delta * ($1 - avg); } END { 
 
 for ((m=0; m<${#machines[@]};++m)); do
     for ((j=0; j<${#threads[@]};++j)); do
-        output=./plotData/${precision}/Results_timing_${machines[m]}_OMP_NumThreads_${threads[j]}.csv
+        output=./plotData/${precision}/Results_timing_${machineso[m]}_OMP_NumThreads_${threads[j]}.csv
         #check if already exists
         if [ -f ${output} ]; then
 	  echo WARNING: the ${output} already exists. Will be overritten! 
@@ -47,8 +52,8 @@ for ((m=0; m<${#machines[@]};++m)); do
 		  echo ${input} does not exit
 		  exit
 	        else
-	          nTest=`wc -l < ${input}`	  
-	          echo nTest = ${nTests}
+	          nTests=`wc -l < ${input}`	  
+	          echo nTests = ${nTests}
                   if [ ${nTests} -ne 5 ]; then
                      echo WAENING: There are ${nTests} test results in ${input}. Are you sure about this?
                   fi
