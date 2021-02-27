@@ -165,6 +165,7 @@ int main(int argc, char *argv[]) {
     int maxWarps = prop.maxThreadsPerMultiProcessor / prop.warpSize;
     std::cout << "  Occupancy: " << (double)activeWarps / maxWarps * 100 << "%"
               <<
+    std::endl;
 
         int maxOccupancyBlockSize;
     int minGridSize;
@@ -176,7 +177,6 @@ int main(int argc, char *argv[]) {
     std::cout << "   maxOccupancyBlockSize =  " << maxOccupancyBlockSize
               << std::endl;
     std::cout << "   minGridSize =  " << minGridSize << std::endl;
-    std::endl;
   }
 
   if (machine.empty()) {
