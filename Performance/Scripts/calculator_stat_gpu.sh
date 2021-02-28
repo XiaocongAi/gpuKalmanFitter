@@ -22,9 +22,9 @@ machines=("Tesla_V100-SXM2-16GB")
 #machines=("Tesla_P100-PCIE-16GB")
 nStreams=(1 4)
 #Note the script could only handle the real 1D gridSize
-#nTracks=(5 10 50 100 500 1000 5000 10000 50000 100000) 
-#gridSizes=('100000x1x1' '5120x1x1')
-#blockSizes=('8x8x1' '8x8x1')
+nTracks=(5 10 50 100 500 1000 5000 10000 50000 100000) 
+gridSizes=('100000x1x1' '5120x1x1')
+blockSizes=('8x8x1' '8x8x1')
 
 ##### Tesla_V100-SXM2-16GB #####
 ### griSizes and blockSizes list for other blockSizes configurations ###
@@ -55,9 +55,9 @@ for ((m=0; m<${#machines[@]};++m)); do
     for ((j=0; j<${#gridSizes[@]};++j)); do
         for k in ${nStreams[@]}; do
 	   if [ $1 -eq 1 ]; then 
-	     output=./plotData/${precision}/Results_timing_${machines[m]}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_8x8x1_sharedMemory_$1.csv
+	     output=./plotData/${precision}/Results_timing_${machines[m]}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_8x8x1_sharedMemory_$1_extended.csv
 	   else 
-	     output=./plotData/${precision}/Results_timing_${machines[m]}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_${blockSizes[j]}_sharedMemory_$1.csv
+	     output=./plotData/${precision}/Results_timing_${machines[m]}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_${blockSizes[j]}_sharedMemory_$1_extended.csv
 	   fi 
            
            #check if already exists
