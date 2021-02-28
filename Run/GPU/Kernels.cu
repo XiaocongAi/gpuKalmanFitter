@@ -3,12 +3,16 @@
 #include "FitData.hpp"
 
 // Device code
-__global__ void __launch_bounds__(256, 2) fitKernelThreadPerTrack(
-    KalmanFitterType *kFitter, Acts::PixelSourceLink *sourcelinks,
-    BoundState *startStates, Acts::LineSurface *targetSurfaces,
-    FitOptionsType *fitOptions, TSType *fittedStates,
-    Acts::BoundParameters<Acts::LineSurface> *fitPars, bool *fitStatus,
-    const PlaneSurfaceType *surfaces, int nSurfaces, int nTracks, int offset) {
+__global__ void
+//__launch_bounds__(256, 2)
+fitKernelThreadPerTrack(KalmanFitterType *kFitter,
+                        Acts::PixelSourceLink *sourcelinks,
+                        BoundState *startStates,
+                        Acts::LineSurface *targetSurfaces,
+                        FitOptionsType *fitOptions, TSType *fittedStates,
+                        Acts::BoundParameters<Acts::LineSurface> *fitPars,
+                        bool *fitStatus, const PlaneSurfaceType *surfaces,
+                        int nSurfaces, int nTracks, int offset) {
   // In case of 1D grid and 1D block, the threadId = blockDim.x*blockIdx.x +
   // threadIdx.x + offset
   // @note This might have problem if the number of threads is smaller than the
@@ -40,12 +44,16 @@ __global__ void __launch_bounds__(256, 2) fitKernelThreadPerTrack(
   }
 }
 
-__global__ void __launch_bounds__(256, 2) fitKernelBlockPerTrack(
-    KalmanFitterType *kFitter, Acts::PixelSourceLink *sourcelinks,
-    BoundState *startStates, Acts::LineSurface *targetSurfaces,
-    FitOptionsType *fitOptions, TSType *fittedStates,
-    Acts::BoundParameters<Acts::LineSurface> *fitPars, bool *fitStatus,
-    const PlaneSurfaceType *surfaces, int nSurfaces, int nTracks, int offset) {
+__global__ void
+//__launch_bounds__(256, 2)
+fitKernelBlockPerTrack(KalmanFitterType *kFitter,
+                       Acts::PixelSourceLink *sourcelinks,
+                       BoundState *startStates,
+                       Acts::LineSurface *targetSurfaces,
+                       FitOptionsType *fitOptions, TSType *fittedStates,
+                       Acts::BoundParameters<Acts::LineSurface> *fitPars,
+                       bool *fitStatus, const PlaneSurfaceType *surfaces,
+                       int nSurfaces, int nTracks, int offset) {
   // @note This will have problem if the number of blocks is smaller than the
   // number of tracks!!!
   int blockId = gridDim.x * blockIdx.y + blockIdx.x + offset;
