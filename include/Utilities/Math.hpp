@@ -96,7 +96,7 @@ ACTS_DEVICE_FUNC void invert(const ActsMatrixX<P> *em, ActsMatrixX<P> *result) {
       T sign = ((i + j) % 2 == 1) ? -1.0 : 1.0;
       T cofactorM = minor * sign;
 
-      result->coeffRef(i, j) = static_cast<P>(invDet * cofactorM); 
+      result->coeffRef(i, j) = static_cast<P>(invDet * cofactorM);
     }
 }
 
@@ -104,7 +104,7 @@ template <typename P, typename T = double>
 ACTS_DEVICE_FUNC ActsMatrixX<P> calculateInverse(ActsMatrixX<P> m) {
 #ifdef __CUDA_ARCH__
   ActsMatrixX<P> result(m.rows(), m.cols());
-  invert<T,P>(&m, &result);
+  invert<T, P>(&m, &result);
   return result;
 #else
   return m.inverse();

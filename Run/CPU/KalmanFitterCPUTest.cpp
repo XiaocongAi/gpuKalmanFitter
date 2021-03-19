@@ -120,9 +120,9 @@ int main(int argc, char *argv[]) {
 
   // Prepare to run the particles generation
   ActsExamples::GaussianVertexGenerator vertexGen;
-  vertexGen.stddev[Acts::eFreePos0] = 1.0 * Acts::units::_mm;
-  vertexGen.stddev[Acts::eFreePos1] = 1.0 * Acts::units::_mm;
-  vertexGen.stddev[Acts::eFreePos2] = 5.0 * Acts::units::_mm;
+  vertexGen.stddev[Acts::eFreePos0] = 20.0 * Acts::units::_um;
+  vertexGen.stddev[Acts::eFreePos1] = 20.0 * Acts::units::_um;
+  vertexGen.stddev[Acts::eFreePos2] = 50.0 * Acts::units::_um;
   vertexGen.stddev[Acts::eFreeTime] = 1.0 * Acts::units::_ns;
   ActsExamples::ParametricParticleGenerator::Config pgCfg;
   // @note We are generating 20% more particles to make sure we could get enough
@@ -162,8 +162,8 @@ int main(int argc, char *argv[]) {
   buildTargetSurfaces(validParticles, targetSurfaces.data());
 
   // The hit smearing resolution
-  std::array<ActsScalar, 2> hitResolution = {30. * Acts::units::_mm,
-                                             30. * Acts::units::_mm};
+  std::array<ActsScalar, 2> hitResolution = {50. * Acts::units::_um,
+                                             50. * Acts::units::_um};
   // Run sim hits smearing to create source links
   std::vector<Acts::PixelSourceLink> sourcelinks(nTracks * nSurfaces);
   // @note pass the concreate PlaneSurfaceType pointer here

@@ -157,26 +157,24 @@ int main(int argc, char *argv[]) {
     GPUERRCHK(cudaRuntimeGetVersion(&rtVersion));
     printf("   Cuda rt version: %i\n\n", rtVersion);
 
+    // Print out the warp occupancy
     int OccupancyInNumBlocks;
     int blockSize = block.x * block.y;
     cudaOccupancyMaxActiveBlocksPerMultiprocessor(
         &OccupancyInNumBlocks, fitKernelThreadPerTrack, blockSize, 0);
     int activeWarps = OccupancyInNumBlocks * blockSize / prop.warpSize;
     int maxWarps = prop.maxThreadsPerMultiProcessor / prop.warpSize;
-    std::cout << "  Occupancy: " << (double)activeWarps / maxWarps * 100 << "%"
-              <<
-    std::endl;
+    std::cout << "  Warp Occupancy with block size " << blockSize << " : "
+              << (double)activeWarps / maxWarps * 100 << "%" << std::endl;
 
-        int maxOccupancyBlockSize;
+    // Print out the desirable block size
+    int maxOccupancyBlockSize;
     int minGridSize;
-
     cudaOccupancyMaxPotentialBlockSize(&minGridSize, &maxOccupancyBlockSize,
                                        (void *)fitKernelThreadPerTrack, 0,
                                        nTracks);
-
     std::cout << "   maxOccupancyBlockSize =  " << maxOccupancyBlockSize
-              << std::endl;
-    std::cout << "   minGridSize =  " << minGridSize << std::endl;
+              << ", minGridSize = " << minGridSize << std::endl;
   }
 
   if (machine.empty()) {
@@ -308,9 +306,9 @@ int main(int argc, char *argv[]) {
 
   // Prepare to run the particles generation
   ActsExamples::GaussianVertexGenerator vertexGen;
-  vertexGen.stddev[Acts::eFreePos0] = 1.0 * Acts::units::_mm;
-  vertexGen.stddev[Acts::eFreePos1] = 1.0 * Acts::units::_mm;
-  vertexGen.stddev[Acts::eFreePos2] = 5.0 * Acts::units::_mm;
+  vertexGen.stddev[Acts::eFreePos0] = 20.0 * Acts::units::_um;
+  vertexGen.stddev[Acts::eFreePos1] = 20.0 * Acts::units::_um;
+  vertexGen.stddev[Acts::eFreePos2] = 50.0 * Acts::units::_um;
   vertexGen.stddev[Acts::eFreeTime] = 1.0 * Acts::units::_ns;
   ActsExamples::ParametricParticleGenerator::Config pgCfg;
   // @note We are generating 20% more particles to make sure we could get enough
@@ -350,8 +348,8 @@ int main(int argc, char *argv[]) {
   buildTargetSurfaces(validParticles, targetSurfaces);
 
   // The hit smearing resolution
-  std::array<ActsScalar, 2> hitResolution = {30. * Acts::units::_mm,
-                                             30. * Acts::units::_mm};
+  std::array<ActsScalar, 2> hitResolution = {50. * Acts::units::_um,
+                                             50. * Acts::units::_um};
   // Run hit smearing to create source links
   // @note pass the concreate PlaneSurfaceType pointer here
   runHitSmearing(gctx, rng, simResult, hitResolution, sourcelinks, surfaces,
