@@ -1,5 +1,7 @@
 1) run the 'run_stat_cpu.sh' or 'run_stat_gpu.sh' to produce the 'Results_timing*.csv' files
 
-2) mv those files to the 'results' directory
+2) mv those files to the '../../externals/gpuKFPerformance/data/raw-data' directory
 
-3) run the 'calculator_stat_cpu.sh' or 'calculator_stat_gpu.sh' to get the final plotting data in the 'plotData'
+3) run the 'calculator_stat_cpu.sh' or 'calculator_stat_gpu.sh' to get the final plotting data in '../../externals/gpuKFPerformance/data/timing' directory
+
+4) to view the plots, run the jupyter notebook from '../../externals/gpuKFPerformance/'

@@ -1,13 +1,16 @@
 #!/bin/bash
 
-# check if the plotData and results directory exist
-if [ ! -d "results" ]; then
-  echo "Directory 'results' DOES NOT exists."
+RAW_DATA=../../externals/gpuKFPerformance/data/raw-data
+TIMING=../../externals/gpuKFPerformance/data/timing
+
+# check if the TIMING and RAW_DATA directory exist
+if [ ! -d ${RAW_DATA} ]; then
+  echo "Directory '${RAW_DATA}' DOES NOT exists."
   exit 1
 fi
-if [ ! -d "plotData" ]; then
-   echo "Directory 'plotData' DOES NOT exists. Creating the 'plotData' directory." 
-   mkdir plotData
+if [ ! -d ${TIMING} ]; then
+   echo "Directory '${TIMING}' DOES NOT exists. Creating it." 
+   mkdir ${TIMING}
 fi
 
 precision=float
@@ -36,7 +39,7 @@ awk '{delta = $1 - avg; avg += delta / NR; mean2 += delta * ($1 - avg); } END { 
 
 for ((m=0; m<${#machines[@]};++m)); do
     for ((j=0; j<${#threads[@]};++j)); do
-        output=./plotData/${precision}/Results_timing_${machineso[m]}_OMP_NumThreads_${threads[j]}.csv
+        output=./${TIMING}/${precision}/Results_timing_${machineso[m]}_OMP_NumThreads_${threads[j]}.csv
         #check if already exists
         if [ -f ${output} ]; then
 	  echo WARNING: the ${output} already exists. Will be overritten! 
@@ -45,8 +48,8 @@ for ((m=0; m<${#machines[@]};++m)); do
 	# echo the csv header
 	echo "nTracks,time,time_low_error,time_high_error" > $output
 	for i in ${nTracks[@]}; do
-	        input=./results/Results_timing_${machines[m]}_nTracks_${i}_OMP_NumThreads_${threads[j]}.csv
-	        #input=./results/Results_timing_double_${machines[m]}_nTracks_${i}_OMP_NumThreads_${threads[j]}.csv
+	        input=./${RAW_DATA}/Results_timing_${machines[m]}_nTracks_${i}_OMP_NumThreads_${threads[j]}.csv
+	        #input=./RAW_DATA/Results_timing_double_${machines[m]}_nTracks_${i}_OMP_NumThreads_${threads[j]}.csv
                 
 		if [ ! -f ${input} ]; then 
 		  echo ${input} does not exit

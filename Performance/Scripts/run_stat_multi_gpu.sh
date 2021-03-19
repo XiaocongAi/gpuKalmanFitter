@@ -15,16 +15,6 @@ nTracks=(5 10 50 100 500 1000 5000 10000 50000 100000)
 gridSizes=( '100000')
 blockSizes=( '8x8')
 
-### griSizes and blockSizes list for other blockSizes configurations ###
-#nTracks=(100000) 
-#1) lauch bounds (256, 2)
-#gridSizes=('100000x1x1' '100000x1x1' '100000x1x1' '5120x1x1' '5120x1x1' '5120x1x1')
-#blockSizes=('16x16x1' '64x1x1' '256x1x1' '16x16x1' '64x1x1' '256x1x1')
-#2) lauch bounds (1024, 2)
-#gridSizes=('100000x1x1' '100000x1x1' '5120x1x1' '5120x1x1')
-#blockSizes=('1024x1x1' '32x32x1' '1024x1x1' '32x32x1')
-############################################################
-
 for i in ${nTracks[@]}; do
 	for ((j=0; j<${#gridSizes[@]};++j)); do
             for k in ${nStreams[@]}; do

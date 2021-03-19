@@ -21,7 +21,7 @@ void  plot() {
   gStyle->SetPadTopMargin(0.1);
   gStyle->SetPadBottomMargin(0.15);
 
-  std::string filePath = "./plotData/";
+  std::string filePath = "../../externals/gpuKFPerformance/data/timing";
   
   std::vector<std::string> fileNames={
   "Results_timing_Haswell_customInverter_OMP_NumThreads_1.csv",

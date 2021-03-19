@@ -1,18 +1,21 @@
 #!/bin/bash
 
+RAW_DATA=../../externals/gpuKFPerformance/data/raw-data
+TIMING=../../externals/gpuKFPerformance/data/timing
+
 if [ $# -ne 1 ]; then
   echo "Missing boolean for shared memory or not"
   exit 1
 fi
 
-# check if the plotData and results directory exist
-if [ ! -d "results" ]; then
-  echo "Directory 'results' DOES NOT exists."
+# check if the TIMING and RAW_DATA directory exist
+if [ ! -d ${RAW_DATA} ]; then
+  echo "Directory '${RAW_DATA}' DOES NOT exists."
   exit 1
 fi
-if [ ! -d "plotData" ]; then
-   echo "Directory 'plotData' DOES NOT exists. Creating the 'plotData' directory." 
-   mkdir plotData   
+if [ ! -d ${TIMING}]; then
+   echo "Directory '${TIMING}' DOES NOT exists. Creating it." 
+   mkdir ${TIMING}   
 fi
 
 precision=float
@@ -55,9 +58,9 @@ for ((m=0; m<${#machines[@]};++m)); do
     for ((j=0; j<${#gridSizes[@]};++j)); do
         for k in ${nStreams[@]}; do
 	   if [ $1 -eq 1 ]; then 
-	     output=./plotData/${precision}/Results_timing_${machines[m]}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_8x8x1_sharedMemory_$1_extended.csv
+	     output=./${TIMING}/${precision}/Results_timing_${machines[m]}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_8x8x1_sharedMemory_$1_extended.csv
 	   else 
-	     output=./plotData/${precision}/Results_timing_${machines[m]}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_${blockSizes[j]}_sharedMemory_$1_extended.csv
+	     output=./${TIMING}/${precision}/Results_timing_${machines[m]}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_${blockSizes[j]}_sharedMemory_$1_extended.csv
 	   fi 
            
            #check if already exists
@@ -79,11 +82,11 @@ for ((m=0; m<${#machines[@]};++m)); do
 		    gridSize=${gridSizes[j]}
                   fi		   
 		  echo gridSize=${gridSize}
-	          input=./results/Results_timing_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSize}_blockSize_8x8x1_sharedMemory_$1.csv
-	          #input=./results/Results_timing_double_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSize}_blockSize_8x8x1_sharedMemory_$1.csv
+	          input=./${RAW_DATA}/Results_timing_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSize}_blockSize_8x8x1_sharedMemory_$1.csv
+	          #input=./${RAW_DATA}/Results_timing_double_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSize}_blockSize_8x8x1_sharedMemory_$1.csv
                 else
-	          input=./results/Results_timing_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_${blockSizes[j]}_sharedMemory_$1.csv
-	          #input=./results/Results_timing_double_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_${blockSizes[j]}_sharedMemory_$1.csv
+	          input=./${RAW_DATA}/Results_timing_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_${blockSizes[j]}_sharedMemory_$1.csv
+	          #input=./${RAW_DATA}/Results_timing_double_${machines[m]}_nTracks_${i}_nStreams_${k}_gridSize_${gridSizes[j]}_blockSize_${blockSizes[j]}_sharedMemory_$1.csv
 		fi	
 
 	   	if [ ! -e ${input} ]; then 
