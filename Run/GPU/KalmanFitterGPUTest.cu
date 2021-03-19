@@ -624,8 +624,6 @@ int main(int argc, char *argv[]) {
     // The fitted parameters will be meaningful only after smoothing
     if (smoothing) {
       writeParamsCsv(fitPars, fitStatus, nTracks, csvFileName);
-      writeParamsRoot(gctx, fitPars, fitStatus, validParticles, nTracks,
-                      rootFileName, "params");
     }
   }
 

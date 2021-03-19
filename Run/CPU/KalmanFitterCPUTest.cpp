@@ -238,11 +238,6 @@ int main(int argc, char *argv[]) {
       std::string csvFileName = "fitted_param_" + machine + "_nTracks_" +
                                 std::to_string(nTracks) + ".csv";
       writeParamsCsv(fittedParams.data(), fitStatus, nTracks, csvFileName);
-      // write fitted params and residual/pull to root file
-      std::string rootFileName = "fitted_param_" + machine + "_nTracks_" +
-                                 std::to_string(nTracks) + ".root";
-      writeParamsRoot(gctx, fittedParams.data(), fitStatus, validParticles,
-                      nTracks, rootFileName, "params");
     }
   }
 
