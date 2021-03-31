@@ -24,10 +24,7 @@ static void show_usage(std::string name) {
             << "Options:\n"
             << "\t-h,--help\t\tShow this help message\n"
             << "\t-t,--tracks \tSpecify the number of tracks\n"
-            //<< "\t-p,--pt \tSpecify the pt of particle\n"
             << "\t-o,--output \tIndicator for writing propagation results\n"
-            //<< "\t-b,--bf-map \tSpecify the path of *.txt for interpolated "
-            //   "BField map\n"
             << "\t-r,--threads \tSpecify the number of threads\n"
             << "\t-m,--smoothing \tIndicator for running smoothing\n"
             << "\t-a,--machine \tThe name of the machine, e.g. V100\n"
@@ -51,8 +48,6 @@ int main(int argc, char *argv[]) {
     } else if (i + 1 < argc) {
       if ((arg == "-t") or (arg == "--tracks")) {
         nTracks = atoi(argv[++i]);
-        //} else if ((arg == "-p") or (arg == "--pt")) {
-        //  p = atof(argv[++i]) * Acts::units::_GeV;
       } else if ((arg == "-o") or (arg == "--output")) {
         output = (atoi(argv[++i]) == 1);
       } else if ((arg == "-r") or (arg == "--threads")) {
@@ -71,7 +66,7 @@ int main(int argc, char *argv[]) {
   if (machine.empty()) {
     std::cout << "ERROR: The name of the CPU being tested must be provided, "
                  "like e.g. "
-                 "Intel_i7-8559U."
+                 "-a Intel_i7-8559U."
               << std::endl;
     return 1;
   }
@@ -103,8 +98,6 @@ int main(int argc, char *argv[]) {
         translations[isur], Acts::Vector3D(1, 0, 0), surfaceMaterial));
   }
   const Acts::Surface *surfacePtrs = surfaces.data();
-  std::cout << "Creating " << surfaces.size() << " boundless plane surfaces"
-            << std::endl;
 
   // check the geometry ID
   for (Size isur = 0; isur < nSurfaces; isur++) {
@@ -112,9 +105,6 @@ int main(int argc, char *argv[]) {
                      .setVolume(0u)
                      .setLayer((uint64_t)(isur))
                      .setSensitive((uint64_t)(isur));
-    // std::cout << isur << " has volume " << geoID.volume() << ", layer "
-    //          << geoID.layer() << ", sensitive " << geoID.sensitive()
-    //          << std::endl;
     surfaces[isur].assignGeoID(geoID);
   }
 
@@ -148,10 +138,9 @@ int main(int argc, char *argv[]) {
   auto end_propagate = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed_seconds =
       end_propagate - start_propagate;
-  std::cout << "Time (ms) to run propagation tests: "
+  std::cout << "INFO: Time (ms) to run simulation: "
             << elapsed_seconds.count() * 1000 << std::endl;
   if (output) {
-    std::cout << "writing propagation results" << std::endl;
     std::string simFileName =
         "sim_hits_for_" + std::to_string(nTracks) + "_particles.obj";
     writeSimHitsObj(simResult, simFileName);
@@ -186,7 +175,6 @@ int main(int argc, char *argv[]) {
 
   int threads = 1;
   auto start_fit = std::chrono::high_resolution_clock::now();
-  std::cout << " Run the fit" << std::endl;
 #pragma omp parallel for num_threads(nThreads)
   for (int it = 0; it < nTracks; it++) {
     // The fit result wrapper
@@ -205,17 +193,18 @@ int main(int argc, char *argv[]) {
     auto status = kFitter.fit(sourcelinkTrack, startPars[it], kfOptions,
                               kfResult, surfacePtrs, nSurfaces);
     if (not status) {
-      std::cout << "fit failure for track " << it << std::endl;
+      std::cout << "WARNING: fit failure for track " << it << std::endl;
     }
     // store the fit parameters and status
     fitStatus[it] = status;
     fittedParams[it] = kfResult.fittedParameters;
     threads = omp_get_num_threads();
   }
-  std::cout << "threads = " << threads << std::endl;
+  std::cout << "INFO: " << threads << " OpenMP threads are used for the fitting"
+            << std::endl;
   auto end_fit = std::chrono::high_resolution_clock::now();
   elapsed_seconds = end_fit - start_fit;
-  std::cout << "Time (ms) to run KalmanFitter for " << nTracks << " : "
+  std::cout << "INFO: Time (ms) to run KalmanFitter for " << nTracks << " : "
             << elapsed_seconds.count() * 1000 << std::endl;
 
   // Log execution time in csv file
@@ -226,7 +215,6 @@ int main(int argc, char *argv[]) {
       elapsed_seconds.count() * 1000);
 
   if (output) {
-    std::cout << "writing fitting results" << std::endl;
     std::string state = smoothing ? "smoothed" : "filtered";
     // write fitted states to obj file
     std::string stateFileName = "fitted_" + state + "_" + machine +

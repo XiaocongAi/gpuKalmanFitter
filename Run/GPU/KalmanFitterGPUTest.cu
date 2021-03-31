@@ -41,7 +41,6 @@ static void show_usage(std::string name) {
             << "\t-r,--threads \tSpecify the number of threads\n"
             << "\t-u,--multiple-devices \tIndicator for running on multiple "
                "GPUs (if available)\n"
-            // << "\t-p,--pt \tSpecify the pt of particle\n"
             << "\t-o,--output \tIndicator for writing propagation results\n"
             << "\t-d,--device \tSpecify the device: 'gpu' or 'cpu'\n"
             << "\t-g,--grid-size \tSpecify GPU grid size: 'x*y'\n"
@@ -88,8 +87,6 @@ int main(int argc, char *argv[]) {
         }
       } else if ((arg == "-r") or (arg == "--threads")) {
         nThreads = atoi(argv[++i]);
-        //} else if ((arg == "-p") or (arg == "--pt")) {
-        //  p = atof(argv[++i]) * Acts::units::_GeV;
       } else if ((arg == "-u") or (arg == "--multiple-devices")) {
         multiGpu = (atoi(argv[++i]) == 1);
         if (multiGpu) {
@@ -127,54 +124,24 @@ int main(int argc, char *argv[]) {
   }
 
   if (grid.z != 1 or block.z != 1) {
-    std::cout << "3D grid or block is not supported at the moment! Good luck!"
-              << std::endl;
+    std::cout
+        << "ERROR: 3D grid or block is not supported at the moment! Good luck!"
+        << std::endl;
     return 1;
   }
-  std::cout << grid.x << " " << grid.y << " " << block.x << " " << block.y
-            << std::endl;
 
-  std::cout << "Devices requested for KF: " << std::endl;
-
+  std::cout << "INFO: Devices requested for KF: " << std::endl;
   cudaDeviceProp prop;
   for (Size devId = 0; devId < nDevices; devId++) {
     GPUERRCHK(cudaSetDevice(devId));
     // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html
     GPUERRCHK(cudaGetDeviceProperties(&prop, devId));
     printf("   Device : %s\n", prop.name);
-    printf("   maxThreadsPerMultiProcessor : %i\n",
-           prop.maxThreadsPerMultiProcessor);
-    printf("   maxGridSize : (%i, %i, %i)\n", prop.maxGridSize[0],
-           prop.maxGridSize[1], prop.maxGridSize[2]);
-    printf("   maxThreadsPerBlock : %i\n", prop.maxThreadsPerBlock);
-    printf("   maxThreadsDim : (%i, %i, %i)\n", prop.maxThreadsDim[0],
-           prop.maxThreadsDim[1], prop.maxThreadsDim[2]);
-    printf("   regsPerMultiprocessor : %i\n", prop.regsPerMultiprocessor);
-    printf("   regsPerBlock : %i\n", prop.regsPerBlock);
     int driverVersion, rtVersion;
     GPUERRCHK(cudaDriverGetVersion(&driverVersion));
     printf("   Cuda driver version: %i\n", driverVersion);
     GPUERRCHK(cudaRuntimeGetVersion(&rtVersion));
     printf("   Cuda rt version: %i\n\n", rtVersion);
-
-    // Print out the warp occupancy
-    int OccupancyInNumBlocks;
-    int blockSize = block.x * block.y;
-    cudaOccupancyMaxActiveBlocksPerMultiprocessor(
-        &OccupancyInNumBlocks, fitKernelThreadPerTrack, blockSize, 0);
-    int activeWarps = OccupancyInNumBlocks * blockSize / prop.warpSize;
-    int maxWarps = prop.maxThreadsPerMultiProcessor / prop.warpSize;
-    std::cout << "  Warp Occupancy with block size " << blockSize << " : "
-              << (double)activeWarps / maxWarps * 100 << "%" << std::endl;
-
-    // Print out the desirable block size
-    int maxOccupancyBlockSize;
-    int minGridSize;
-    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &maxOccupancyBlockSize,
-                                       (void *)fitKernelThreadPerTrack, 0,
-                                       nTracks);
-    std::cout << "   maxOccupancyBlockSize =  " << maxOccupancyBlockSize
-              << ", minGridSize = " << minGridSize << std::endl;
   }
 
   if (machine.empty()) {
@@ -186,7 +153,7 @@ int main(int argc, char *argv[]) {
     } else {
       std::cout << "ERROR: The name of the CPU being tested must be provided, "
                    "like e.g. "
-                   "Intel_i7-8559U."
+                   "-a Intel_i7-8559U."
                 << std::endl;
       return 1;
     }
@@ -196,7 +163,8 @@ int main(int argc, char *argv[]) {
 
   // Use 8*8 block if using one block for one track
   if (useSharedMemory) {
-    std::cout << "Shared memory used. Block size is set to 8*8!" << std::endl;
+    std::cout << "WARNING: Shared memory used. Block size is set to 8*8!"
+              << std::endl;
     block = dim3(8, 8);
     tracksPerBlock = 1;
   }
@@ -212,14 +180,6 @@ int main(int argc, char *argv[]) {
       nSurfaces, nTracks, nStreams, nStreams - 1);
   const Size tracksPerStream = dataBytesPerStream[7];
   const Size tracksLastStream = dataBytesLastStream[7];
-  std::cout << "navigation surfaces Bytes = " << navigationSurfaceBytes
-            << std::endl;
-  for (const auto bytes : dataBytes) {
-    std::cout << "dataBytes = " << bytes << std::endl;
-  }
-
-  std::cout << "tracksPerStream:tracksLastStream = " << tracksPerStream << " : "
-            << tracksLastStream << std::endl;
 
   // @note shall we use this for the grid size?
   const Size blocksPerGrid =
@@ -229,15 +189,6 @@ int main(int argc, char *argv[]) {
               << blocksPerGrid << std::endl;
     grid = blocksPerGrid;
   }
-
-  // The shared memory size
-  //  using PropState = PropagatorType::State<PropOptionsType>;
-  //  int sharedMemoryPerTrack =
-  //      sizeof(Acts::PathLimitReached) + sizeof(PropState) + sizeof(bool) * 2
-  //      + sizeof(Acts::PropagatorResult) + sizeof(Acts::ActsMatrixD<2,
-  //      Acts::eBoundParametersSize>) * 2 + sizeof(Acts::ActsMatrixD<2, 2>) * 2
-  //      + sizeof(Acts::BoundMatrix);
-  //  std::cout << "shared memory is " << sharedMemoryPerTrack << std::endl;
 
   // Create a test context
   Acts::GeometryContext gctx(0);
@@ -262,7 +213,6 @@ int main(int argc, char *argv[]) {
   PlaneSurfaceType *surfaces;
   // Unified memory allocation for geometry
   GPUERRCHK(cudaMallocHost(&surfaces, navigationSurfaceBytes));
-  std::cout << "Allocating the memory for the surfaces" << std::endl;
   for (Size isur = 0; isur < nSurfaces; isur++) {
     surfaces[isur] = PlaneSurfaceType(translations[isur],
                                       Acts::Vector3D(1, 0, 0), surfaceMaterial);
@@ -275,14 +225,8 @@ int main(int argc, char *argv[]) {
     auto geoID =
         Acts::GeometryID().setVolume(0u).setLayer(isur).setSensitive(isur);
     surfaces[isur].assignGeoID(geoID);
-    // printf("surface value = %d, geoID = (%d, %d, %d)\n",
-    //       surfaces[isur].geoID().value(), surfaces[isur].geoID().volume(),
-    //       surfaces[isur].geoID().layer(),
-    //       surfaces[isur].geoID().sensitive());
   }
   const Acts::Surface *surfacePtrs = surfaces;
-  std::cout << "Creating " << nSurfaces << " boundless plane surfaces"
-            << std::endl;
 
   // Pinned memory for data objects
   Acts::PixelSourceLink *sourcelinks;
@@ -325,7 +269,6 @@ int main(int argc, char *argv[]) {
   Stepper stepper;
   PropagatorType propagator(stepper);
   auto start_propagate = std::chrono::high_resolution_clock::now();
-  std::cout << "start to run propagation" << std::endl;
   // Run the simulation to generate sim hits
   // @note We will pick up the valid particles
   std::vector<Simulator::result_type> simResult(nTracks);
@@ -335,10 +278,9 @@ int main(int argc, char *argv[]) {
   auto end_propagate = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed_seconds =
       end_propagate - start_propagate;
-  std::cout << "Time (ms) to run propagation tests: "
+  std::cout << "INFO: Time (ms) to run simulation: "
             << elapsed_seconds.count() * 1000 << std::endl;
   if (output) {
-    std::cout << "writing propagation results" << std::endl;
     std::string simFileName =
         "sim_hits_for_" + std::to_string(nTracks) + "_particles.obj";
     writeSimHitsObj(simResult, simFileName);
@@ -472,7 +414,6 @@ int main(int argc, char *argv[]) {
         GPUERRCHK(cudaMemcpyAsync(&d_fitStatus[offset], &fitStatus[offset],
                                   streamDataBytes[FitData::FitStatus],
                                   cudaMemcpyHostToDevice, stream[i]));
-        //    std::cout << "prepared to launch kernel\n" << std::endl;
         // Use shared memory for one track if requested
         if (useSharedMemory) {
           fitKernelBlockPerTrack<<<grid, block, 0, stream[i]>>>(
@@ -561,7 +502,7 @@ int main(int argc, char *argv[]) {
       auto status = kFitter.fit(sourcelinkTrack, startParsCollection[it],
                                 fitOptions[it], kfResult, surfaces, nSurfaces);
       if (not status) {
-        std::cout << "fit failure for track " << it << std::endl;
+        std::cout << "WARNING: fit failure for track " << it << std::endl;
       }
       // store the fit parameters and status
       fitStatus[it] = status;
@@ -570,7 +511,7 @@ int main(int argc, char *argv[]) {
     }
     auto end_fit = std::chrono::high_resolution_clock::now();
     elapsed_seconds = end_fit - start_fit;
-    std::cout << "Time (ms) to run KalmanFitter for " << nTracks << " : "
+    std::cout << "INFO: Time (ms) to run KalmanFitter for " << nTracks << " : "
               << elapsed_seconds.count() * 1000 << std::endl;
 
     // Log execution time in csv file
@@ -582,7 +523,6 @@ int main(int argc, char *argv[]) {
   }
 
   if (output) {
-    std::cout << "writing KF results" << std::endl;
     std::string stateFileName;
     std::string csvFileName;
     std::string rootFileName;
