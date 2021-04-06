@@ -24,13 +24,13 @@ Currently, it runs the executable from tag [v1.1-noRoot](https://github.com/Xiao
 To check the runtime options for the executable:  
 `singularity run --nv gpukf_cuda.sif --help`
 
-To run the fitting for 10,000 tracks on an Nvidia Tesla V100 GPU, with default parameters:  
+To run the fitting for 10,000 tracks on your available Nvidia GPU, with default parameters:  
 `singularity run --nv gpukf_cuda.sif -d gpu -t 10000`
     
-To run the fitting on the CPU instead of the GPU:  
+To run the fitting for 10,000 tracks on the CPU instead of the GPU:  
 `singularity run --nv gpukf_cuda.sif -d cpu -t 10000 -a Intel_i6-5218`
     
-To run the fitting on multiple GPUs (if available):  
+To run the fitting for 10,000 tracks on multiple GPUs (if available):  
 `singularity run --nv gpukf_cuda.sif -d gpu -t 10000 -u 1`
     
     
