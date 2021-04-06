@@ -1,2 +1,34 @@
 gpuKalmanFitter
 Simplifing and transcribing the KalmanFitter in the ACTS project to make it working on heterogeous computing.
+
+Code dependency
+---------------
+* GCC compiler (min version 7.5.0)
+* Nvidia CUDA (min version 10.2.89)
+* Eigen library 
+* (optional) CERN ROOT 
+
+All the dependecies can be installed through [Spack](https://spack.readthedocs.io/en/latest/) package manager.
+
+Running the code
+----------------
+A [Singularity container](https://cloud.sylabs.io/library/_container/60656f4165dbc33da1911e37) with all the dependecies is made available to download directly from the cloud website or through singularity call: `singularity pull library://hpc-uhh/default/gpukf:sha256.d123cb7c539a85099e7ebbef8b9dc389751f620c0beb5955274be5c60fa9fe5b`. Currently, it runs the executable from tag [v1.1-noRoot](https://github.com/XiaocongAi/gpuKalmanFitter/tags). 
+
+**Invocation examples**
+
+To check the runtime options for the executable:
+    `singularity run --nv gpukf.sif --help`
+
+To run the fitting for 10,000 tracks on an Nvidia Tesla V100 GPU, with default parameters
+    `singularity run --nv gpukf.sif -d gpu -t 10000`
+    
+To run the fitting on the CPU instead of the GPU:
+    `singularity run --nv gpukf.sif -d cpu -t 10000 -a Intel_i6-5218`
+    
+To run the fitting on multiple GPUs (if available):
+    `singularity run --nv gpukf.sif -d gpu -t 10000 -u 1`
+    
+    
+Developing the code
+-------------------
+Install the code dependecies listed below, fork a branch from master and submit a pull request to merge your changes at the end.
