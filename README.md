@@ -12,21 +12,26 @@ All the dependecies can be installed through [Spack](https://spack.readthedocs.i
 
 Running the code
 ----------------
-A [Singularity container](https://cloud.sylabs.io/library/_container/60656f4165dbc33da1911e37) with all the dependecies is made available to download directly from the cloud website or through singularity call: `singularity pull library://hpc-uhh/default/gpukf:sha256.d123cb7c539a85099e7ebbef8b9dc389751f620c0beb5955274be5c60fa9fe5b`. Currently, it runs the executable from tag [v1.1-noRoot](https://github.com/XiaocongAi/gpuKalmanFitter/tags). 
+A singularity container (1.2GB) with all the dependecies is made available to download either
+* directly from the [cloud website](https://cloud.sylabs.io/library/_container/60656f4165dbc33da1911e37), or 
+* through singularity call:  
+`singularity pull library://hpc-uhh/default/gpukf:cuda`.   
+
+Currently, it runs the executable from tag [v1.1-noRoot](https://github.com/XiaocongAi/gpuKalmanFitter/tags). 
 
 **Invocation examples**
 
-To check the runtime options for the executable:
-    `singularity run --nv gpukf.sif --help`
+To check the runtime options for the executable:  
+`singularity run --nv gpukf_cuda.sif --help`
 
-To run the fitting for 10,000 tracks on an Nvidia Tesla V100 GPU, with default parameters
-    `singularity run --nv gpukf.sif -d gpu -t 10000`
+To run the fitting for 10,000 tracks on an Nvidia Tesla V100 GPU, with default parameters:  
+`singularity run --nv gpukf_cuda.sif -d gpu -t 10000`
     
-To run the fitting on the CPU instead of the GPU:
-    `singularity run --nv gpukf.sif -d cpu -t 10000 -a Intel_i6-5218`
+To run the fitting on the CPU instead of the GPU:  
+`singularity run --nv gpukf_cuda.sif -d cpu -t 10000 -a Intel_i6-5218`
     
-To run the fitting on multiple GPUs (if available):
-    `singularity run --nv gpukf.sif -d gpu -t 10000 -u 1`
+To run the fitting on multiple GPUs (if available):  
+`singularity run --nv gpukf_cuda.sif -d gpu -t 10000 -u 1`
     
     
 Developing the code
