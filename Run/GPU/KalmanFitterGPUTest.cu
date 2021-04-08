@@ -503,16 +503,17 @@ int main(int argc, char *argv[]) {
     auto endFitTime = omp_get_wtime();
     sec = endFitTime - startFitTime;
 
-    // Log timing performance measurements
+    // Log timing measurements at different devices
     for (int i = 0; i < nDevices; i++) {
       printf("INFO: Time (ms) for KF track fitting on "
              "device %d : %f\n",
              i, (stats[i].stopDeviceTime - stats[i].startDeviceTime) * 1000);
     }
+    // Log the total timing measurement in ms
     printf("INFO: Total Wall clock time (ms) for KF track fitting: %f\n",
            sec * 1000);
 
-    // Log the execution time in seconds
+    // Persistify the total timing measurement in ms
     Test::Logger::logTime(
         Test::Logger::buildFilename(
             "timing", machine, "nTracks", std::to_string(nTracks), "nStreams",
@@ -549,10 +550,14 @@ int main(int argc, char *argv[]) {
     }
     auto end_fit = std::chrono::high_resolution_clock::now();
     elapsed_seconds = end_fit - start_fit;
-    std::cout << "INFO: Time (ms) to run KF track fitting for " << nTracks
-              << " : " << elapsed_seconds.count() * 1000 << std::endl;
 
-    // Log execution time in csv file
+    // Log the timing measurement in ms
+    std::cout << "INFO: Time (ms) to run KF track fitting for " << nTracks
+              << " with " << threads
+              << " OMP threads: " << elapsed_seconds.count() * 1000
+              << std::endl;
+
+    // Persistify the timing measurement in ms
     Test::Logger::logTime(
         Test::Logger::buildFilename("timing_semi", machine, "nTracks",
                                     std::to_string(nTracks), "OMP_NumThreads",

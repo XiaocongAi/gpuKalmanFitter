@@ -202,14 +202,15 @@ int main(int argc, char *argv[]) {
     fittedParams[it] = kfResult.fittedParameters;
     threads = omp_get_num_threads();
   }
-  std::cout << "INFO: " << threads << " omp threads are used for the fit."
-            << std::endl;
   auto end_fit = std::chrono::high_resolution_clock::now();
   elapsed_seconds = end_fit - start_fit;
-  std::cout << "Time (ms) to run KF track fitting for " << nTracks << " : "
-            << elapsed_seconds.count() * 1000 << std::endl;
 
-  // Log execution time in csv file
+  // Log the timing measurement in ms
+  std::cout << "INFO: Time (ms) to run KF track fitting for " << nTracks
+            << " with " << threads
+            << " OMP threads: " << elapsed_seconds.count() * 1000 << std::endl;
+
+  // Persistify the timing measurement in ms
   Test::Logger::logTime(
       Test::Logger::buildFilename("timing", machine, "nTracks",
                                   std::to_string(nTracks), "OMP_NumThreads",
@@ -219,17 +220,17 @@ int main(int argc, char *argv[]) {
   if (output) {
     std::cout << "INFO: Writing KF track fitting results" << std::endl;
     std::string state = smoothing ? "smoothed" : "filtered";
-    // write fitted states to obj file
+    // Write fitted states to obj file
     std::string stateFileName = "fitted_" + state + "_" + machine +
                                 "_nTracks_" + std::to_string(nTracks) + ".obj";
     writeStatesObj(fittedStates.data(), fitStatus, nTracks, nSurfaces,
                    stateFileName, state);
     if (smoothing) {
-      // write fitted params to cvs file
+      // Write fitted params to cvs file
       std::string csvFileName = "fitted_param_" + machine + "_nTracks_" +
                                 std::to_string(nTracks) + ".csv";
       writeParamsCsv(fittedParams.data(), fitStatus, nTracks, csvFileName);
-      // write fitted params and residual/pull to root file
+      // Write fitted params and residual/pull to root file
       std::string rootFileName = "fitted_param_" + machine + "_nTracks_" +
                                  std::to_string(nTracks) + ".root";
       writeParamsRoot(gctx, fittedParams.data(), fitStatus, validParticles,
