@@ -27,10 +27,10 @@
 
 // This executable is used to run the KalmanFitter fit test on GPU with
 // parallelism on the track-level. It contains mainly two parts: 1) Explicit
-// calling of the propagation to create measurements on tracks ( a 'simulated'
-// track could contain 10~100 measurements) 2) Running the Kalmanfitter using
-// the created measurements in 1) as one of the inputs In princinple, both 1)
-// and 2) could on offloaded to GPU. Right now, only 2) is put into a kernel
+// calling of the propagation to create measurements on tracks 2) Running the
+// Kalmanfitter using the created measurements in 1) as one of the inputs. In
+// princinple, both 1) and 2) could on offloaded to GPU. Right now, only 2) is
+// put into a kernel
 
 static void show_usage(std::string name) {
   std::cerr << "Usage: <option(s)> VALUES"
@@ -41,7 +41,6 @@ static void show_usage(std::string name) {
             << "\t-r,--threads \tSpecify the number of threads\n"
             << "\t-u,--multiple-devices \tIndicator for running on multiple "
                "GPUs (if available)\n"
-            // << "\t-p,--pt \tSpecify the pt of particle\n"
             << "\t-o,--output \tIndicator for writing propagation results\n"
             << "\t-d,--device \tSpecify the device: 'gpu' or 'cpu'\n"
             << "\t-g,--grid-size \tSpecify GPU grid size: 'x*y'\n"
@@ -53,8 +52,7 @@ static void show_usage(std::string name) {
             << std::endl;
 }
 
-void logGPUInfo() {
-}
+void logGPUInfo() {}
 
 int main(int argc, char *argv[]) {
   Size nTracks = 10000;
@@ -70,7 +68,6 @@ int main(int argc, char *argv[]) {
   std::string device = "cpu";
   std::string machine;
   std::string bFieldFileName;
-  // ActsScalar p = 1 * Acts::units::_GeV;
   dim3 grid(20000), block(8, 8);
   // This should always be included
   for (Size i = 1; i < argc; ++i) {
@@ -91,8 +88,6 @@ int main(int argc, char *argv[]) {
         }
       } else if ((arg == "-r") or (arg == "--threads")) {
         nThreads = atoi(argv[++i]);
-        //} else if ((arg == "-p") or (arg == "--pt")) {
-        //  p = atof(argv[++i]) * Acts::units::_GeV;
       } else if ((arg == "-u") or (arg == "--multiple-devices")) {
         multiGpu = (atoi(argv[++i]) == 1);
         if (multiGpu) {
@@ -130,59 +125,61 @@ int main(int argc, char *argv[]) {
   }
 
   if (grid.z != 1 or block.z != 1) {
-    std::cout << "3D grid or block is not supported at the moment! Good luck!"
-              << std::endl;
+    std::cout
+        << "ERROR: 3D grid or block is not supported at the moment! Good luck!"
+        << std::endl;
     return 1;
   }
-  std::cout << grid.x << " " << grid.y << " " << block.x << " " << block.y
-            << std::endl;
+  std::cout << "INFO: grid size = " << grid.x << " x " << grid.y
+            << ", block size =  " << block.x << " x " << block.y << std::endl;
 
-   cudaDeviceProp prop;
-    
-   if (device == "gpu") {
-     for (Size devId = 0; devId < nDevices; devId++) {
-       GPUERRCHK(cudaSetDevice(devId));
-       // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html
-       GPUERRCHK(cudaGetDeviceProperties(&prop, devId));
-       printf("   Device : %s\n", prop.name);
-       printf("   maxThreadsPerMultiProcessor : %i\n",
-           prop.maxThreadsPerMultiProcessor);
-       printf("   maxGridSize : (%i, %i, %i)\n", prop.maxGridSize[0],
-           prop.maxGridSize[1], prop.maxGridSize[2]);
-       printf("   maxThreadsPerBlock : %i\n", prop.maxThreadsPerBlock);
-       printf("   maxThreadsDim : (%i, %i, %i)\n", prop.maxThreadsDim[0],
-           prop.maxThreadsDim[1], prop.maxThreadsDim[2]);
-       printf("   regsPerMultiprocessor : %i\n", prop.regsPerMultiprocessor);
-       printf("   regsPerBlock : %i\n", prop.regsPerBlock);
-       int driverVersion, rtVersion;
-       GPUERRCHK(cudaDriverGetVersion(&driverVersion));
-       printf("   Cuda driver version: %i\n", driverVersion);
-       GPUERRCHK(cudaRuntimeGetVersion(&rtVersion));
-       printf("   Cuda rt version: %i\n\n", rtVersion);
+  cudaDeviceProp prop;
 
-       // Print out the warp occupancy
-       int OccupancyInNumBlocks;
-       int blockSize = block.x * block.y;
-       cudaOccupancyMaxActiveBlocksPerMultiprocessor(
+  if (device == "gpu") {
+    for (Size devId = 0; devId < nDevices; devId++) {
+      GPUERRCHK(cudaSetDevice(devId));
+      // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html
+      GPUERRCHK(cudaGetDeviceProperties(&prop, devId));
+      printf("Device : %s\n", prop.name);
+      printf("maxThreadsPerMultiProcessor : %i\n",
+             prop.maxThreadsPerMultiProcessor);
+      printf("maxGridSize : (%i, %i, %i)\n", prop.maxGridSize[0],
+             prop.maxGridSize[1], prop.maxGridSize[2]);
+      printf("maxThreadsPerBlock : %i\n", prop.maxThreadsPerBlock);
+      printf("maxThreadsDim : (%i, %i, %i)\n", prop.maxThreadsDim[0],
+             prop.maxThreadsDim[1], prop.maxThreadsDim[2]);
+      printf("regsPerMultiprocessor : %i\n", prop.regsPerMultiprocessor);
+      printf("regsPerBlock : %i\n", prop.regsPerBlock);
+      int driverVersion, rtVersion;
+      GPUERRCHK(cudaDriverGetVersion(&driverVersion));
+      printf("Cuda driver version: %i\n", driverVersion);
+      GPUERRCHK(cudaRuntimeGetVersion(&rtVersion));
+      printf("Cuda rt version: %i\n\n", rtVersion);
+
+      // Print out the warp occupancy
+      int OccupancyInNumBlocks;
+      int blockSize = block.x * block.y;
+      cudaOccupancyMaxActiveBlocksPerMultiprocessor(
           &OccupancyInNumBlocks, fitKernelThreadPerTrack, blockSize, 0);
-       int activeWarps = OccupancyInNumBlocks * blockSize / prop.warpSize;
-       int maxWarps = prop.maxThreadsPerMultiProcessor / prop.warpSize;
-       std::cout << "  Warp Occupancy with block size " << blockSize << " : "
-                 << (double)activeWarps / maxWarps * 100 << "%" << std::endl;
+      int activeWarps = OccupancyInNumBlocks * blockSize / prop.warpSize;
+      int maxWarps = prop.maxThreadsPerMultiProcessor / prop.warpSize;
+      std::cout << "INFO: Warp Occupancy with block size " << blockSize << " : "
+                << (double)activeWarps / maxWarps * 100 << "%" << std::endl;
 
-       // Print out the desirable block size
-       int maxOccupancyBlockSize;
-       int minGridSize;
-       cudaOccupancyMaxPotentialBlockSize(&minGridSize, &maxOccupancyBlockSize,
-                                       (void *)fitKernelThreadPerTrack, 0,
-                                       nTracks);
-       std::cout << "   maxOccupancyBlockSize =  " << maxOccupancyBlockSize
-                 << ", minGridSize = " << minGridSize << std::endl;
-      }
+      // Print out the desirable block size
+      int maxOccupancyBlockSize;
+      int minGridSize;
+      cudaOccupancyMaxPotentialBlockSize(&minGridSize, &maxOccupancyBlockSize,
+                                         (void *)fitKernelThreadPerTrack, 0,
+                                         nTracks);
+      std::cout << "INFO: Estimated max occupancy with block size =  "
+                << maxOccupancyBlockSize << ", min grid size = " << minGridSize
+                << std::endl;
+    }
   }
 
   if (machine.empty()) {
-     if (device == "gpu") {
+    if (device == "gpu") {
       machine = prop.name;
       std::replace(machine.begin(), machine.end(), ' ', '_');
       if (multiGpu)
@@ -190,7 +187,7 @@ int main(int argc, char *argv[]) {
     } else {
       std::cout << "ERROR: The name of the CPU being tested must be provided, "
                    "like e.g. "
-                   "Intel_i7-8559U."
+                   "-a Intel_i7-8559U."
                 << std::endl;
       return 1;
     }
@@ -200,7 +197,8 @@ int main(int argc, char *argv[]) {
 
   // Use 8*8 block if using one block for one track
   if (useSharedMemory) {
-    std::cout << "Shared memory used. Block size is set to 8*8!" << std::endl;
+    std::cout << "WARNING: Shared memory used. Block size is set to 8 x 8!"
+              << std::endl;
     block = dim3(8, 8);
     tracksPerBlock = 1;
   }
@@ -216,16 +214,8 @@ int main(int argc, char *argv[]) {
       nSurfaces, nTracks, nStreams, nStreams - 1);
   const Size tracksPerStream = dataBytesPerStream[7];
   const Size tracksLastStream = dataBytesLastStream[7];
-  std::cout << "navigation surfaces Bytes = " << navigationSurfaceBytes
-            << std::endl;
-  for (const auto bytes : dataBytes) {
-    std::cout << "dataBytes = " << bytes << std::endl;
-  }
 
-  std::cout << "tracksPerStream:tracksLastStream = " << tracksPerStream << " : "
-            << tracksLastStream << std::endl;
-
-  // @note shall we use this for the grid size?
+  // The grid size
   const Size blocksPerGrid =
       (tracksPerStream + tracksPerBlock - 1) / tracksPerBlock;
   if (grid.x * grid.y < blocksPerGrid) {
@@ -233,15 +223,6 @@ int main(int argc, char *argv[]) {
               << blocksPerGrid << std::endl;
     grid = blocksPerGrid;
   }
-
-  // The shared memory size
-  //  using PropState = PropagatorType::State<PropOptionsType>;
-  //  int sharedMemoryPerTrack =
-  //      sizeof(Acts::PathLimitReached) + sizeof(PropState) + sizeof(bool) * 2
-  //      + sizeof(Acts::PropagatorResult) + sizeof(Acts::ActsMatrixD<2,
-  //      Acts::eBoundParametersSize>) * 2 + sizeof(Acts::ActsMatrixD<2, 2>) * 2
-  //      + sizeof(Acts::BoundMatrix);
-  //  std::cout << "shared memory is " << sharedMemoryPerTrack << std::endl;
 
   // Create a test context
   Acts::GeometryContext gctx(0);
@@ -264,28 +245,19 @@ int main(int argc, char *argv[]) {
   Acts::HomogeneousSurfaceMaterial surfaceMaterial(matProp);
   // Create plane surfaces without boundaries
   PlaneSurfaceType *surfaces;
-  // Unified memory allocation for geometry
   GPUERRCHK(cudaMallocHost(&surfaces, navigationSurfaceBytes));
-  std::cout << "Allocating the memory for the surfaces" << std::endl;
   for (Size isur = 0; isur < nSurfaces; isur++) {
     surfaces[isur] = PlaneSurfaceType(translations[isur],
                                       Acts::Vector3D(1, 0, 0), surfaceMaterial);
-    if (not surfaces[isur].surfaceMaterial().materialSlab()) {
-      std::cerr << "No surface material" << std::endl;
-    }
   }
   // Assign the geometry ID
   for (Size isur = 0; isur < nSurfaces; isur++) {
     auto geoID =
         Acts::GeometryID().setVolume(0u).setLayer(isur).setSensitive(isur);
     surfaces[isur].assignGeoID(geoID);
-    // printf("surface value = %d, geoID = (%d, %d, %d)\n",
-    //       surfaces[isur].geoID().value(), surfaces[isur].geoID().volume(),
-    //       surfaces[isur].geoID().layer(),
-    //       surfaces[isur].geoID().sensitive());
   }
   const Acts::Surface *surfacePtrs = surfaces;
-  std::cout << "Creating " << nSurfaces << " boundless plane surfaces"
+  std::cout << "INFO: Creating " << nSurfaces << " boundless plane surfaces"
             << std::endl;
 
   // Pinned memory for data objects
@@ -329,7 +301,6 @@ int main(int argc, char *argv[]) {
   Stepper stepper;
   PropagatorType propagator(stepper);
   auto start_propagate = std::chrono::high_resolution_clock::now();
-  std::cout << "start to run propagation" << std::endl;
   // Run the simulation to generate sim hits
   // @note We will pick up the valid particles
   std::vector<Simulator::result_type> simResult(nTracks);
@@ -339,12 +310,13 @@ int main(int argc, char *argv[]) {
   auto end_propagate = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed_seconds =
       end_propagate - start_propagate;
-  std::cout << "Time (ms) to run propagation tests: "
+  std::cout << "INFO: Time (ms) to run simulation: "
             << elapsed_seconds.count() * 1000 << std::endl;
   if (output) {
-    std::cout << "writing propagation results" << std::endl;
     std::string simFileName =
         "sim_hits_for_" + std::to_string(nTracks) + "_particles.obj";
+    std::cout << "INFO: Writing simulation results to " << simFileName
+              << std::endl;
     writeSimHitsObj(simResult, simFileName);
   }
 
@@ -379,27 +351,24 @@ int main(int argc, char *argv[]) {
     fitStatus[it] = false;
   }
 
-  float sec; // elapsed time in seconds 
-
-  // @note: prefetch the surface or not
-  // cudaMemPrefetchAsync(surfaces, navigationSurfaceBytes, devId, stream[0]);
+  float sec; // elapsed time in seconds
 
   // Running directly on host or offloading to GPU
   bool useGPU = (device == "gpu");
   if (useGPU) {
-
-    // Record time  
+    // Record time
     struct stat_t {
-      double startDeviceTime=0.0;
-      double stopDeviceTime=0.0;
+      double startDeviceTime = 0.0;
+      double stopDeviceTime = 0.0;
     } stats[nDevices];
 
     // The same number of streams is available, but used either:
     // a. in parallel on the same device, OR
     // b. one per device, in parallel for all devices;
     cudaStream_t stream[nStreams];
-    Size max = std::max(nDevices, nStreams); 
+    Size max = std::max(nDevices, nStreams);
 
+    // The recorded starting time
     auto startFitTime = omp_get_wtime();
 
 #pragma omp parallel for
@@ -424,7 +393,6 @@ int main(int argc, char *argv[]) {
       TSType *d_fitStates;
       Acts::BoundParameters<Acts::LineSurface> *d_fitPars;
       bool *d_fitStatus;
-
       GPUERRCHK(cudaMalloc(&d_surfaces, navigationSurfaceBytes));
       GPUERRCHK(cudaMalloc(&d_kFitter, sizeof(KalmanFitterType)));
       GPUERRCHK(cudaMalloc(&d_sourcelinks, dataBytes[FitData::SourceLinks]));
@@ -436,7 +404,8 @@ int main(int argc, char *argv[]) {
       GPUERRCHK(cudaMalloc(&d_fitPars, dataBytes[FitData::FitParams]));
       GPUERRCHK(cudaMalloc(&d_fitStatus, dataBytes[FitData::FitStatus]));
 
-      // Copy the KalmanFitter from host to device (shared between all tracks)
+      // Copy the KalmanFitter and surfaces from host to device (shared between
+      // all tracks)
       GPUERRCHK(cudaMemcpy(d_surfaces, surfaces, navigationSurfaceBytes,
                            cudaMemcpyHostToDevice));
       GPUERRCHK(cudaMemcpy(d_kFitter, &kFitter, sizeof(KalmanFitterType),
@@ -455,8 +424,7 @@ int main(int argc, char *argv[]) {
         const auto streamDataBytes =
             (i < nStreams - 1) ? dataBytesPerStream : dataBytesLastStream;
 
-        // Copy the sourcelinsk, starting parameters and fitted tracks from host
-        // to device
+        // Copy the objects  from host to device
         GPUERRCHK(cudaMemcpyAsync(&d_sourcelinks[offset * nSurfaces],
                                   &sourcelinks[offset * nSurfaces],
                                   streamDataBytes[FitData::SourceLinks],
@@ -481,7 +449,6 @@ int main(int argc, char *argv[]) {
         GPUERRCHK(cudaMemcpyAsync(&d_fitStatus[offset], &fitStatus[offset],
                                   streamDataBytes[FitData::FitStatus],
                                   cudaMemcpyHostToDevice, stream[i]));
-        //    std::cout << "prepared to launch kernel\n" << std::endl;
         // Use shared memory for one track if requested
         if (useSharedMemory) {
           fitKernelBlockPerTrack<<<grid, block, 0, stream[i]>>>(
@@ -495,18 +462,18 @@ int main(int argc, char *argv[]) {
               nSurfaces, streamTracks, offset);
         }
 
-        // copy the fitted states to host
+        // Copy the fitted states to host
         GPUERRCHK(cudaMemcpyAsync(&fitStates[offset * nSurfaces],
                                   &d_fitStates[offset * nSurfaces],
                                   streamDataBytes[FitData::FitStates],
                                   cudaMemcpyDeviceToHost, stream[i]));
         if (smoothing) {
-          // copy the fitted params to host
+          // Copy the fitted params to host
           GPUERRCHK(cudaMemcpyAsync(&fitPars[offset], &d_fitPars[offset],
                                     streamDataBytes[FitData::FitParams],
                                     cudaMemcpyDeviceToHost, stream[i]));
         }
-        // copy the fit status to host
+        // Copy the fit status to host
         GPUERRCHK(cudaMemcpyAsync(&fitStatus[offset], &d_fitStatus[offset],
                                   streamDataBytes[FitData::FitStatus],
                                   cudaMemcpyDeviceToHost, stream[i]));
@@ -525,6 +492,7 @@ int main(int argc, char *argv[]) {
       GPUERRCHK(cudaFree(d_kFitter));
       GPUERRCHK(cudaFree(d_surfaces));
 
+      // Destroy the streams
       for (Size i = streamStartIdx; i < streamEndIdx; i++) {
         GPUERRCHK(cudaStreamDestroy(stream[i]));
       }
@@ -535,16 +503,16 @@ int main(int argc, char *argv[]) {
     auto endFitTime = omp_get_wtime();
     sec = endFitTime - startFitTime;
 
-    // Log performance measurements 
+    // Log timing performance measurements
     for (int i = 0; i < nDevices; i++) {
-    	printf("Time (ms) for KF memory transfer and execution on "
+      printf("INFO: Time (ms) for KF track fitting on "
              "device %d : %f\n",
              i, (stats[i].stopDeviceTime - stats[i].startDeviceTime) * 1000);
     }
-    printf("Total Wall clock time (ms) for KF: %f\n", sec * 1000);
+    printf("INFO: Total Wall clock time (ms) for KF track fitting: %f\n",
+           sec * 1000);
 
-    // Log the execution time in seconds (not including the managed memory
-    // allocation time for the surfaces)
+    // Log the execution time in seconds
     Test::Logger::logTime(
         Test::Logger::buildFilename(
             "timing", machine, "nTracks", std::to_string(nTracks), "nStreams",
@@ -554,7 +522,7 @@ int main(int argc, char *argv[]) {
         sec * 1000);
 
   } else {
-    /// Test without GPU offloading
+    /// Test on CPU
     int threads = 1;
     auto start_fit = std::chrono::high_resolution_clock::now();
 #pragma omp parallel for num_threads(nThreads)
@@ -563,7 +531,6 @@ int main(int argc, char *argv[]) {
       KalmanFitterResultType kfResult;
       kfResult.fittedStates = Acts::CudaKernelContainer<TSType>(
           &fitStates[it * nSurfaces], nSurfaces);
-      // @note when it >=35, we got different startPars[i] between CPU and GPU
       // The input source links wrapper
       auto sourcelinkTrack = Acts::CudaKernelContainer<Acts::PixelSourceLink>(
           sourcelinks + it * nSurfaces, nSurfaces);
@@ -571,18 +538,19 @@ int main(int argc, char *argv[]) {
       // Run the fit. The fitStates will be changed here
       auto status = kFitter.fit(sourcelinkTrack, startParsCollection[it],
                                 fitOptions[it], kfResult, surfaces, nSurfaces);
-      if (not status) {
-        std::cout << "fit failure for track " << it << std::endl;
-      }
-      // store the fit parameters and status
+      // if (not status) {
+      //  std::cout << "WARNING: fit failure for track " << it << std::endl;
+      //}
+
+      // Store the fit parameters and status
       fitStatus[it] = status;
       fitPars[it] = kfResult.fittedParameters;
       threads = omp_get_num_threads();
     }
     auto end_fit = std::chrono::high_resolution_clock::now();
     elapsed_seconds = end_fit - start_fit;
-    std::cout << "Time (ms) to run KalmanFitter for " << nTracks << " : "
-              << elapsed_seconds.count() * 1000 << std::endl;
+    std::cout << "INFO: Time (ms) to run KF track fitting for " << nTracks
+              << " : " << elapsed_seconds.count() * 1000 << std::endl;
 
     // Log execution time in csv file
     Test::Logger::logTime(
@@ -593,7 +561,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (output) {
-    std::cout << "writing KF results" << std::endl;
+    std::cout << "INFO: Writing KF track fitting results" << std::endl;
     std::string stateFileName;
     std::string csvFileName;
     std::string rootFileName;
@@ -632,7 +600,7 @@ int main(int argc, char *argv[]) {
     rootFileName.append(std::to_string(nTracks)).append(".root");
     writeStatesObj(fitStates, fitStatus, nTracks, nSurfaces, stateFileName,
                    state);
-    // The fitted parameters will be meaningful only after smoothing
+    // The fitted parameters are only available after smoothing
     if (smoothing) {
       writeParamsCsv(fitPars, fitStatus, nTracks, csvFileName);
       writeParamsRoot(gctx, fitPars, fitStatus, validParticles, nTracks,
@@ -643,7 +611,7 @@ int main(int argc, char *argv[]) {
   std::cout << "------------------------  ending  -----------------------"
             << std::endl;
 
-  // Free the managed/pinned memory
+  // Free the pinned memory
   GPUERRCHK(cudaFreeHost(surfaces));
   GPUERRCHK(cudaFreeHost(sourcelinks));
   GPUERRCHK(cudaFreeHost(boundStates));
