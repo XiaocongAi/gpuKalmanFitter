@@ -53,6 +53,9 @@ static void show_usage(std::string name) {
             << std::endl;
 }
 
+void logGPUInfo() {
+}
+
 int main(int argc, char *argv[]) {
   Size nTracks = 10000;
   Size nStreams = 1;
@@ -133,52 +136,51 @@ int main(int argc, char *argv[]) {
   }
   std::cout << grid.x << " " << grid.y << " " << block.x << " " << block.y
             << std::endl;
-
-  std::cout << "Devices requested for KF: " << std::endl;
-
-  cudaDeviceProp prop;
-  for (Size devId = 0; devId < nDevices; devId++) {
-    GPUERRCHK(cudaSetDevice(devId));
-    // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html
-    GPUERRCHK(cudaGetDeviceProperties(&prop, devId));
-    printf("   Device : %s\n", prop.name);
-    printf("   maxThreadsPerMultiProcessor : %i\n",
-           prop.maxThreadsPerMultiProcessor);
-    printf("   maxGridSize : (%i, %i, %i)\n", prop.maxGridSize[0],
-           prop.maxGridSize[1], prop.maxGridSize[2]);
-    printf("   maxThreadsPerBlock : %i\n", prop.maxThreadsPerBlock);
-    printf("   maxThreadsDim : (%i, %i, %i)\n", prop.maxThreadsDim[0],
-           prop.maxThreadsDim[1], prop.maxThreadsDim[2]);
-    printf("   regsPerMultiprocessor : %i\n", prop.regsPerMultiprocessor);
-    printf("   regsPerBlock : %i\n", prop.regsPerBlock);
-    int driverVersion, rtVersion;
-    GPUERRCHK(cudaDriverGetVersion(&driverVersion));
-    printf("   Cuda driver version: %i\n", driverVersion);
-    GPUERRCHK(cudaRuntimeGetVersion(&rtVersion));
-    printf("   Cuda rt version: %i\n\n", rtVersion);
-
-    // Print out the warp occupancy
-    int OccupancyInNumBlocks;
-    int blockSize = block.x * block.y;
-    cudaOccupancyMaxActiveBlocksPerMultiprocessor(
-        &OccupancyInNumBlocks, fitKernelThreadPerTrack, blockSize, 0);
-    int activeWarps = OccupancyInNumBlocks * blockSize / prop.warpSize;
-    int maxWarps = prop.maxThreadsPerMultiProcessor / prop.warpSize;
-    std::cout << "  Warp Occupancy with block size " << blockSize << " : "
-              << (double)activeWarps / maxWarps * 100 << "%" << std::endl;
-
-    // Print out the desirable block size
-    int maxOccupancyBlockSize;
-    int minGridSize;
-    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &maxOccupancyBlockSize,
-                                       (void *)fitKernelThreadPerTrack, 0,
-                                       nTracks);
-    std::cout << "   maxOccupancyBlockSize =  " << maxOccupancyBlockSize
-              << ", minGridSize = " << minGridSize << std::endl;
-  }
-
+    
   if (machine.empty()) {
     if (device == "gpu") {
+
+     cudaDeviceProp prop;
+     for (Size devId = 0; devId < nDevices; devId++) {
+       GPUERRCHK(cudaSetDevice(devId));
+       // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html
+       GPUERRCHK(cudaGetDeviceProperties(&prop, devId));
+       printf("   Device : %s\n", prop.name);
+       printf("   maxThreadsPerMultiProcessor : %i\n",
+           prop.maxThreadsPerMultiProcessor);
+       printf("   maxGridSize : (%i, %i, %i)\n", prop.maxGridSize[0],
+           prop.maxGridSize[1], prop.maxGridSize[2]);
+       printf("   maxThreadsPerBlock : %i\n", prop.maxThreadsPerBlock);
+       printf("   maxThreadsDim : (%i, %i, %i)\n", prop.maxThreadsDim[0],
+           prop.maxThreadsDim[1], prop.maxThreadsDim[2]);
+       printf("   regsPerMultiprocessor : %i\n", prop.regsPerMultiprocessor);
+       printf("   regsPerBlock : %i\n", prop.regsPerBlock);
+       int driverVersion, rtVersion;
+       GPUERRCHK(cudaDriverGetVersion(&driverVersion));
+       printf("   Cuda driver version: %i\n", driverVersion);
+       GPUERRCHK(cudaRuntimeGetVersion(&rtVersion));
+       printf("   Cuda rt version: %i\n\n", rtVersion);
+
+       // Print out the warp occupancy
+       int OccupancyInNumBlocks;
+       int blockSize = block.x * block.y;
+       cudaOccupancyMaxActiveBlocksPerMultiprocessor(
+          &OccupancyInNumBlocks, fitKernelThreadPerTrack, blockSize, 0);
+       int activeWarps = OccupancyInNumBlocks * blockSize / prop.warpSize;
+       int maxWarps = prop.maxThreadsPerMultiProcessor / prop.warpSize;
+       std::cout << "  Warp Occupancy with block size " << blockSize << " : "
+                 << (double)activeWarps / maxWarps * 100 << "%" << std::endl;
+
+       // Print out the desirable block size
+       int maxOccupancyBlockSize;
+       int minGridSize;
+       cudaOccupancyMaxPotentialBlockSize(&minGridSize, &maxOccupancyBlockSize,
+                                       (void *)fitKernelThreadPerTrack, 0,
+                                       nTracks);
+       std::cout << "   maxOccupancyBlockSize =  " << maxOccupancyBlockSize
+                 << ", minGridSize = " << minGridSize << std::endl;
+      }
+
       machine = prop.name;
       std::replace(machine.begin(), machine.end(), ' ', '_');
       if (multiGpu)
@@ -384,7 +386,11 @@ int main(int argc, char *argv[]) {
   bool useGPU = (device == "gpu");
   if (useGPU) {
 
-    auto startFitTime = omp_get_wtime();
+    // Record time  
+    struct stat_t {
+      double startDeviceTime=0.0;
+      double stopDeviceTime=0.0;
+    } stats[nDevices];
 
     // The same number of streams is available, but used either:
     // a. in parallel on the same device, OR
@@ -392,11 +398,7 @@ int main(int argc, char *argv[]) {
     cudaStream_t stream[nStreams];
     Size max = std::max(nDevices, nStreams); 
 
-    // record time  
-    struct stat_t {
-      double startDeviceTime=0.0;
-      double stopDeviceTime=0.0;
-    } stats[nDevices];
+    auto startFitTime = omp_get_wtime();
 
 #pragma omp parallel for
     for (Size i = 0; i < max; ++i) {
