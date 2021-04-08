@@ -1,5 +1,7 @@
-gpuKalmanFitter
-Simplifing and transcribing the KalmanFitter in the ACTS project to make it working on heterogeous computing.
+# gpuKalmanFitter
+
+A R&D repository based on *A Common Tracking Software* [repository](https://github.com/acts-project/acts). 
+It simplifies and transcribes the KalmanFitter in the ACTS repository to make it working on heterogeous computing.
 
 Code dependency
 ---------------
