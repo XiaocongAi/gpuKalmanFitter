@@ -375,7 +375,7 @@ int main(int argc, char *argv[]) {
     fitStatus[it] = false;
   }
 
-  float sec; // elapsed time in seconds
+  float sec; // elapsed time in seconds 
 
   // @note: prefetch the surface or not
   // cudaMemPrefetchAsync(surfaces, navigationSurfaceBytes, devId, stream[0]);
@@ -390,7 +390,13 @@ int main(int argc, char *argv[]) {
     // a. in parallel on the same device, OR
     // b. one per device, in parallel for all devices;
     cudaStream_t stream[nStreams];
-    Size max = std::max(nDevices, nStreams);
+    Size max = std::max(nDevices, nStreams); 
+
+    // record time  
+    struct stat_t {
+      double startDeviceTime=0.0;
+      double stopDeviceTime=0.0;
+    } stats[nDevices];
 
 #pragma omp parallel for
     for (Size i = 0; i < max; ++i) {
@@ -398,10 +404,9 @@ int main(int argc, char *argv[]) {
       GPUERRCHK(cudaStreamCreate(&stream[i]));
     }
 
-#pragma omp parallel for num_threads(max) proc_bind(master)
+#pragma omp parallel for num_threads(nDevices) proc_bind(master)
     for (Size devId = 0; devId < nDevices; ++devId) {
-      auto startDeviceTime = omp_get_wtime();
-
+      stats[devId].startDeviceTime = omp_get_wtime();
       // Set the corresponding device
       GPUERRCHK(cudaSetDevice(devId));
 
@@ -520,16 +525,18 @@ int main(int argc, char *argv[]) {
         GPUERRCHK(cudaStreamDestroy(stream[i]));
       }
 
-      auto stopDeviceTime = omp_get_wtime();
-
-      printf("Thread %d: Time (ms) for KF memory transfer and execution on "
-             "device %d : %f\n",
-             omp_get_thread_num(), devId,
-             (stopDeviceTime - startDeviceTime) * 1000);
+      stats[devId].stopDeviceTime = omp_get_wtime();
     }
 
     auto endFitTime = omp_get_wtime();
     sec = endFitTime - startFitTime;
+
+    // Log performance measurements 
+    for (int i = 0; i < nDevices; i++) {
+    	printf("Time (ms) for KF memory transfer and execution on "
+             "device %d : %f\n",
+             i, (stats[i].stopDeviceTime - stats[i].startDeviceTime) * 1000);
+    }
     printf("Total Wall clock time (ms) for KF: %f\n", sec * 1000);
 
     // Log the execution time in seconds (not including the managed memory
