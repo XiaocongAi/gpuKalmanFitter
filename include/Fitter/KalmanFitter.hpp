@@ -225,7 +225,7 @@ private:
       if (surface != nullptr and !result.smoothed and !result.finished) {
         auto res = filter(surface, state, stepper, result);
         if (!res) {
-          printf("Error in filter:\n");
+          // printf("Error in filter:\n");
           result.result = false;
         }
       }
@@ -245,7 +245,7 @@ private:
           // printf("Finalize/run smoothing\n");
           auto res = finalize(state, stepper, result);
           if (!res) {
-            printf("Error in finalize:\n");
+            // printf("Error in finalize:\n");
             result.result = false;
           }
         }
@@ -470,7 +470,7 @@ private:
       if (surface != nullptr and !result.smoothed and !result.finished) {
         auto res = filterOnDevice(surface, state, stepper, result);
         if (!res) {
-          printf("Error in filter:\n");
+          // printf("Error in filter:\n");
           result.result = false;
         }
       }
@@ -491,7 +491,7 @@ private:
             // printf("Finalize/run smoothing\n");
             auto res = finalize(state, stepper, result);
             if (!res) {
-              printf("Error in finalize:\n");
+              // printf("Error in finalize:\n");
               result.result = false;
             }
           }
@@ -588,7 +588,7 @@ private:
                                            surface);
 
       if (not updateRes) {
-        printf("Update step failed:\n");
+        // printf("Update step failed:\n");
         return false;
       }
 
@@ -759,7 +759,7 @@ public:
 
     if (!kfResult.result or (kfResult.result and kfResult.measurementStates !=
                                                      surfaceSequenceSize)) {
-      printf("KalmanFilter failed: \n");
+      // printf("KalmanFilter failed: \n");
       return false;
     }
 
