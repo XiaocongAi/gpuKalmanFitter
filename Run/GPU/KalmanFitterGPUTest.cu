@@ -136,11 +136,10 @@ int main(int argc, char *argv[]) {
   }
   std::cout << grid.x << " " << grid.y << " " << block.x << " " << block.y
             << std::endl;
-    
-  if (machine.empty()) {
-    if (device == "gpu") {
 
-     cudaDeviceProp prop;
+   cudaDeviceProp prop;
+    
+   if (device == "gpu") {
      for (Size devId = 0; devId < nDevices; devId++) {
        GPUERRCHK(cudaSetDevice(devId));
        // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html
@@ -180,7 +179,10 @@ int main(int argc, char *argv[]) {
        std::cout << "   maxOccupancyBlockSize =  " << maxOccupancyBlockSize
                  << ", minGridSize = " << minGridSize << std::endl;
       }
+  }
 
+  if (machine.empty()) {
+     if (device == "gpu") {
       machine = prop.name;
       std::replace(machine.begin(), machine.end(), ' ', '_');
       if (multiGpu)
