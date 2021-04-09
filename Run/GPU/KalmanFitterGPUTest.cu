@@ -125,14 +125,12 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  if (grid.z != 1 or block.z != 1) {
+  if (device == "gpu" and (grid.z != 1 or block.z != 1)) {
     std::cout
         << "ERROR: 3D grid or block is not supported at the moment! Good luck!"
         << std::endl;
     return 1;
   }
-  std::cout << "INFO: grid size = " << grid.x << " x " << grid.y
-            << ", block size =  " << block.x << " x " << block.y << std::endl;
 
   bool doublePrecision = std::is_same<ActsScalar, double>::value;
   std::cout << "INFO: " << (doublePrecision ? "double" : "float")
@@ -145,7 +143,7 @@ int main(int argc, char *argv[]) {
       GPUERRCHK(cudaSetDevice(devId));
       // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html
       GPUERRCHK(cudaGetDeviceProperties(&prop, devId));
-      printf("Device : %s\n", prop.name);
+      printf("\nDevice : %s\n", prop.name);
       printf("maxThreadsPerMultiProcessor : %i\n",
              prop.maxThreadsPerMultiProcessor);
       printf("maxGridSize : (%i, %i, %i)\n", prop.maxGridSize[0],
@@ -228,6 +226,11 @@ int main(int argc, char *argv[]) {
     std::cout << "WARNING: Grid size too small. It's set to the minimum size: "
               << blocksPerGrid << std::endl;
     grid = blocksPerGrid;
+  }
+
+  if (device == "gpu") {
+    std::cout << "INFO: grid size = " << grid.x << " x " << grid.y
+              << ", block size =  " << block.x << " x " << block.y << std::endl;
   }
 
   // Create a test context
