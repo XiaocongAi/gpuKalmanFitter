@@ -23,6 +23,7 @@
 #include <iostream>
 #include <random>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 // This executable is used to run the KalmanFitter fit test on GPU with
@@ -132,6 +133,10 @@ int main(int argc, char *argv[]) {
   }
   std::cout << "INFO: grid size = " << grid.x << " x " << grid.y
             << ", block size =  " << block.x << " x " << block.y << std::endl;
+
+  bool doublePrecision = std::is_same<ActsScalar, double>::value;
+  std::cout << "INFO: " << (doublePrecision ? "double" : "float")
+            << " precision operand used." << std::endl;
 
   cudaDeviceProp prop;
 
@@ -518,9 +523,10 @@ int main(int argc, char *argv[]) {
            sec * 1000);
 
     // Persistify the total timing measurement in ms
+    std::string precision = doublePrecision ? "timing_double" : "timing";
     Test::Logger::logTime(
         Test::Logger::buildFilename(
-            "timing", machine, "nTracks", std::to_string(nTracks), "nStreams",
+            precision, machine, "nTracks", std::to_string(nTracks), "nStreams",
             std::to_string(nStreams), "gridSize", dim3ToString(grid),
             "blockSize", dim3ToString(block), "sharedMemory",
             std::to_string(static_cast<Size>(useSharedMemory))),
@@ -562,8 +568,10 @@ int main(int argc, char *argv[]) {
               << std::endl;
 
     // Persistify the timing measurement in ms
+    std::string precision =
+        doublePrecision ? "timing_double_semi" : "timing_semi";
     Test::Logger::logTime(
-        Test::Logger::buildFilename("timing_semi", machine, "nTracks",
+        Test::Logger::buildFilename(precision, machine, "nTracks",
                                     std::to_string(nTracks), "OMP_NumThreads",
                                     std::to_string(threads)),
         elapsed_seconds.count() * 1000);

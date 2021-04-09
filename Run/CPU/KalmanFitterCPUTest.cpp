@@ -71,6 +71,10 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  bool doublePrecision = std::is_same<ActsScalar, double>::value;
+  std::cout << "INFO: " << (doublePrecision ? "double" : "float")
+            << " precision operand used." << std::endl;
+
   // Create a random number service
   ActsExamples::RandomNumbers::Config config;
   auto randomNumbers = std::make_shared<ActsExamples::RandomNumbers>(config);
@@ -212,8 +216,9 @@ int main(int argc, char *argv[]) {
             << " OMP threads: " << elapsed_seconds.count() * 1000 << std::endl;
 
   // Persistify the timing measurement in ms
+  std::string precision = doublePrecision ? "timing_double" : "timing";
   Test::Logger::logTime(
-      Test::Logger::buildFilename("timing", machine, "nTracks",
+      Test::Logger::buildFilename(precision, machine, "nTracks",
                                   std::to_string(nTracks), "OMP_NumThreads",
                                   std::to_string(threads)),
       elapsed_seconds.count() * 1000);
