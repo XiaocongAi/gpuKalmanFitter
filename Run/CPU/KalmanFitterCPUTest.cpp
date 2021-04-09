@@ -140,6 +140,7 @@ int main(int argc, char *argv[]) {
   auto end_propagate = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed_seconds =
       end_propagate - start_propagate;
+  std::cout << std::endl;
   std::cout << "INFO: Time (ms) to run simulation: "
             << elapsed_seconds.count() * 1000 << std::endl;
   if (output) {

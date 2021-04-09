@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
   std::string device = "cpu";
   std::string machine;
   std::string bFieldFileName;
-  dim3 grid(20000), block(8, 8);
+  dim3 grid(100000), block(8, 8);
   // This should always be included
   for (Size i = 1; i < argc; ++i) {
     std::string arg = argv[i];
@@ -154,7 +154,7 @@ int main(int argc, char *argv[]) {
       GPUERRCHK(cudaDriverGetVersion(&driverVersion));
       printf("Cuda driver version: %i\n", driverVersion);
       GPUERRCHK(cudaRuntimeGetVersion(&rtVersion));
-      printf("Cuda rt version: %i\n\n", rtVersion);
+      printf("Cuda rt version: %i\n", rtVersion);
 
       // Print out the warp occupancy
       int OccupancyInNumBlocks;
@@ -175,6 +175,7 @@ int main(int argc, char *argv[]) {
       std::cout << "INFO: Estimated max occupancy with block size =  "
                 << maxOccupancyBlockSize << ", min grid size = " << minGridSize
                 << std::endl;
+      std::cout << std::endl;
     }
   }
 
@@ -310,6 +311,7 @@ int main(int argc, char *argv[]) {
   auto end_propagate = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed_seconds =
       end_propagate - start_propagate;
+  std::cout << std::endl;
   std::cout << "INFO: Time (ms) to run simulation: "
             << elapsed_seconds.count() * 1000 << std::endl;
   if (output) {
@@ -377,7 +379,7 @@ int main(int argc, char *argv[]) {
     }
 
 #if multiGpu
-  #pragma omp parallel for num_threads(nDevices) proc_bind(master)
+#pragma omp parallel for num_threads(nDevices) proc_bind(master)
 #endif
 
     for (Size devId = 0; devId < nDevices; ++devId) {
