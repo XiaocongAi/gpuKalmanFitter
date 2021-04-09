@@ -25,13 +25,10 @@ blockSizes=('8x8' '8x8')
 #blockSizes=('1024x1x1' '32x32x1' '1024x1x1' '32x32x1')
 ############################################################
 
-#10 measurements per point
-nTestsPerMeasurement=10
-
 for i in ${nTracks[@]}; do
 	for ((j=0; j<${#gridSizes[@]};++j)); do
             for k in ${nStreams[@]}; do
-		for cnt in {1..${nTestsPerMeasurement}}; do
+		for cnt in {1..10}; do
 			echo "Run $cnt for ${i} tracks with gridSize=${gridSizes[j]} and blockSize=${blockSizes[j]} and ${k} streams:"
                         
 			echo " 1 track per thread: $1 -t ${i} -e ${k} -d "gpu" -o 0 -g ${gridSizes[j]} -b ${blockSizes[j]}"

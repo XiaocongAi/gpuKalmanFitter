@@ -17,12 +17,9 @@ nThreads=(1 60)
 #nThreads=(1 250)
 
 
-#10 measurements per point
-nTestsPerMeasurement=10
-
 for i in ${nTracks[@]}; do
        for j in ${nThreads[@]}; do
-		for cnt in {1..${nTestsPerMeasurement}}; do
+		for cnt in {1..10}; do
                 	echo "Run $cnt for ${i} tracks"
                 	$1 -t ${i} -o 0 -a $2 -r ${j} 
                 	sleep 1;
