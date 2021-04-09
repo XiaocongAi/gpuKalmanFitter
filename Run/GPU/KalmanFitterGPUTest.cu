@@ -371,13 +371,15 @@ int main(int argc, char *argv[]) {
     // The recorded starting time
     auto startFitTime = omp_get_wtime();
 
-#pragma omp parallel for
     for (Size i = 0; i < max; ++i) {
       GPUERRCHK(cudaSetDevice(multiGpu ? i : 0));
       GPUERRCHK(cudaStreamCreate(&stream[i]));
     }
 
-#pragma omp parallel for num_threads(nDevices) proc_bind(master)
+#if multiGpu
+  #pragma omp parallel for num_threads(nDevices) proc_bind(master)
+#endif
+
     for (Size devId = 0; devId < nDevices; ++devId) {
       stats[devId].startDeviceTime = omp_get_wtime();
       // Set the corresponding device
