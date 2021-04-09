@@ -13,7 +13,7 @@ if [ ! -d ${RAW_DATA} ]; then
   echo "Directory '${RAW_DATA}' DOES NOT exists."
   exit 1
 fi
-if [ ! -d ${TIMING}]; then
+if [ ! -d ${TIMING} ]; then
    echo "Directory '${TIMING}' DOES NOT exists. Creating it." 
    mkdir ${TIMING}   
 fi
@@ -34,7 +34,6 @@ blockSizes=('8x8x1' '8x8x1')
 #nTracks=(10000)
 #gridSizes=('100000x1x1' '100000x1x1' '100000x1x1' '100000x1x1' '100000x1x1' '100000x1x1' '5120x1x1' '5120x1x1' '5120x1x1' '5120x1x1' '5120x1x1' '5120x1x1')
 #blockSizes=('8x8x1' '16x16x1' '32x32x1' '64x1x1' '256x1x1' '1024x1x1' '8x8x1' '16x16x1' '32x32x1' '64x1x1' '256x1x1' '1024x1x1')
-################################
 
 ##### Tesla_P100-PCIE-16GB #####
 ### griSizes and blockSizes list for other blockSizes configurations ###
@@ -53,6 +52,7 @@ getSigma(){
 awk '{delta = $1 - avg; avg += delta / NR; mean2 += delta * ($1 - avg); } END { print sqrt(mean2 / NR); }' $1
 }
 
+nTestsPerMeasurement=10
 
 for ((m=0; m<${#machines[@]};++m)); do
     for ((j=0; j<${#gridSizes[@]};++j)); do
@@ -96,7 +96,7 @@ for ((m=0; m<${#machines[@]};++m)); do
                   #check the lines of the input results
                   nTests=`wc -l < ${input}`
 		  echo nTest = ${nTests}
-                  if [ ${nTests} -ne 5 ]; then
+                  if [ ${nTests} -ne ${nTestsPerMeasurement} ]; then
                      echo WAENING: There are ${nTests} test results in ${input}. Are you sure about this?
                   fi
                 

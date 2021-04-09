@@ -15,12 +15,12 @@ fi
 
 precision=float
 
-#=======The Haswell test===================
-machines=("Haswell_EigenInverter" "Haswell_customInverter")
+#=======The Cori Haswell test===================
+machines=("Haswell_EigenInverter" "Haswell_CustomInverter")
 machineso=("Haswell_EigenInverter" "Haswell_CustomInverter")
 threads=(1 60)
 
-#=========The KNL test====================
+#=========The Cori KNL test====================
 #machines=("Knl_EigenInverter" "Knl_customInverter")
 #machineso=("KNL_EigenInverter" "KNL_CustomInverter")
 #threads=(1 250)
@@ -36,6 +36,7 @@ getSigma(){
 awk '{delta = $1 - avg; avg += delta / NR; mean2 += delta * ($1 - avg); } END { print sqrt(mean2 / NR); }' $1
 }
 
+nTestsPerMeasurement=10
 
 for ((m=0; m<${#machines[@]};++m)); do
     for ((j=0; j<${#threads[@]};++j)); do
@@ -57,7 +58,7 @@ for ((m=0; m<${#machines[@]};++m)); do
 	        else
 	          nTests=`wc -l < ${input}`	  
 	          echo nTests = ${nTests}
-                  if [ ${nTests} -ne 5 ]; then
+                  if [ ${nTests} -ne ${nTestsPerMeasurement} ]; then
                      echo WAENING: There are ${nTests} test results in ${input}. Are you sure about this?
                   fi
 	
