@@ -13,8 +13,6 @@
 #include ACTS_CORE_MAGFIELDCONTEXT_PLUGIN
 #else
 
-#include <any>
-
 namespace Acts {
 
 /// @brief This is the central definition of the Acts
