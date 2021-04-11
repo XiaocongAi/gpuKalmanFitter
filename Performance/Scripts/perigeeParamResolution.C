@@ -17,14 +17,15 @@ void
 perigeeParamResolution(const std::string& inFile,
           const std::string& treeName)
 {
-  gStyle->SetOptFit(0011);
+  gStyle->SetOptFit(0000);
   gStyle->SetOptStat(0000);
   gStyle->SetPadLeftMargin(0.20);
   gStyle->SetPadRightMargin(0.05);
-  gStyle->SetPadTopMargin(0.1);
-  gStyle->SetPadBottomMargin(0.15);
+  gStyle->SetPadTopMargin(0.05);
+  gStyle->SetPadBottomMargin(0.12);
  
   TF1 *gaussFit = new TF1("gaussFit", "gaus", -5, 5);
+  gaussFit->SetLineColor(4); 
   
   // Open root file written by RootTrajectoryWriter
   std::cout << "Opening file: " << inFile << std::endl;
@@ -42,9 +43,9 @@ perigeeParamResolution(const std::string& inFile,
                                                       {"#phi", 0.08},
                                                       {"#theta", 0.08},
                                                       {"q/p", 0.002},
-                                                      {"t", 0.005}};
+                                                      {"t", 5000}};
   // Pull range
-  double pullRange = 7;
+  double pullRange = 5;
 
   map<string, TH1F*> res_fit;
   map<string, TH1F*> pull_fit;
@@ -65,10 +66,10 @@ perigeeParamResolution(const std::string& inFile,
                              -1 * pullRange,
                              pullRange);
 
-    res_fit[par]->GetXaxis()->SetTitle(Form("r_{%s}", par.c_str()));
+    res_fit[par]->GetXaxis()->SetTitle(Form("r(%s)", par.c_str()));
     res_fit[par]->GetYaxis()->SetTitle("Entries");
-    pull_fit[par]->GetXaxis()->SetTitle(Form("pull_{%s}", par.c_str()));
-    pull_fit[par]->GetYaxis()->SetTitle("Entries");
+    pull_fit[par]->GetXaxis()->SetTitle(Form("pull(%s)", par.c_str()));
+    pull_fit[par]->GetYaxis()->SetTitle("Entries/ 0.1");
 
     // set style
     setHistStyle(res_fit[par], 1);
@@ -157,27 +158,43 @@ perigeeParamResolution(const std::string& inFile,
   }
 
   // plotting pull
-  TCanvas* c2 = new TCanvas("c2", "c2", 1200, 800);
+  TCanvas* c2 = new TCanvas("c2", "c2", 1200, 700);
   c2->Divide(3, 2);
   for (size_t ipar = 0; ipar < paramNames.size(); ipar++) {
     c2->cd(ipar + 1);
     pull_fit[paramNames.at(ipar)]->Draw("e");
-    
+     
     pull_fit[paramNames.at(ipar)]->Fit("gaussFit");
-    gaussFit->Draw("same");
+    if(ipar==0){
+      pull_fit[paramNames.at(ipar)]->GetXaxis()->SetTitle("pull(d_{0})");
+    } else if (ipar==1){
+      pull_fit[paramNames.at(ipar)]->GetXaxis()->SetTitle("pull(z_{0})");
+    }
+
+    //gaussFit->Draw("same");
     
-    //auto mean = gaussFit->GetParameter(1);
-    //auto mean_err = gaussFit->GetParError(1);
-    //auto sigma = gaussFit->GetParameter(2);
-    //auto sigma_err = gaussFit->GetParError(2);
+    auto mean = gaussFit->GetParameter(1);
+    auto mean_err = gaussFit->GetParError(1);
+    auto sigma = gaussFit->GetParameter(2);
+    auto sigma_err = gaussFit->GetParError(2);
     //std::cout<<"mean = " << mean <<", sigma = " << sigma << std::endl;
 
     int binmax     = pull_fit[paramNames.at(ipar)]->GetMaximumBin();
     int bincontent = pull_fit[paramNames.at(ipar)]->GetBinContent(binmax);
 
-    pull_fit[paramNames.at(ipar)]->GetYaxis()->SetRangeUser(0,
-                                                            bincontent * 1.2);
+    TLatex latex;
+    latex.SetTextSize(0.045);
+//    latex.DrawLatex(1.2, bincontent*1.2, Form("#font[2]{Mean = %.3f}", mean));
+//    latex.DrawLatex(1.2, bincontent*1.1, Form("#font[2]{Sigma = %.2f}", sigma));
+    latex.DrawLatex(-0.5, bincontent*1.2, Form("#mu = %.3f #pm %0.3f", mean, mean_err));
+    latex.DrawLatex(-0.5, bincontent*1.1, Form("#sigma = %.2f #pm %0.2f", sigma, sigma_err));
+    latex.SetTextFont(6);
+    latex.Draw();
 
+    pull_fit[paramNames.at(ipar)]->GetYaxis()->SetRangeUser(0,
+                                                            bincontent * 1.3);
+
+   
   }
 
   
