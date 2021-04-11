@@ -13,7 +13,7 @@ void setGraphStyle(TGraph*, short, short);
 //Option_t * 	option = "" 
 //)	
 
-void  plot() {
+void  plotTime() {
   gStyle->SetOptFit(0011);
   gStyle->SetOptStat(0000);
   gStyle->SetPadLeftMargin(0.12);
@@ -24,8 +24,8 @@ void  plot() {
   std::string filePath = "../../externals/gpuKFPerformance/data/timing";
   
   std::vector<std::string> fileNames={
-  "Results_timing_Haswell_customInverter_OMP_NumThreads_1.csv",
-  "Results_timing_Haswell_customInverter_OMP_NumThreads_60.csv",
+  "Results_timing_Haswell_CustomInverter_OMP_NumThreads_1.csv",
+  "Results_timing_Haswell_CustomInverter_OMP_NumThreads_60.csv",
   "Results_timing_Tesla_V100-SXM2-16GB_nStreams_1_gridSize_100000x1x1_blockSize_8x8x1_sharedMemory_0.csv",
   "Results_timing_Tesla_V100-SXM2-16GB_nStreams_1_gridSize_100000x1x1_blockSize_8x8x1_sharedMemory_1.csv",
   };
