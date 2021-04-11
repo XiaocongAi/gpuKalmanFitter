@@ -2,7 +2,7 @@
 
 if [ -z "$1" ]
   then
-    echo 1>&2 "Usage: $0 <EXECUTABLE> <MACHINE>, e.g. $0 <build>/Run/GPU/KalmanFitterGPUTest"
+    echo 1>&2 "Usage: $0 <EXECUTABLE>, e.g. $0 <build>/Run/GPU/KalmanFitterGPUTest"
   exit 1
 fi
 
@@ -31,8 +31,8 @@ for i in ${nTracks[@]}; do
 		for cnt in {1..10}; do
 			echo "Run $cnt for ${i} tracks with gridSize=${gridSizes[j]} and blockSize=${blockSizes[j]} and ${k} streams:"
                         
-			echo " 1 track per thread: $1 -t ${i} -e ${k} -d "gpu" -o 0 -g ${gridSizes[j]} -b ${blockSizes[j]}"
                         # 1 track per thread	
+			echo " 1 track per thread: $1 -t ${i} -e ${k} -d "gpu" -o 0 -g ${gridSizes[j]} -b ${blockSizes[j]}"
 			$1 -t ${i} -e ${k} -d "gpu" -o 0 -g ${gridSizes[j]} -b ${blockSizes[j]}
 	                
 			# 1 block per thread, always 8x8 threads per block	

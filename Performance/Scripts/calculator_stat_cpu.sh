@@ -16,11 +16,13 @@ fi
 precision=float
 
 #=======The Cori Haswell test===================
+#In case some renaming is needed
 machines=("Haswell_EigenInverter" "Haswell_CustomInverter")
 machineso=("Haswell_EigenInverter" "Haswell_CustomInverter")
 threads=(1 60)
 
 #=========The Cori KNL test====================
+#In case some renaming is needed
 #machines=("Knl_EigenInverter" "Knl_customInverter")
 #machineso=("KNL_EigenInverter" "KNL_CustomInverter")
 #threads=(1 250)
@@ -50,7 +52,7 @@ for ((m=0; m<${#machines[@]};++m)); do
 	echo "nTracks,time,time_low_error,time_high_error" > $output
 	for i in ${nTracks[@]}; do
 	        input=./${RAW_DATA}/Results_timing_${machines[m]}_nTracks_${i}_OMP_NumThreads_${threads[j]}.csv
-	        #input=./RAW_DATA/Results_timing_double_${machines[m]}_nTracks_${i}_OMP_NumThreads_${threads[j]}.csv
+	        #input=./${RAW_DATA}/Results_timing_double_${machines[m]}_nTracks_${i}_OMP_NumThreads_${threads[j]}.csv
                 
 		if [ ! -f ${input} ]; then 
 		  echo ${input} does not exit
