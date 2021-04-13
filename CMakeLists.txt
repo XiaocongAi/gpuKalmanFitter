@@ -25,7 +25,6 @@ check_language(CUDA)
 aux_source_directory(src/MagneticField LIB_SRC_BField)
 aux_source_directory(src/Plugins LIB_SRC_Plugins)
 
-find_package(ROOT)
 
 find_package(CUDA)
 message(${CUDA_TOOLKIT_INCLUDE})

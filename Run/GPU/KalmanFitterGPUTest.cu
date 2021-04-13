@@ -582,7 +582,6 @@ int main(int argc, char *argv[]) {
     std::cout << "INFO: Writing KF track fitting results" << std::endl;
     std::string stateFileName;
     std::string csvFileName;
-    std::string rootFileName;
 
     // The type of output parameters
     std::string state = smoothing ? "smoothed" : "filtered";
@@ -593,9 +592,6 @@ int main(int argc, char *argv[]) {
     csvFileName.append("fitted_");
     csvFileName.append("param");
 
-    rootFileName.append("fitted_");
-    rootFileName.append("param");
-
     // The type of machines
     std::string machine_prefix = useGPU ? "_" : "_semi_";
     stateFileName.append(machine_prefix);
@@ -604,25 +600,18 @@ int main(int argc, char *argv[]) {
     csvFileName.append(machine_prefix);
     csvFileName.append(machine);
 
-    rootFileName.append(machine_prefix);
-    rootFileName.append(machine);
-
     // The number of tracks
     stateFileName.append("_nTracks_");
     csvFileName.append("_nTracks_");
-    rootFileName.append("_nTracks_");
 
     // The type of the file written out
     stateFileName.append(std::to_string(nTracks)).append(".obj");
     csvFileName.append(std::to_string(nTracks)).append(".csv");
-    rootFileName.append(std::to_string(nTracks)).append(".root");
     writeStatesObj(fitStates, fitStatus, nTracks, nSurfaces, stateFileName,
                    state);
     // The fitted parameters are only available after smoothing
     if (smoothing) {
       writeParamsCsv(fitPars, fitStatus, nTracks, csvFileName);
-      writeParamsRoot(gctx, fitPars, fitStatus, validParticles, nTracks,
-                      rootFileName, "params");
     }
   }
 

@@ -1,5 +1,5 @@
 add_executable(KalmanFitterGPUTest KalmanFitterGPUTest.cu)
-target_link_libraries(KalmanFitterGPUTest Actscore  ROOT::Core ROOT::Hist ROOT::Tree)
+target_link_libraries(KalmanFitterGPUTest Actscore)
 
 target_include_directories(
   KalmanFitterGPUTest 
