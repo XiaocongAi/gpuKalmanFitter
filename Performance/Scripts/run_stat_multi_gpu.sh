@@ -12,7 +12,7 @@ echo "Start statistical runs for $1"
 nStreams=(1) 
 
 nTracks=(5 10 50 100 500 1000 5000 10000 50000 100000) 
-gridSizes=('5120')  #'100000')
+gridSizes=('5120') # '100000')
 blockSizes=( '8x8')
 sharedMemory=0
 
