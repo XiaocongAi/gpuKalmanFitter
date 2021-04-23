@@ -386,8 +386,7 @@ int main(int argc, char *argv[]) {
       GPUERRCHK(cudaStreamCreate(&stream[i]));
     }
 
-
-#pragma omp parallel for num_threads(nDevices) proc_bind(master) if (multiGpu)   	
+#pragma omp parallel for num_threads(nDevices) proc_bind(master) if (multiGpu)
     for (Size devId = 0; devId < nDevices; ++devId) {
       stats[devId].startDeviceTime = omp_get_wtime();
       // Set the corresponding device

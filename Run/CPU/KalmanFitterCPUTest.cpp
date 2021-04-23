@@ -180,7 +180,13 @@ int main(int argc, char *argv[]) {
   KalmanFitterType kFitter(propagator);
   std::vector<TSType> fittedStates(nSurfaces * nTracks);
   std::vector<Acts::BoundParameters<Acts::LineSurface>> fittedParams(nTracks);
+  std::vector<FitOptionsType> fitOptions(nTracks);
   bool fitStatus[nTracks];
+  // Initialize the fitOptions and fit status
+  for (int it = 0; it < nTracks; it++) {
+    fitOptions[it] = FitOptionsType(gctx, mctx, smoothing);
+    fitStatus[it] = false;
+  }
 
   int threads = 1;
   auto start_fit = std::chrono::high_resolution_clock::now();
@@ -193,10 +199,9 @@ int main(int argc, char *argv[]) {
     // The input source links wrapper
     auto sourcelinkTrack = Acts::CudaKernelContainer<Acts::PixelSourceLink>(
         sourcelinks.data() + it * nSurfaces, nSurfaces);
-    FitOptionsType kfOptions(gctx, mctx, smoothing);
-    kfOptions.referenceSurface = &startPars[it].referenceSurface();
+    fitOptions[it].referenceSurface = &startPars[it].referenceSurface();
     // Run the fit. The fittedStates will be changed here
-    auto status = kFitter.fit(sourcelinkTrack, startPars[it], kfOptions,
+    auto status = kFitter.fit(sourcelinkTrack, startPars[it], fitOptions[it],
                               kfResult, surfacePtrs, nSurfaces);
     // if (not status) {
     //  std::cout << "WARNING: fit failure for track " << it << std::endl;
