@@ -58,7 +58,7 @@ void logGPUInfo() {}
 int main(int argc, char *argv[]) {
   Size nTracks = 10000;
   Size nStreams = 1;
-  Size nThreads = 250;
+  Size nThreads = 60;
   Size nDevices = 1;
   // The number of navigation surfaces
   const Size nSurfaces = 10;

@@ -33,7 +33,7 @@ static void show_usage(std::string name) {
 
 int main(int argc, char *argv[]) {
   unsigned int nTracks = 10000;
-  unsigned int nThreads = 250;
+  unsigned int nThreads = 60;
   bool output = false;
   bool smoothing = true;
   std::string device;
