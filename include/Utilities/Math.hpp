@@ -111,4 +111,49 @@ ACTS_DEVICE_FUNC ActsMatrixX<P> calculateInverse(ActsMatrixX<P> m) {
 #endif
 }
 
+/*
+/// ----- block threads invert matrix -----------///
+template <typename T, typename P>
+ACTS_DEVICE_FUNC void invertElement(T* d_m, T* d_r, T invDet, int order, int i, int j) {
+    T minor = matMinor(d_m, order, j, i);
+    T sign = ((i + j) % 2 == 1) ? -1.0 : 1.0;
+    T cofactorM = minor * sign;
+
+    *(d_r + i * order + j) = static_cast<P>(invDet * cofactorM);
+}
+
+template <typename T, typename P>
+ACTS_DEVICE_FUNC void blockInvertKernel(T* globalM, T* r, int order) {
+
+    __shared__ T m[];
+
+    int i = threadIdx.x;
+    int j = threadIdx.y;
+
+    if (i < order && j < order) {
+
+        // copy into shared memory
+        m[i * order + j] = static_cast<T>(globalM[i * order + j]);
+        __syncthreads();
+
+        // compute the invert and populate result
+        T det = determinant(m, order);
+        T invDet = 1.0 / det;
+        invertElement(m, r, invDet, order, i, j);
+        __syncthreads();
+    }
+}
+
+template <typename P, typename T = double>
+ACTS_DEVICE_FUNC ActsMatrixX<P> calculateInverse(ActsMatrixX<P> m) {
+#ifdef __CUDA_ARCH__
+  ActsMatrixX<P> result(m.rows(), m.cols());
+  blockInvertKernel<T, P>(&m, &result, m.rows());
+  return result;
+#else
+return m.inverse();
+#endif
+}
+/// end block threads invert matrix ///
+*/
 } // namespace Acts
